@@ -90,15 +90,6 @@ dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
 dotnet new cheapavaloniablazor -n TestApp
 ```
 
-### Publishing to NuGet
-
-```bash
-# Get an API key from nuget.org
-# Then publish:
-nuget push CheapAvaloniaBlazor.Template.1.0.0.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey YOUR_API_KEY
-```
-
----
 
 ## 📁 Project Structure
 
