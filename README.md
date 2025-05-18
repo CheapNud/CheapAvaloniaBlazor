@@ -26,7 +26,7 @@ An experimental project exploring integration between **Blazor Server**, **Avalo
 ## Directory Structure
 
 ```
-BlazorDesktopApp.Template/
+CheapAvaloniaBlazor/
 ├── .template.config/
 │   └── template.json                   # Dotnet template configuration
 ├── Your existing project files...
