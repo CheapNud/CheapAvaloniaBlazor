@@ -1,6 +1,6 @@
 # CheapAvaloniaBlazor
 
-An experimental project exploring integration between **Blazor Server**, **Avalonia**, **MudBlazor**, and **Photino** to build cross-platform desktop and web UIs using a shared .NET codebase.
+An experimental template project exploring integration between **Blazor Server**, **Avalonia**, **MudBlazor**, and **Photino** to build cross-platform desktop and web UIs using a shared .NET codebase.
 
 > ⚠️ **Early Stage Development:** This project is in the very early stages. Expect rapid changes, incomplete features, and evolving structure. Contributions and ideas are welcome!
 
