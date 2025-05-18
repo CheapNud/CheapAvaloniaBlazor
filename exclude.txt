@@ -1,0 +1,15 @@
+build\
+.vs\
+bin\
+obj\
+*.nupkg
+*.user
+*.vstemplate
+*.nuspec
+build-template.bat
+exclude.txt
+README.md
+*.sln
+.git\
+.gitignore
+.gitattributes
