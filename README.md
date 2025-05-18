@@ -30,7 +30,7 @@ CheapAvaloniaBlazor/
 ├── .template.config/
 │   └── template.json                   # Dotnet template configuration
 ├── Your existing project files...
-├── BlazorDesktopApp.Template.nuspec    # NuGet package spec
+├── CheapAvaloniaBlazor.nuspec    # NuGet package spec
 ├── build-template.bat                  # Build script (Windows)
 ├── build-template.ps1                  # Build script (PowerShell)
 ├── exclude.txt                         # Files to exclude from template
