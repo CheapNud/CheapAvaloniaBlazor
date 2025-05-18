@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>BlazorDesktopApp.Template</id>
+    <version>1.0.0</version>
+    <title>Blazor Desktop App Project Template</title>
+    <authors>$author$</authors>
+    <description>A project template for creating cross-platform desktop applications using Blazor Server, MudBlazor, Avalonia, and Photino</description>
+    <summary>Blazor Server + MudBlazor + Avalonia + Photino desktop app template</summary>
+    <projectUrl>https://github.com/$username$/BlazorDesktopApp.Template</projectUrl>
+    <licenseUrl>https://github.com/$username$/BlazorDesktopApp.Template/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>blazor mudblazor avalonia photino desktop template</tags>
+    <packageTypes>
+      <packageType name="Template" />
+    </packageTypes>
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Avalonia" version="11.3.0" />
+        <dependency id="Avalonia.Desktop" version="11.3.0" />
+        <dependency id="Avalonia.Themes.Fluent" version="11.3.0" />
+        <dependency id="Avalonia.Fonts.Inter" version="11.3.0" />
+        <dependency id="MudBlazor" version="8.6.0" />
+        <dependency id="Photino.NET" version="4.0.16" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="content\**\*" target="content" />
+    <file src="templates\**\*" target="contentFiles/any/any/templates" />
+  </files>
+</package>

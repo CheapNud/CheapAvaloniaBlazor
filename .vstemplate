@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
+  <TemplateData>
+    <Name>Blazor Desktop App</Name>
+    <Description>A cross-platform desktop application using Blazor Server, MudBlazor, Avalonia, and Photino</Description>
+    <Icon>icon.ico</Icon>
+    <ProjectType>CSharp</ProjectType>
+    <RequiredFrameworkVersion>8.0</RequiredFrameworkVersion>
+    <SortOrder>1000</SortOrder>
+    <TemplateID>BlazorDesktopApp</TemplateID>
+    <CreateNewFolder>true</CreateNewFolder>
+    <DefaultName>BlazorDesktopApp</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <LocationField>Enabled</LocationField>
+    <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
+    <CreateInPlace>true</CreateInPlace>
+    <SupportsCodeSeparation>true</SupportsCodeSeparation>
+    <SupportsLanguageDropDown>false</SupportsLanguageDropDown>
+    <TargetFrameworkMoniker>.NETCoreApp,Version=v8.0</TargetFrameworkMoniker>
+  </TemplateData>
+  <TemplateContent>
+    <Project File="$projectname$.csproj" ReplaceParameters="true">
+      <ProjectItem ReplaceParameters="true" TargetFileName="Program.cs">Program.cs</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="App.axaml">App.axaml</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="App.axaml.cs">App.axaml.cs</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="MainWindow.axaml">MainWindow.axaml</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="MainWindow.axaml.cs">MainWindow.axaml.cs</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="app.manifest">app.manifest</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName=".gitignore">.gitignore</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName=".gitattributes">.gitattributes</ProjectItem>
+
+      <Folder Name="Components" TargetFolderName="Components">
+        <ProjectItem ReplaceParameters="true" TargetFileName="_Imports.razor">Components\_Imports.razor</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="Routes.razor">Components\Routes.razor</ProjectItem>
+
+        <Folder Name="Layout" TargetFolderName="Layout">
+          <ProjectItem ReplaceParameters="true" TargetFileName="MainLayout.razor">Components\Layout\MainLayout.razor</ProjectItem>
+          <ProjectItem ReplaceParameters="false" TargetFileName="MainLayout.razor.css">Components\Layout\MainLayout.razor.css</ProjectItem>
+          <ProjectItem ReplaceParameters="true" TargetFileName="NavMenu.razor">Components\Layout\NavMenu.razor</ProjectItem>
+          <ProjectItem ReplaceParameters="false" TargetFileName="NavMenu.razor.css">Components\Layout\NavMenu.razor.css</ProjectItem>
+        </Folder>
+
+        <Folder Name="Pages" TargetFolderName="Pages">
+          <ProjectItem ReplaceParameters="true" TargetFileName="Home.razor">Components\Pages\Home.razor</ProjectItem>
+        </Folder>
+      </Folder>
+
+      <Folder Name="Pages" TargetFolderName="Pages">
+        <ProjectItem ReplaceParameters="true" TargetFileName="_Host.cshtml">Pages\_Host.cshtml</ProjectItem>
+        <Folder Name="Shared" TargetFolderName="Shared">
+          <ProjectItem ReplaceParameters="true" TargetFileName="_Layout.cshtml">Pages\Shared\_Layout.cshtml</ProjectItem>
+        </Folder>
+      </Folder>
+
+      <Folder Name="Properties" TargetFolderName="Properties">
+        <ProjectItem ReplaceParameters="true" TargetFileName="launchSettings.json">Properties\launchSettings.json</ProjectItem>
+      </Folder>
+
+      <Folder Name="wwwroot" TargetFolderName="wwwroot">
+        <ProjectItem ReplaceParameters="true" TargetFileName="index.html">wwwroot\index.html</ProjectItem>
+        <Folder Name="css" TargetFolderName="css">
+          <ProjectItem ReplaceParameters="false" TargetFileName="app.css">wwwroot\css\app.css</ProjectItem>
+        </Folder>
+      </Folder>
+    </Project>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>Microsoft.VisualStudio.TemplateWizard</Assembly>
+    <FullClassName>Microsoft.VisualStudio.TemplateWizard.DefaultTemplateWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

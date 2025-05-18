@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Your Name",
+  "classifications": [ "Desktop", "Blazor", "MudBlazor", "Avalonia", "Photino" ],
+  "identity": "BlazorDesktopApp.Template",
+  "name": "Blazor Desktop App",
+  "shortName": "blazordesktop",
+  "description": "A cross-platform desktop application using Blazor Server, MudBlazor, Avalonia, and Photino",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "CheapAvaloniaBlazor",
+  "preferNameDirectory": true,
+  "guids": [
+    "BB492C9B-DEDC-4B82-BE4B-371BC850C25F"
+  ],
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework for the project.",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": "Target .NET 8.0"
+        }
+      ],
+      "replaces": "net8.0",
+      "defaultValue": "net8.0"
+    },
+    "SkipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project after creation.",
+      "defaultValue": "false"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(!SkipRestore)",
+          "exclude": [ "**/*.csproj" ]
+        }
+      ]
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!SkipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}
