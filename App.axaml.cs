@@ -77,7 +77,7 @@ public partial class App : Application
             // Map Blazor Hub
             _blazorApp.MapBlazorHub();
             _blazorApp.MapRazorPages();
-            _blazorApp.MapFallbackToPage("/_Host");
+            _blazorApp.MapFallbackToPage("/Components/_Host");
 
             System.Diagnostics.Debug.WriteLine($"Starting Blazor server at {BlazorUrl}");
 

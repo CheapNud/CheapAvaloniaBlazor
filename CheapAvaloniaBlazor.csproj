@@ -26,8 +26,4 @@
     <PackageReference Include="Photino.NET" Version="4.0.16" />
 
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Components\Shared\" />
-  </ItemGroup>
 </Project>
