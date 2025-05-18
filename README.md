@@ -22,16 +22,3 @@ An experimental project exploring integration between **Blazor Server**, **Avalo
 - Showcase the flexibility of **.NET 8** and **Blazor** for cross-platform development.
 
 ---
-
-## 🔧 Getting Started
-
-> **Prerequisites:**
->
-> - [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download)
-> - Git
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/CheapNud/CheapAvaloniaBlazor.git
-cd CheapAvaloniaBlazor
