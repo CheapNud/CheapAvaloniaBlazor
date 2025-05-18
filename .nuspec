@@ -3,12 +3,11 @@
   <metadata>
     <id>CheapAvaloniaBlazor</id>
     <version>1.0.0</version>
-    <title>Blazor Desktop App Project Template</title>
-    <authors>$author$</authors>
+    <title>CheapAvaloniaBlazor Project Template</title>
+    <authors>YourName</authors>
     <description>A project template for creating cross-platform desktop applications using Blazor Server, MudBlazor, Avalonia, and Photino</description>
     <summary>Blazor Server + MudBlazor + Avalonia + Photino desktop app template</summary>
-    <projectUrl>https://github.com/$username$/CheapAvaloniaBlazor</projectUrl>
-    <licenseUrl>https://github.com/$username$/CheapAvaloniaBlazor/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/yourusername/CheapAvaloniaBlazor</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <tags>blazor mudblazor avalonia photino desktop template</tags>
     <packageTypes>
@@ -27,6 +26,5 @@
   </metadata>
   <files>
     <file src="content\**\*" target="content" />
-    <file src="templates\**\*" target="contentFiles/any/any/templates" />
   </files>
 </package>

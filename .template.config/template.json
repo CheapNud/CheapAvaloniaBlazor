@@ -2,9 +2,9 @@
   "$schema": "http://json.schemastore.org/template",
   "author": "Your Name",
   "classifications": [ "Desktop", "Blazor", "MudBlazor", "Avalonia", "Photino" ],
-  "identity": "BlazorDesktopApp.Template",
-  "name": "Blazor Desktop App",
-  "shortName": "blazordesktop",
+  "identity": "CheapAvaloniaBlazor",
+  "name": "CheapAvaloniaBlazor",
+  "shortName": "cheapavaloniablazor",
   "description": "A cross-platform desktop application using Blazor Server, MudBlazor, Avalonia, and Photino",
   "tags": {
     "language": "C#",

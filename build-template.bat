@@ -1,5 +1,5 @@
 @echo off
-echo Building CheapAvaloniaBlazor Package...
+echo Building CheapAvaloniaBlazor Template Package...
 
 REM Clean any existing build artifacts
 if exist "nupkg" rmdir /s /q nupkg
@@ -21,16 +21,16 @@ copy ".template.config\template.json" "nupkg\content\.template.config\"
 
 REM Build NuGet package
 echo Building NuGet package...
-nuget pack CheapAvaloniaBlazor.nuspec -OutputDirectory .
+nuget pack CheapAvaloniaBlazor.Template.nuspec -OutputDirectory .
 
 echo.
 echo Package created successfully!
 echo.
 echo To test locally:
-echo   dotnet new install CheapAvaloniaBlazor.1.0.0.nupkg
-echo   dotnet new blazordesktop -n MyTestApp
+echo   dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
+echo   dotnet new cheapavaloniablazor -n MyTestApp
 echo.
 echo To publish:
-echo   nuget push CheapAvaloniaBlazor.1.0.0.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey YOUR_API_KEY
+echo   nuget push CheapAvaloniaBlazor.Template.1.0.0.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey YOUR_API_KEY
 echo.
 pause
