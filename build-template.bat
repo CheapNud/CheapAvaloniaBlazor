@@ -1,29 +1,36 @@
 @echo off
-echo Building Blazor Desktop App Template Package...
+echo Building CheapAvaloniaBlazor Package...
 
 REM Clean any existing build artifacts
-if exist "build" rmdir /s /q build
+if exist "nupkg" rmdir /s /q nupkg
 if exist "*.nupkg" del *.nupkg
 
-REM Create directory structure
-mkdir build
-mkdir build\content
-mkdir build\contentFiles\any\any\templates
-mkdir build\.template.config
+REM Create package directory
+mkdir nupkg
+mkdir nupkg\content
 
-REM Copy template files
-xcopy "." "build\content\" /s /e /exclude:exclude.txt
+REM Copy all files except excluded ones
+echo Copying template files...
+robocopy . nupkg\content /E /XD .git bin obj .vs nupkg /XF *.nupkg *.user exclude.txt build-template.bat build-template.ps1 *.nuspec README.md
 
-REM Copy template configuration
-copy ".template.config\template.json" "build\.template.config\"
+REM Create the .template.config directory if it doesn't exist
+if not exist "nupkg\content\.template.config" mkdir "nupkg\content\.template.config"
 
-REM Copy project template files
-copy "MyTemplate.vstemplate" "build\contentFiles\any\any\templates\"
+REM Ensure template.json is copied
+copy ".template.config\template.json" "nupkg\content\.template.config\"
 
 REM Build NuGet package
+echo Building NuGet package...
 nuget pack CheapAvaloniaBlazor.nuspec -OutputDirectory .
 
+echo.
 echo Package created successfully!
-echo To install as dotnet template: dotnet new install CheapAvaloniaBlazor.1.0.0.nupkg
-echo To use template: dotnet new blazordesktop -n MyNewApp
+echo.
+echo To test locally:
+echo   dotnet new install CheapAvaloniaBlazor.1.0.0.nupkg
+echo   dotnet new blazordesktop -n MyTestApp
+echo.
+echo To publish:
+echo   nuget push CheapAvaloniaBlazor.1.0.0.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey YOUR_API_KEY
+echo.
 pause
