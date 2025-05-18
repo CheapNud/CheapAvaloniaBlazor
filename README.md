@@ -164,6 +164,7 @@ dotnet new cheapavaloniablazor -n MyProject
 - **Complete desktop application** ready to run
 - **MudBlazor components** pre-configured
 - **Responsive layout** with navigation
+- **Hot reload** support for development
 - **Cross-platform** deployment capability
 - **Modern .NET 8** target framework
 
