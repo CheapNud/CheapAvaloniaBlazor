@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <id>BlazorDesktopApp.Template</id>
+    <id>CheapAvaloniaBlazor</id>
     <version>1.0.0</version>
     <title>Blazor Desktop App Project Template</title>
     <authors>$author$</authors>
     <description>A project template for creating cross-platform desktop applications using Blazor Server, MudBlazor, Avalonia, and Photino</description>
     <summary>Blazor Server + MudBlazor + Avalonia + Photino desktop app template</summary>
-    <projectUrl>https://github.com/$username$/BlazorDesktopApp.Template</projectUrl>
-    <licenseUrl>https://github.com/$username$/BlazorDesktopApp.Template/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/$username$/CheapAvaloniaBlazor</projectUrl>
+    <licenseUrl>https://github.com/$username$/CheapAvaloniaBlazor/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <tags>blazor mudblazor avalonia photino desktop template</tags>
     <packageTypes>

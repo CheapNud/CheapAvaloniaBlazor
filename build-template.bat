@@ -21,9 +21,9 @@ REM Copy project template files
 copy "MyTemplate.vstemplate" "build\contentFiles\any\any\templates\"
 
 REM Build NuGet package
-nuget pack BlazorDesktopApp.Template.nuspec -OutputDirectory .
+nuget pack CheapAvaloniaBlazor.nuspec -OutputDirectory .
 
 echo Package created successfully!
-echo To install as dotnet template: dotnet new install BlazorDesktopApp.Template.1.0.0.nupkg
+echo To install as dotnet template: dotnet new install CheapAvaloniaBlazor.1.0.0.nupkg
 echo To use template: dotnet new blazordesktop -n MyNewApp
 pause

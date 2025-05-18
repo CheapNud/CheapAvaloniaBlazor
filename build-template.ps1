@@ -42,10 +42,10 @@ Copy-Item ".template.config\template.json" "build\.template.config\"
 Copy-Item "MyTemplate.vstemplate" "build\contentFiles\any\any\templates\"
 
 # Build NuGet package
-& nuget pack BlazorDesktopApp.Template.nuspec -OutputDirectory .
+& nuget pack CheapAvaloniaBlazor.nuspec -OutputDirectory .
 
 Write-Host "Package created successfully!" -ForegroundColor Green
-Write-Host "To install as dotnet template: dotnet new install BlazorDesktopApp.Template.1.0.0.nupkg" -ForegroundColor Yellow
+Write-Host "To install as dotnet template: dotnet new install CheapAvaloniaBlazor.1.0.0.nupkg" -ForegroundColor Yellow
 Write-Host "To use template: dotnet new blazordesktop -n MyNewApp" -ForegroundColor Yellow
 
 Read-Host "Press Enter to continue"

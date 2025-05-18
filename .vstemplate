@@ -7,9 +7,9 @@
     <ProjectType>CSharp</ProjectType>
     <RequiredFrameworkVersion>8.0</RequiredFrameworkVersion>
     <SortOrder>1000</SortOrder>
-    <TemplateID>BlazorDesktopApp</TemplateID>
+    <TemplateID>CheapAvaloniaBlazor</TemplateID>
     <CreateNewFolder>true</CreateNewFolder>
-    <DefaultName>BlazorDesktopApp</DefaultName>
+    <DefaultName>CheapAvaloniaBlazor</DefaultName>
     <ProvideDefaultName>true</ProvideDefaultName>
     <LocationField>Enabled</LocationField>
     <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
