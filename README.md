@@ -69,10 +69,11 @@ If you want to modify or rebuild the template:
 ### Prerequisites
 
 - .NET 8.0 SDK
-- Windows (for the build scripts)
+- Windows (for Windows build script) or Linux/macOS (for Unix build script)
 
 ### Build Steps
 
+#### Windows
 ```bash
 # 1. Clone/modify the template source
 git clone https://github.com/yourusername/CheapAvaloniaBlazor.git
@@ -83,13 +84,33 @@ cd CheapAvaloniaBlazor
 # - Update version in both template.json and the build script
 
 # 3. Build the template package
-.\build-template-fixed.bat
+.\build-template.bat
 
 # 4. Test locally
 dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
 dotnet new cheapavaloniablazor -n TestApp
 ```
 
+#### Linux / macOS
+```bash
+# 1. Clone/modify the template source
+git clone https://github.com/yourusername/CheapAvaloniaBlazor.git
+cd CheapAvaloniaBlazor
+
+# 2. Make the script executable
+chmod +x build-template.sh
+
+# 3. Build the template package
+./build-template.sh
+
+# 4. Test locally
+dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
+dotnet new cheapavaloniablazor -n TestApp
+```
+
+> ⚠️ **Note:** The Linux/macOS build script (`build-template.sh`) has not been thoroughly tested yet. If you encounter issues, please report them or use the Windows script with WSL.
+
+---
 
 ## 📁 Project Structure
 
@@ -101,12 +122,11 @@ MyAwesomeApp/
 │   ├── Layout/
 │   │   ├── MainLayout.razor      # Main application layout
 │   │   └── NavMenu.razor         # Navigation menu
-│   └── Pages/
-│       └── Home.razor            # Homepage component
-├── Pages/
-│   ├── Shared/
-│   │   └── _Layout.cshtml        # Server-side layout
-│   └── _Host.cshtml              # Blazor Server host page
+│   ├── Pages/
+│   │   └── Home.razor            # Homepage component
+│   ├── _Host.cshtml              # Blazor Server host page
+│   ├── _Imports.razor            # Global imports for components
+│   └── Routes.razor              # Application routing configuration
 ├── wwwroot/
 │   └── css/app.css               # Custom styles
 ├── App.axaml                     # Avalonia application
@@ -172,7 +192,7 @@ dotnet new cheapavaloniablazor -n MyProject
 - Run `dotnet restore` in the project directory
 
 **Photino window doesn't open?**
-- Check if ports 5000 is available
+- Check if port 5000 is available
 - Look for debug output in Visual Studio Output window
 
 ---

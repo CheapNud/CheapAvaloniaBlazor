@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -77,7 +78,7 @@ public partial class App : Application
             // Map Blazor Hub
             _blazorApp.MapBlazorHub();
             _blazorApp.MapRazorPages();
-            _blazorApp.MapFallbackToPage("/Components/_Host");
+            _blazorApp.MapFallbackToPage("/_Host");
 
             System.Diagnostics.Debug.WriteLine($"Starting Blazor server at {BlazorUrl}");
 
@@ -94,6 +95,11 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
+        services.Configure<RazorPagesOptions>(options =>
+        {
+            options.RootDirectory = "/Components";
+        });
+
         // Register MudBlazor services
         services.AddMudServices(config =>
         {
