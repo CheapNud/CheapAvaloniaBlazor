@@ -22,8 +22,10 @@
 
     <!-- MudBlazor -->
     <PackageReference Include="MudBlazor" Version="8.6.0" />
-    <!-- Photino.NET - Best cross-platform WebView -->
+    <!-- Photino.NET - Manual native WebView -->
     <PackageReference Include="Photino.NET" Version="4.0.16" />
+    <!-- WebView.Avalonia - Community WebView fallback -->
+    <PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
 
   </ItemGroup>
 </Project>

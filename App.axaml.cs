@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.AspNetCore.Builder;
@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace CheapAvaloniaBlazor;
@@ -17,35 +19,100 @@ namespace CheapAvaloniaBlazor;
 public partial class App : Application
 {
     private WebApplication? _blazorApp;
-    private const int PORT = 5000;
+    private static int _currentPort = 5000;
 
+    public static App Instance { get; private set; } = null!;
     public static IServiceProvider? Services { get; private set; }
-    public static string BlazorUrl => $"http://localhost:{PORT}";
+    public static string BlazorUrl => $"http://localhost:{_currentPort}";
     public static bool IsBlazorServerReady { get; private set; } = false;
+
+    private static int FindAvailablePort(int startPort = 5000)
+    {
+        for (int port = startPort; port <= startPort + 100; port++)
+        {
+            try
+            {
+                using var listener = new TcpListener(IPAddress.Loopback, port);
+                listener.Start();
+                listener.Stop();
+                System.Diagnostics.Debug.WriteLine($"Found available port: {port}");
+                return port;
+            }
+            catch (SocketException)
+            {
+                // Port is in use, try next one
+                continue;
+            }
+        }
+        throw new Exception("No available ports found in range");
+    }
+
+    public static void ResetBlazorServer()
+    {
+        IsBlazorServerReady = false;
+        _currentPort = FindAvailablePort();
+        System.Diagnostics.Debug.WriteLine($"Reset Blazor server to port: {_currentPort}");
+    }
 
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        Instance = this; // Set instance for debug window
 
-        // Start the Blazor server immediately
-        _ = Task.Run(StartBlazorServer);
+        // Find an available port on startup
+        ResetBlazorServer();
     }
 
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Log platform information for debugging
+            PlatformHelper.LogPlatformInfo();
+
+            // Check if we're in debug mode
+#if DEBUG
+            // Show debug strategy selection window
+            System.Diagnostics.Debug.WriteLine("Debug mode: Showing strategy selection window");
+            desktop.MainWindow = new DebugStrategyWindow();
+#else
+            // Production mode: Use automatic strategy selection
+            var strategy = PlatformHelper.GetRecommendedWebViewStrategy();
+            System.Diagnostics.Debug.WriteLine($"Primary strategy: {strategy}");
+
+            // Use Avalonia with multi-tier fallback (Photino.NET -> WebView.Avalonia -> Embedded Browser)
+            System.Diagnostics.Debug.WriteLine("Using Avalonia multi-tier fallback mode");
             desktop.MainWindow = new MainWindow();
+            _ = Task.Run(StartBlazorServer);
+#endif
+
             desktop.Exit += OnExit;
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
+    public async Task StartBlazorServerForFallback()
+    {
+        await StartBlazorServer();
+    }
+
     private async Task StartBlazorServer()
     {
         try
         {
+            // Stop any existing server first
+            if (_blazorApp != null)
+            {
+                await _blazorApp.StopAsync();
+                await _blazorApp.DisposeAsync();
+                _blazorApp = null;
+                IsBlazorServerReady = false;
+            }
+
+            // Find a new available port
+            _currentPort = FindAvailablePort(_currentPort);
+
             var builder = WebApplication.CreateBuilder();
 
             // Configure services for Blazor Server
@@ -90,6 +157,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to start Blazor server: {ex}");
+            IsBlazorServerReady = false;
         }
     }
 
