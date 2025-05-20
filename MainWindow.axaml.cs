@@ -237,13 +237,9 @@ public partial class MainWindow : Window
 
         // Determine the reason for fallback
         string reasonText;
-        if (!PlatformHelper.IsPhotinoSupported())
+        if (!PlatformHelper.IsPhotinoNetSupported() || !_usePhotino)
         {
-            reasonText = $"Native WebView not supported: {PlatformHelper.GetPhotinoUnsupportedReason()}";
-        }
-        else if (!PlatformHelper.IsPhotinoNetSupported() || !_usePhotino)
-        {
-            reasonText = "Manual Photino.NET initialization failed";
+            reasonText = $"Photino.NET not supported: {PlatformHelper.GetPhotinoUnsupportedReason()}";
         }
         else if (!PlatformHelper.IsAvaloniaWebViewSupported() || !_useAvaloniaWebView)
         {
@@ -448,7 +444,7 @@ public partial class MainWindow : Window
         Content = fallbackPanel;
     }
 
-    private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    private void OnWindowClosing(object? sender, Avalonia.Controls.WindowClosingEventArgs e)
     {
         if (_isPhotinoWindowOpen)
         {

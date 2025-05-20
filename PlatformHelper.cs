@@ -7,7 +7,7 @@ namespace CheapAvaloniaBlazor;
 
 public static class PlatformHelper
 {
-    public static bool IsPhotinoSupported()
+    public static bool IsPhotinoNetSupported()
     {
         try
         {
@@ -31,12 +31,6 @@ public static class PlatformHelper
         {
             return false;
         }
-    }
-
-    public static bool IsPhotinoNetSupported()
-    {
-        // Similar check to IsPhotinoSupported but specifically for manual Photino.NET
-        return IsPhotinoSupported(); // Same underlying requirements
     }
 
     private static bool CheckLinuxPhotinoSupport()
@@ -191,14 +185,9 @@ public static class PlatformHelper
 
     public static string GetRecommendedWebViewStrategy()
     {
-        if (IsPhotinoSupported())
-        {
-            return "Photino.Blazor"; // Try Photino.Blazor first (integrated hosting)
-        }
-
         if (IsPhotinoNetSupported())
         {
-            return "Photino.NET"; // Then manual Photino
+            return "Photino.NET";
         }
 
         if (IsAvaloniaWebViewSupported())
@@ -213,10 +202,9 @@ public static class PlatformHelper
     {
         var strategies = new List<string>();
 
-        if (IsPhotinoSupported())
+        if (IsPhotinoNetSupported())
         {
-            strategies.Add("Photino.Blazor");
-            strategies.Add("Photino.NET"); // Both Photino approaches available
+            strategies.Add("Photino.NET");
         }
 
         if (IsAvaloniaWebViewSupported())
