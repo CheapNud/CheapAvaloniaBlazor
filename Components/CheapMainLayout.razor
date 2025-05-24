@@ -1,0 +1,164 @@
+﻿@* CheapMainLayout.razor *@
+@inherits LayoutComponentBase
+@inject IDesktopInteropService Desktop
+@inject IJSRuntime JS
+
+<div class="cheap-blazor-container">
+    <div class="cheap-blazor-titlebar" @ondblclick="ToggleMaximize">
+        <div class="titlebar-drag-region">
+            <span class="titlebar-title">@Title</span>
+        </div>
+        <div class="titlebar-buttons">
+            <button class="titlebar-button" @onclick="MinimizeWindow" title="Minimize">
+                <svg width="10" height="1" viewBox="0 0 10 1">
+                    <rect width="10" height="1" fill="currentColor" />
+                </svg>
+            </button>
+            <button class="titlebar-button" @onclick="ToggleMaximize" title="@(_isMaximized ? "Restore" : "Maximize")">
+                @if (_isMaximized)
+                {
+                    <svg width="10" height="10" viewBox="0 0 10 10">
+                        <path d="M2,0 L8,0 L8,6 L2,6 Z M0,2 L0,8 L6,8 L6,2" stroke="currentColor" fill="none" />
+                    </svg>
+                }
+                else
+                {
+                    <svg width="10" height="10" viewBox="0 0 10 10">
+                        <rect width="10" height="10" stroke="currentColor" fill="none" />
+                    </svg>
+                }
+            </button>
+            <button class="titlebar-button titlebar-close" @onclick="CloseWindow" title="Close">
+                <svg width="10" height="10" viewBox="0 0 10 10">
+                    <path d="M0,0 L10,10 M10,0 L0,10" stroke="currentColor" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="cheap-blazor-content">
+        @Body
+    </div>
+</div>
+
+<style>
+    .cheap-blazor-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .cheap-blazor-titlebar {
+        height: 32px;
+        background: #2d2d30;
+        color: #cccccc;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+        -webkit-app-region: drag;
+    }
+
+    .titlebar-drag-region {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+    }
+
+    .titlebar-title {
+        font-size: 13px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .titlebar-buttons {
+        display: flex;
+        height: 100%;
+        -webkit-app-region: no-drag;
+    }
+
+    .titlebar-button {
+        width: 46px;
+        height: 100%;
+        border: none;
+        background: transparent;
+        color: #cccccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+
+    .titlebar-button:hover {
+        background: #3d3d40;
+    }
+
+    .titlebar-button:active {
+        background: #4d4d50;
+    }
+
+    .titlebar-close:hover {
+        background: #e81123;
+        color: white;
+    }
+
+    .cheap-blazor-content {
+        flex: 1;
+        overflow: auto;
+        background: white;
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .cheap-blazor-content {
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Blazor Desktop App";
+
+    private bool _isMaximized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize JavaScript interop
+            await JS.InvokeVoidAsync("cheapBlazor.initialize");
+
+            // Get initial window state
+            var state = await Desktop.GetWindowStateAsync();
+            _isMaximized = state == WindowState.Maximized;
+        }
+    }
+
+    private async Task MinimizeWindow()
+    {
+        await Desktop.MinimizeWindowAsync();
+    }
+
+    private async Task ToggleMaximize()
+    {
+        if (_isMaximized)
+        {
+            await Desktop.RestoreWindowAsync();
+        }
+        else
+        {
+            await Desktop.MaximizeWindowAsync();
+        }
+        _isMaximized = !_isMaximized;
+    }
+
+    private async Task CloseWindow()
+    {
+        // You might want to add a confirmation dialog here
+        await JS.InvokeVoidAsync("cheapBlazor.closeWindow");
+    }
+}

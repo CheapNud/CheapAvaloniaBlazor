@@ -1,0 +1,19 @@
+<!-- build/CheapAvaloniaBlazor.props -->
+<Project>
+  <PropertyGroup>
+    <!-- Enable Razor compilation in consuming projects -->
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <EnableDefaultRazorComponentItems>true</EnableDefaultRazorComponentItems>
+    
+    <!-- Default settings for desktop apps -->
+    <OutputType Condition="'$(OutputType)' == ''">WinExe</OutputType>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Ensure Avalonia resources are properly included -->
+    <AvaloniaResource Include="Assets\**" Condition="Exists('Assets')" />
+  </ItemGroup>
+</Project>
