@@ -37,6 +37,7 @@
     <!-- Core Dependencies -->
     <PackageReference Include="Avalonia" Version="11.3.0" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
+    <PackageReference Include="MudBlazor" Version="8.7.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
 
     <!-- ASP.NET Core for Blazor -->

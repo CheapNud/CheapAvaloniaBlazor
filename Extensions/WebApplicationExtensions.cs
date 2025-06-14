@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using CheapAvaloniaBlazor.Hosting;
 using CheapAvaloniaBlazor.Windows;
 
 namespace CheapAvaloniaBlazor.Extensions
