@@ -157,4 +157,62 @@ public class CheapAvaloniaBlazorOptions
     /// Custom JavaScript to inject into the web view
     /// </summary>
     public string? CustomJavaScript { get; set; }
+
+    /// <summary>
+    /// Custom static file options
+    /// </summary>
+    public StaticFileOptions? CustomStaticFileOptions { get; set; }
+
+    /// <summary>
+    /// Maximum SignalR message size
+    /// </summary>
+    public long? MaximumReceiveMessageSize { get; set; }
+
+    /// <summary>
+    /// Enable automatic reconnect
+    /// </summary>
+    public bool EnableAutoReconnect { get; set; } = true;
+
+    /// <summary>
+    /// Reconnect interval in seconds
+    /// </summary>
+    public int[] ReconnectIntervals { get; set; } = { 0, 2, 10, 30 };
+
+    /// <summary>
+    /// Enable hot reload in development
+    /// </summary>
+    public bool EnableHotReload { get; set; } = true;
+
+    /// <summary>
+    /// Custom root component type
+    /// </summary>
+    public Type? RootComponentType { get; set; }
+
+    /// <summary>
+    /// Additional assemblies for component discovery
+    /// </summary>
+    public List<System.Reflection.Assembly> AdditionalAssemblies { get; set; } = new();
+
+    /// <summary>
+    /// Create default options
+    /// </summary>
+    public static CheapAvaloniaBlazorOptions CreateDefault()
+    {
+        return new CheapAvaloniaBlazorOptions
+        {
+            Port = 5000,
+            UseHttps = false,
+            EnableConsoleLogging = false,
+            DefaultWindowTitle = "Blazor Desktop App",
+            DefaultWindowWidth = 1200,
+            DefaultWindowHeight = 800,
+            CenterWindow = true,
+            Resizable = true,
+            EnableDevTools = false,
+            EnableContextMenu = true,
+            GrantBrowserPermissions = true,
+            EnableAutoReconnect = true,
+            EnableHotReload = true
+        };
+    }
 }

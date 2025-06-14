@@ -1,6 +1,7 @@
 ﻿using Photino.NET;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ public class PhotinoWindowManager : IDisposable
     private TaskCompletionSource<bool>? _windowReadyTcs;
     private CancellationTokenSource? _closeCts;
     private readonly Dictionary<string, Func<string, Task<string>>> _messageHandlers = new();
+    private Thread? _windowThread;
 
     public bool IsWindowReady => _window != null;
     public bool IsWindowVisible { get; private set; }
@@ -64,7 +66,7 @@ public class PhotinoWindowManager : IDisposable
                 }
                 else if (options.WindowLeft.HasValue && options.WindowTop.HasValue)
                 {
-                    _window.SetPosition(options.WindowLeft.Value, options.WindowTop.Value);
+                    _window.MoveTo(options.WindowLeft.Value, options.WindowTop.Value);
                 }
 
                 // Configure window chrome
@@ -88,8 +90,11 @@ public class PhotinoWindowManager : IDisposable
                 // Register lifecycle handlers
                 _window.WindowCreated += OnWindowCreated;
                 _window.WindowClosing += OnWindowClosing;
+
+                // Fix: Use proper event signatures
                 _window.WindowSizeChanged += OnWindowSizeChanged;
                 _window.WindowLocationChanged += OnWindowLocationChanged;
+
                 _window.WindowMaximized += OnWindowMaximized;
                 _window.WindowMinimized += OnWindowMinimized;
                 _window.WindowRestored += OnWindowRestored;
@@ -119,30 +124,49 @@ public class PhotinoWindowManager : IDisposable
 
         IsWindowVisible = true;
 
-        await Task.Run(() =>
+        // Photino windows are shown when WaitForClose is called
+        _windowThread = new Thread(() =>
         {
-            _window?.WaitForClose();
-        }, _closeCts?.Token ?? CancellationToken.None);
+            try
+            {
+                _window?.WaitForClose();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error in window thread");
+            }
+            finally
+            {
+                IsWindowVisible = false;
+            }
+        })
+        {
+            Name = "Photino Window Thread",
+            IsBackground = false
+        };
 
-        IsWindowVisible = false;
+        _windowThread.Start();
+
+        // Wait for the thread to complete or cancellation
+        await Task.Run(() => _windowThread.Join(), _closeCts?.Token ?? CancellationToken.None);
     }
 
     /// <summary>
-    /// Show the window without blocking
+    /// Show the window without blocking (Note: Photino requires WaitForClose)
     /// </summary>
     public async Task ShowAsync()
     {
         await EnsureWindowReadyAsync();
 
-        lock (_lock)
+        // Start the window thread if not already running
+        if (_windowThread == null || !_windowThread.IsAlive)
         {
-            _window?.Show();
-            IsWindowVisible = true;
+            await ShowAndWaitForCloseAsync();
         }
     }
 
     /// <summary>
-    /// Hide the window
+    /// Hide the window (minimize it since Photino doesn't have Hide)
     /// </summary>
     public async Task HideAsync()
     {
@@ -150,7 +174,7 @@ public class PhotinoWindowManager : IDisposable
 
         lock (_lock)
         {
-            _window?.Hide();
+            _window?.SetMinimized(true);
             IsWindowVisible = false;
         }
     }
@@ -305,8 +329,11 @@ public class PhotinoWindowManager : IDisposable
 
         RegisterMessageHandler("restore", async (payload) =>
         {
-            await InvokeAsync(w => w.SetMaximized(false));
-            await InvokeAsync(w => w.SetMinimized(false));
+            await InvokeAsync(w =>
+            {
+                w.SetMaximized(false);
+                w.SetMinimized(false);
+            });
             return "ok";
         });
 
@@ -418,20 +445,15 @@ public class PhotinoWindowManager : IDisposable
         return false; // Allow close
     }
 
-    private void OnWindowSizeChanged(object? sender, EventArgs e)
+    // Fix: Use proper event handler signatures
+    private void OnWindowSizeChanged(object? sender, Size e)
     {
-        if (_window != null)
-        {
-            _logger?.LogDebug("Window size changed: {Width}x{Height}", _window.Width, _window.Height);
-        }
+        _logger?.LogDebug("Window size changed: {Width}x{Height}", e.Width, e.Height);
     }
 
-    private void OnWindowLocationChanged(object? sender, EventArgs e)
+    private void OnWindowLocationChanged(object? sender, Point e)
     {
-        if (_window != null)
-        {
-            _logger?.LogDebug("Window location changed: {Left},{Top}", _window.Left, _window.Top);
-        }
+        _logger?.LogDebug("Window location changed: {X},{Y}", e.X, e.Y);
     }
 
     private void OnWindowMaximized(object? sender, EventArgs e)
@@ -479,6 +501,8 @@ public class PhotinoWindowManager : IDisposable
 
                 _window = null;
             }
+
+            _windowThread?.Join(5000); // Wait max 5 seconds for thread to finish
         }
     }
 }
