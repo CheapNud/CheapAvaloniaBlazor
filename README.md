@@ -1,212 +1,135 @@
-## 🚧 Project Goals
+# CheapAvaloniaBlazor
 
-- Create a **unified UI architecture** for desktop and web platforms.
-- Reuse Blazor components in both **Photino** and **Avalonia** frontends.
-- Showcase the flexibility of **.NET 8** and **Blazor** for cross-platform development.
+Build **cross-platform desktop apps** with **Blazor Server** + **MudBlazor**. Get native file system access across Windows, Linux, and macOS using familiar web development patterns.
 
----
+[![NuGet](https://img.shields.io/nuget/v/CheapAvaloniaBlazor.svg)](https://www.nuget.org/packages/CheapAvaloniaBlazor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# CheapAvaloniaBlazor Template
-
-A .NET project template for creating cross-platform desktop applications using **Blazor Server**, **MudBlazor**, **Avalonia**, and **Photino**.
-
-> ✅ **Template is ready to use!** This template allows you to quickly scaffold new projects with the complete Blazor desktop stack.
-
-> ⚠️ **Early Stage Development:** This project is in the very early stages. Expect rapid changes, incomplete features, and evolving structure. Contributions and ideas are welcome!
+> ⚠️ **Early Development** - Active development, expect rapid changes
 
 ---
 
-## 🧩 Technologies Included
-
-- **[Blazor Server](https://dotnet.microsoft.com/apps/aspnet/web-apps/blazor)** – Web UI framework running on the server
-- **[Avalonia](https://avaloniaui.net/)** – Cross-platform UI framework for desktop applications
-- **[MudBlazor](https://mudblazor.com/)** – Material Design component library for Blazor
-- **[Photino](https://www.photino.dev/)** – Lightweight, cross-platform desktop host for web-based apps
-
----
-
-## 🚀 Quick Start
-
-### Install the Template
+## 📦 Installation
 
 ```bash
-# Install from local package
-dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
-
-# Or install from NuGet (if published)
-dotnet new install CheapAvaloniaBlazor.Template
+dotnet add package CheapAvaloniaBlazor
 ```
 
-### Create a New Project
+---
+
+## 🏃‍♂️ Quick Start
+
+### Program.cs
+```csharp
+using CheapAvaloniaBlazor.Hosting;
+
+var builder = new HostBuilder()
+    .WithTitle("My Desktop App")
+    .WithSize(1200, 800)
+    .AddMudBlazor();
+
+builder.Services.AddScoped<IMyService, MyService>();
+
+var window = builder.Build();
+window.Run();
+```
+
+### _Host.cshtml
+```html
+@page "/"
+@{ Layout = "_Layout"; }
+
+<component type="typeof(App)" render-mode="ServerPrerendered" />
+```
+
+### _Layout.cshtml
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Desktop App</title>
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+</head>
+<body>
+    @RenderBody()
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>
+```
+
+---
+
+## 🔧 Key Features
+
+**HostBuilder Configuration**
+```csharp
+var builder = new HostBuilder()
+    .WithTitle("Advanced App")
+    .WithSize(1400, 900)
+    .AddMudBlazor()
+    .AddHttpClient("MyAPI", client => client.BaseAddress = new Uri("https://api.com"));
+```
+
+**File System Access**
+```csharp
+// Full file system access in Blazor components
+var files = Directory.GetFiles(@"C:\MyFolder");
+var content = await File.ReadAllTextAsync("document.txt");
+```
+
+**MudBlazor Components**
+```razor
+<MudContainer>
+    <MudAppBar>
+        <MudText Typo="Typo.h6">Desktop App</MudText>
+    </MudAppBar>
+    <MudCard>
+        <MudCardContent>
+            <MudText>Native desktop with web UI!</MudText>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+```
+
+---
+
+## 📋 Requirements
+
+- **.NET 9.0** or later
+- **Windows 10+**, **Linux**, or **macOS**
+
+---
+
+## 🛠️ Build & Deploy
 
 ```bash
-# Create new project from template
-dotnet new cheapavaloniablazor -n MyAwesomeApp
-
-# Navigate to project and run
-cd MyAwesomeApp
-dotnet build
+# Development
 dotnet run
-```
 
-### Verify Installation
-
-```bash
-# List all installed templates
-dotnet new list
-
-# Should show:
-# Template Name              Short Name              Language    Tags
-# CheapAvaloniaBlazor...     cheapavaloniablazor     [C#]        Desktop/Blazor/MudBlazor/Avalonia/Photino
+# Single-file executable
+dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 ```
 
 ---
 
-## 🔨 Building the Template (For Developers)
+## 🐛 Common Issues
 
-If you want to modify or rebuild the template:
-
-### Prerequisites
-
-- .NET 8.0 SDK
-- Windows (for Windows build script) or Linux/macOS (for Unix build script)
-
-### Build Steps
-
-#### Windows
-```bash
-# 1. Clone/modify the template source
-git clone https://github.com/yourusername/CheapAvaloniaBlazor.git
-cd CheapAvaloniaBlazor
-
-# 2. Update template configuration
-# - Edit .template.config/template.json if needed
-# - Update version in both template.json and the build script
-
-# 3. Build the template package
-.\build-template.bat
-
-# 4. Test locally
-dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
-dotnet new cheapavaloniablazor -n TestApp
-```
-
-#### Linux / macOS
-```bash
-# 1. Clone/modify the template source
-git clone https://github.com/yourusername/CheapAvaloniaBlazor.git
-cd CheapAvaloniaBlazor
-
-# 2. Make the script executable
-chmod +x build-template.sh
-
-# 3. Build the template package
-./build-template.sh
-
-# 4. Test locally
-dotnet new install CheapAvaloniaBlazor.Template.1.0.0.nupkg
-dotnet new cheapavaloniablazor -n TestApp
-```
-
-> ⚠️ **Note:** The Linux/macOS build script (`build-template.sh`) has not been thoroughly tested yet. If you encounter issues, please report them or use the Windows script with WSL.
+**Build errors?** - Ensure .NET 9.0+ and run `dotnet restore`  
+**Window doesn't appear?** - Check port 5000 availability  
+**No MudBlazor styling?** - Verify CSS reference in _Layout.cshtml  
 
 ---
 
-## 📁 Project Structure
+## 📄 Project Status
 
-When you create a new project, you'll get:
-
-```
-MyAwesomeApp/
-├── Components/
-│   ├── Layout/
-│   │   ├── MainLayout.razor      # Main application layout
-│   │   └── NavMenu.razor         # Navigation menu
-│   ├── Pages/
-│   │   └── Home.razor            # Homepage component
-│   ├── _Host.cshtml              # Blazor Server host page
-│   ├── _Imports.razor            # Global imports for components
-│   └── Routes.razor              # Application routing configuration
-├── wwwroot/
-│   └── css/app.css               # Custom styles
-├── App.axaml                     # Avalonia application
-├── App.axaml.cs                  # Avalonia application logic
-├── MainWindow.axaml              # Main window XAML
-├── MainWindow.axaml.cs           # Main window logic (Photino integration)
-├── Program.cs                    # Application entry point
-└── MyAwesomeApp.csproj           # Project file
-```
+**Early Development** - This project is actively evolving. Not accepting pull requests at this time. Issues and feedback welcome.
 
 ---
 
-## 🔧 Template Management
+## 📄 License
 
-### Uninstall Template
-
-```bash
-dotnet new uninstall CheapAvaloniaBlazor.Template
-```
-
-### Update Template
-
-1. Uninstall current version
-2. Install new version
-3. Or simply install over existing (will update automatically)
+MIT License
 
 ---
 
-## 💡 Usage in Visual Studio
-
-The template integrates seamlessly with Visual Studio:
-
-1. **File → New → Project**
-2. Search for **"CheapAvaloniaBlazor"**
-3. Create your project through the wizard
-
-Or use the **Package Manager Console**:
-```powershell
-dotnet new cheapavaloniablazor -n MyProject
-```
-
----
-
-## 🎯 What You Get
-
-- **Complete desktop application** ready to run
-- **MudBlazor components** pre-configured
-- **Responsive layout** with navigation
-- **Hot reload** support for development
-- **Cross-platform** deployment capability
-- **Modern .NET 8** target framework
-
----
-
-## 🐛 Troubleshooting
-
-**Template not found after installation?**
-- Run `dotnet new list` to verify installation
-- Check if you're using the correct short name: `cheapavaloniablazor`
-
-**Build errors in generated project?**
-- Ensure .NET 8.0 SDK is installed
-- Run `dotnet restore` in the project directory
-
-**Photino window doesn't open?**
-- Check if port 5000 is available
-- Look for debug output in Visual Studio Output window
-
----
-
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Contributing
-
-Feel free to submit issues, fork the repository, and create pull requests for any improvements.
-
----
-
-**Happy coding with Blazor Desktop Apps!** 🚀
+**Build desktop apps with Blazor!** 🚀
