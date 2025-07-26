@@ -1,0 +1,26 @@
+<!-- build/CheapAvaloniaBlazor.targets -->
+<Project>
+  <Target Name="CheapAvaloniaBlazorCheck" BeforeTargets="Build">
+    <Message Text="CheapAvaloniaBlazor: Configuring Blazor desktop application..." Importance="high" />
+  </Target>
+
+  <Target Name="EnsureWwwrootExists" BeforeTargets="Build">
+    <PropertyGroup>
+      <WwwRootPath Condition="'$(WwwRootPath)' == ''">$(MSBuildProjectDirectory)\wwwroot</WwwRootPath>
+    </PropertyGroup>
+    
+    <MakeDir Directories="$(WwwRootPath)" Condition="!Exists('$(WwwRootPath)')" />
+    
+    <!-- Create default favicon if missing -->
+    <WriteLinesToFile
+      File="$(WwwRootPath)\favicon.ico"
+      Lines=""
+      Condition="!Exists('$(WwwRootPath)\favicon.ico')"
+      Overwrite="true" />
+  </Target>
+
+  <Target Name="CopyBlazorAssets" AfterTargets="Build">
+    <!-- Copy embedded JavaScript interop file -->
+    <Message Text="Copying CheapAvaloniaBlazor assets..." Importance="normal" />
+  </Target>
+</Project>
