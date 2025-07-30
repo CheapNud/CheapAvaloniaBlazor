@@ -22,5 +22,33 @@
   <Target Name="CopyBlazorAssets" AfterTargets="Build">
     <!-- Copy embedded JavaScript interop file -->
     <Message Text="Copying CheapAvaloniaBlazor assets..." Importance="normal" />
+    
+    <PropertyGroup>
+      <WwwRootPath Condition="'$(WwwRootPath)' == ''">$(MSBuildProjectDirectory)\wwwroot</WwwRootPath>
+      <BlazorInteropSource>$(MSBuildThisFileDirectory)..\Resources\wwwroot\cheap-blazor-interop.js</BlazorInteropSource>
+    </PropertyGroup>
+    
+    <!-- Ensure wwwroot exists -->
+    <MakeDir Directories="$(WwwRootPath)" Condition="!Exists('$(WwwRootPath)')" />
+    
+    <!-- Copy JavaScript interop file from package resources -->
+    <Copy 
+      SourceFiles="$(BlazorInteropSource)" 
+      DestinationFiles="$(WwwRootPath)\cheap-blazor-interop.js" 
+      Condition="Exists('$(BlazorInteropSource)')" 
+      SkipUnchangedFiles="true" />
+      
+    <!-- Copy any additional package assets -->
+    <ItemGroup>
+      <CheapAvaloniaBlazorAssets Include="$(MSBuildThisFileDirectory)..\Resources\wwwroot\**\*" />
+    </ItemGroup>
+    
+    <Copy 
+      SourceFiles="@(CheapAvaloniaBlazorAssets)" 
+      DestinationFiles="@(CheapAvaloniaBlazorAssets->'$(WwwRootPath)\%(RecursiveDir)%(Filename)%(Extension)')" 
+      SkipUnchangedFiles="true" 
+      Condition="@(CheapAvaloniaBlazorAssets->Count()) > 0" />
+      
+    <Message Text="CheapAvaloniaBlazor: Assets copied to $(WwwRootPath)" Importance="normal" />
   </Target>
 </Project>
