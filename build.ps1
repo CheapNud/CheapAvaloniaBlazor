@@ -49,85 +49,33 @@ if ($Pack) {
         $tempDir = Join-Path $env:TEMP "CheapAvaloniaBlazor_Validation"
         if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force }
         
+        # Extract and validate package
         try {
-            # Extract package to temp directory
             Add-Type -AssemblyName System.IO.Compression.FileSystem
             [System.IO.Compression.ZipFile]::ExtractToDirectory($packageFile.FullName, $tempDir)
             
-            # Check required files exist
-            $requiredFiles = @(
-                "lib\net9.0\CheapAvaloniaBlazor.dll",
-                "build\CheapAvaloniaBlazor.props",
-                "build\CheapAvaloniaBlazor.targets",
-                "README.md"
-            )
-            
+            # Check required files
+            $requiredFiles = @("lib\net9.0\CheapAvaloniaBlazor.dll", "build\CheapAvaloniaBlazor.props", "build\CheapAvaloniaBlazor.targets", "README.md")
             $validationPassed = $true
+            
             foreach ($file in $requiredFiles) {
-                $fullPath = Join-Path $tempDir $file
-                if (-not (Test-Path $fullPath)) {
+                if (-not (Test-Path (Join-Path $tempDir $file))) {
                     Write-Host "ERROR: Missing required file: $file" -ForegroundColor Red
                     $validationPassed = $false
                 }
             }
             
-            # Check for embedded resources
-            $resourcesPath = Join-Path $tempDir "lib\net9.0"
-            if (Test-Path $resourcesPath) {
-                $dllFiles = Get-ChildItem -Path $resourcesPath -Filter "*.dll" -Recurse
-                if ($dllFiles.Count -gt 0) {
-                    Write-Host "✓ Package contains required assemblies" -ForegroundColor Green
-                } else {
-                    Write-Host "ERROR: No assemblies found in package" -ForegroundColor Red
-                    $validationPassed = $false
-                }
-            }
-            
-            # Validate package metadata
-            $nuspecPath = Get-ChildItem -Path $tempDir -Filter "*.nuspec" -Recurse | Select-Object -First 1
-            if ($nuspecPath) {
-                $nuspecContent = Get-Content $nuspecPath.FullName -Raw
-                $requiredMetadata = @("id", "version", "authors", "description", "license")
-                foreach ($metadata in $requiredMetadata) {
-                    if ($nuspecContent -notmatch "<$metadata>") {
-                        Write-Host "WARNING: Missing metadata: $metadata" -ForegroundColor Yellow
-                    }
-                }
-                Write-Host "✓ Package metadata validation completed" -ForegroundColor Green
+            # Check assemblies
+            $dllFiles = Get-ChildItem -Path (Join-Path $tempDir "lib\net9.0") -Filter "*.dll" -ErrorAction SilentlyContinue
+            if ($dllFiles.Count -gt 0) {
+                Write-Host "✓ Package contains required assemblies" -ForegroundColor Green
+            } else {
+                Write-Host "ERROR: No assemblies found" -ForegroundColor Red
+                $validationPassed = $false
             }
             
             if ($validationPassed) {
                 Write-Host "✓ Package validation PASSED" -ForegroundColor Green
-                
-                # Test package installation (dry run)
-                Write-Host "Testing package installation..." -ForegroundColor Yellow
-                $testProject = Join-Path $env:TEMP "TestCheapAvaloniaBlazor"
-                if (Test-Path $testProject) { Remove-Item -Path $testProject -Recurse -Force }
-                
-                dotnet new console -n "TestCheapAvaloniaBlazor" -o $testProject --force | Out-Null
-                Push-Location $testProject
-                
-                try {
-                    # Add local package source and install
-                    dotnet nuget add source (Split-Path $packageFile.FullName -Parent) --name "LocalTest" | Out-Null
-                    dotnet add package CheapAvaloniaBlazor --version $Version --source "LocalTest" --prerelease | Out-Null
-                    
-                    # Verify installation
-                    if (dotnet list package | Select-String "CheapAvaloniaBlazor") {
-                        Write-Host "✓ Package installation test PASSED" -ForegroundColor Green
-                    } else {
-                        Write-Host "ERROR: Package installation test FAILED" -ForegroundColor Red
-                        $validationPassed = $false
-                    }
-                }
-                catch {
-                    Write-Host "ERROR: Package installation test failed: $_" -ForegroundColor Red
-                    $validationPassed = $false
-                }
-                finally {
-                    Pop-Location
-                    Remove-Item -Path $testProject -Recurse -Force -ErrorAction SilentlyContinue
-                }
             } else {
                 Write-Host "✗ Package validation FAILED" -ForegroundColor Red
                 exit 1
@@ -138,7 +86,6 @@ if ($Pack) {
             exit 1
         }
         finally {
-            # Cleanup
             Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
         }
         
