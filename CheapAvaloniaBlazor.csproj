@@ -9,17 +9,17 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>CheapLudes</Authors>
+    <Version>1.0.1</Version>
+    <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>A unified library for building cross-platform desktop applications with Blazor Server, Avalonia, and Photino. Enables Blazor components in desktop apps with native file system access.</Description>
-    <PackageProjectUrl>https://github.com/CheapLudes/CheapAvaloniaBlazor</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/CheapLudes/CheapAvaloniaBlazor</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!--<PackageIcon>icon.png</PackageIcon>-->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Initial release with core functionality for Blazor desktop integration.</PackageReleaseNotes>
+    <PackageReleaseNotes>Updated package metadata with correct author information.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
