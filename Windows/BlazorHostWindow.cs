@@ -15,7 +15,7 @@ public class BlazorHostWindow : Window, IBlazorWindow
 
     public BlazorHostWindow()
     {
-            
+        
     }
 
     public BlazorHostWindow(IBlazorHostService? blazorHost = null)
@@ -33,8 +33,13 @@ public class BlazorHostWindow : Window, IBlazorWindow
     protected virtual void InitializeWindow()
     {
         Title = "CheapAvaloniaBlazor App";
-        Width = 1200;
-        Height = 800;
+        Width = 1024;
+        Height = 768;
+        MinWidth = 640;
+        MinHeight = 480;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        CanResize = true;
+        ShowInTaskbar = true;
 
         Loaded += OnWindowLoaded;
         Closing += OnWindowClosing;
@@ -42,7 +47,15 @@ public class BlazorHostWindow : Window, IBlazorWindow
 
     private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        throw new NotImplementedException();
+        // Clean up Photino window
+        _photinoWindow?.Close();
+        _photinoWindow = null;
+        
+        // Stop Blazor host service
+        if (_blazorHost?.IsRunning == true)
+        {
+            _blazorHost.StopAsync().Wait(TimeSpan.FromSeconds(5));
+        }
     }
 
     private async void OnWindowLoaded(object? sender, RoutedEventArgs e)
@@ -58,12 +71,31 @@ public class BlazorHostWindow : Window, IBlazorWindow
             await _blazorHost.StartAsync();
         }
 
-        // Create Photino window
+        // Create Photino window with all properties
         _photinoWindow = new PhotinoWindow()
             .SetTitle(Title)
             .SetSize((int)Width, (int)Height)
-            .Center()
-            .Load(_blazorHost.BaseUrl);
+            .SetMinSize((int)MinWidth, (int)MinHeight)
+            .SetResizable(CanResize)
+            .SetTopMost(false)
+            .SetUseOsDefaultSize(false)
+            .SetUseOsDefaultLocation(false);
+
+        // Apply window startup location
+        if (WindowStartupLocation == WindowStartupLocation.CenterScreen)
+        {
+            _photinoWindow.Center();
+        }
+        
+        // Configure taskbar visibility
+        if (!ShowInTaskbar)
+        {
+            // Note: Photino doesn't have direct taskbar control, but we can set window flags
+            _photinoWindow.SetTopMost(true).SetTopMost(false); // Workaround for some cases
+        }
+
+        // Load the Blazor app
+        _photinoWindow.Load(_blazorHost.BaseUrl);
 
         // Hide Avalonia window
         Hide();
