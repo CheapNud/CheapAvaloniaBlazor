@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+﻿using Avalonia;
+using Avalonia.Controls;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Services;
@@ -303,10 +304,17 @@ public class HostBuilder
         
         // Create and run the Avalonia Application directly
         var app = new CheapAvaloniaBlazorApp(_options, serviceProvider);
-        
+
         // Initialize Avalonia with minimal setup and run the app
-        var appBuilder = Avalonia.AppBuilder.Configure(() => app);
-        
+        var appBuilder = Avalonia.AppBuilder.Configure(() => app).UsePlatformDetect(); // <-- Required
+   //.UseSkia() // Optional, enables Skia rendering backend
+   // .With(new AvaloniaNativePlatformOptions
+   // {
+   //     UseDeferredRendering = true,
+   //     UseGpu = true,
+   //     TransparencyLevelHint = WindowTransparencyLevel.AcrylicBlur
+   // });;
+
         // Start the application lifecycle
         using var lifetime = new Avalonia.Controls.ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime();
         app.ApplicationLifetime = lifetime;
