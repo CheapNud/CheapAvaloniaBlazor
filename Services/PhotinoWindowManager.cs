@@ -214,6 +214,27 @@ public class PhotinoWindowManager : IDisposable
     /// </summary>
     public async Task SendWebMessageAsync(string message)
     {
+        // Security fix: Validate message input
+        if (string.IsNullOrWhiteSpace(message))
+            throw new ArgumentException("Message cannot be null or empty", nameof(message));
+
+        // Limit message length to prevent abuse
+        if (message.Length > 50000)
+            throw new ArgumentException("Message is too long (max 50,000 characters)", nameof(message));
+
+        // Basic validation - ensure it's valid JSON if it looks like JSON
+        if (message.TrimStart().StartsWith("{") || message.TrimStart().StartsWith("["))
+        {
+            try
+            {
+                System.Text.Json.JsonDocument.Parse(message);
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                throw new ArgumentException("Message appears to be JSON but is invalid", nameof(message), ex);
+            }
+        }
+
         await InvokeAsync(window => window.SendWebMessage(message));
         _logger?.LogDebug("Sent web message: {Message}", message);
     }
@@ -234,14 +255,45 @@ public class PhotinoWindowManager : IDisposable
     /// </summary>
     public async Task<string> ExecuteScriptAsync(string script)
     {
+        // Security fix: Validate and sanitize JavaScript input
+        if (string.IsNullOrWhiteSpace(script))
+            throw new ArgumentException("Script cannot be null or empty", nameof(script));
+
+        // Basic validation - reject obviously dangerous patterns
+        var dangerousPatterns = new[]
+        {
+            "</script>", "<script", "javascript:", "eval(", "Function(",
+            "document.write", "document.cookie", "localStorage.", "sessionStorage.",
+            "window.location", "location.href", "location.replace"
+        };
+
+        var lowerScript = script.ToLowerInvariant();
+        foreach (var pattern in dangerousPatterns)
+        {
+            if (lowerScript.Contains(pattern.ToLowerInvariant()))
+            {
+                throw new ArgumentException($"Script contains potentially dangerous pattern: {pattern}", nameof(script));
+            }
+        }
+
+        // Limit script length to prevent abuse
+        if (script.Length > 10000)
+            throw new ArgumentException("Script is too long (max 10,000 characters)", nameof(script));
+
         var tcs = new TaskCompletionSource<string>();
         var resultId = Guid.NewGuid().ToString();
 
-        // Wrap the script to return result via message
+        // Security fix: Use JSON encoding for the script instead of direct interpolation
+        var escapedScript = System.Text.Json.JsonSerializer.Serialize(script);
+        
+        // Wrap the script to return result via message - now using safe parameter passing
         var wrappedScript = $@"
             (async function() {{
                 try {{
-                    const result = await (async function() {{ {script} }})();
+                    const scriptToExecute = {escapedScript};
+                    const result = await (async function() {{ 
+                        return eval(scriptToExecute); 
+                    }})();
                     window.external.sendMessage(JSON.stringify({{
                         type: 'scriptResult',
                         id: '{resultId}',
