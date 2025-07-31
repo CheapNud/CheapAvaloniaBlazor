@@ -19,6 +19,7 @@
       Overwrite="true" />
   </Target>
 
+
   <Target Name="CopyBlazorAssets" AfterTargets="Build">
     <!-- Copy embedded JavaScript interop file -->
     <Message Text="Copying CheapAvaloniaBlazor assets..." Importance="normal" />
@@ -51,4 +52,8 @@
       
     <Message Text="CheapAvaloniaBlazor: Assets copied to $(WwwRootPath)" Importance="normal" />
   </Target>
+  
+  <!-- Import Razor SDK targets if not already imported -->
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\Microsoft.NET.Sdk.Razor\build\netstandard2.0\Microsoft.NET.Sdk.Razor.targets" 
+          Condition="'$(UsingMicrosoftNETSdkRazor)' != 'true' and Exists('$(MSBuildExtensionsPath)\Microsoft\Microsoft.NET.Sdk.Razor\build\netstandard2.0\Microsoft.NET.Sdk.Razor.targets')" />
 </Project>

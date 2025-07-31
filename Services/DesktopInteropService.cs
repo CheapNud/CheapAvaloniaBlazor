@@ -82,7 +82,7 @@ public class DesktopInteropService : IDesktopInteropService
 
     public Task RestoreWindowAsync()
     {
-        return _windowManager.InvokeAsync(window => window.SetMaximized(true)); //Restore() not available in Photino
+        return _windowManager.InvokeAsync(window => window.SetMaximized(false)); // Fix: SetMaximized(false) restores window
     }
 
     public Task SetWindowTitleAsync(string title)
@@ -128,9 +128,20 @@ public class DesktopInteropService : IDesktopInteropService
     {
         return Task.Run(() =>
         {
+            // Security fix: Validate URL to prevent command injection
+            if (string.IsNullOrWhiteSpace(url))
+                throw new ArgumentException("URL cannot be null or empty", nameof(url));
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                throw new ArgumentException("Invalid URL format", nameof(url));
+
+            // Only allow http, https, and mailto schemes
+            if (uri.Scheme != "http" && uri.Scheme != "https" && uri.Scheme != "mailto")
+                throw new ArgumentException($"URL scheme '{uri.Scheme}' is not allowed. Only http, https, and mailto are supported.", nameof(url));
+
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                FileName = url,
+                FileName = uri.ToString(),
                 UseShellExecute = true
             });
         });

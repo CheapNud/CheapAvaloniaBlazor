@@ -6,8 +6,6 @@ using CheapAvaloniaBlazor.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
-using System;
-using System.Threading.Tasks;
 
 namespace CheapAvaloniaBlazor.Hosting;
 
@@ -291,6 +289,65 @@ public class HostBuilder
     public BlazorHostWindow Build()
     {
         return Build<BlazorHostWindow>();
+    }
+
+    /// <summary>
+    /// Run the desktop application - handles all Avalonia setup automatically
+    /// This is the simplest way to start your app
+    /// </summary>
+    /// <param name="args">Command line arguments (from Main method)</param>
+    public void RunApp(string[] args)
+    {
+        // Configure services
+        var serviceProvider = ConfigureServices();
+        
+        // Create and run the Avalonia Application directly
+        var app = new CheapAvaloniaBlazorApp(_options, serviceProvider);
+        
+        // Initialize Avalonia with minimal setup and run the app
+        var appBuilder = Avalonia.AppBuilder.Configure(() => app);
+        
+        // Start the application lifecycle
+        using var lifetime = new Avalonia.Controls.ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime();
+        app.ApplicationLifetime = lifetime;
+        
+        // Initialize and run
+        appBuilder.SetupWithoutStarting();
+        app.OnFrameworkInitializationCompleted();
+        lifetime.Start(args);
+    }
+
+    /// <summary>
+    /// Create an Avalonia AppBuilder configured for Blazor desktop apps
+    /// Use this for advanced scenarios where you need more control
+    /// </summary>
+    /// <returns>Configured AppBuilder ready to start</returns>
+    public Avalonia.AppBuilder BuildAvaloniaApp()
+    {
+        // Configure services first
+        var serviceProvider = ConfigureServices();
+
+        // Create a custom Avalonia Application
+        var app = new CheapAvaloniaBlazorApp(_options, serviceProvider);
+
+        return Avalonia.AppBuilder.Configure(() => app);
+    }
+
+    private IServiceProvider ConfigureServices()
+    {
+        _options.ConfigureServices = serviceCollection =>
+        {
+            foreach (var service in _services)
+            {
+                serviceCollection.Add(service);
+            }
+        };
+
+        var serviceProvider = _services.BuildServiceProvider();
+        CheapAvaloniaBlazorRuntime.Initialize(serviceProvider);
+        _serviceProviderConfiguration?.Invoke(serviceProvider);
+
+        return serviceProvider;
     }
 
     /// <summary>

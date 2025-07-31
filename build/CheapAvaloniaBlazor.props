@@ -5,12 +5,25 @@
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <EnableDefaultRazorComponentItems>true</EnableDefaultRazorComponentItems>
     
+    <!-- Enable _Imports.razor processing for Console App projects -->
+    <EnableDefaultRazorGenerateItems>true</EnableDefaultRazorGenerateItems>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>
+    
+    <!-- Enable automatic discovery and processing of _Imports.razor files -->
+    <EnableDefaultRazorTargetAssemblyInfoAttributes>false</EnableDefaultRazorTargetAssemblyInfoAttributes>
+    <RazorLangVersion>latest</RazorLangVersion>
+    
     <!-- Default settings for desktop apps -->
     <OutputType Condition="'$(OutputType)' == ''">WinExe</OutputType>
     <TargetFramework Condition="'$(TargetFramework)' == ''">net9.0</TargetFramework>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
+  
+  <!-- Import Razor SDK targets if not already imported -->
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\Microsoft.NET.Sdk.Razor\build\netstandard2.0\Microsoft.NET.Sdk.Razor.props" 
+          Condition="'$(UsingMicrosoftNETSdkRazor)' != 'true' and Exists('$(MSBuildExtensionsPath)\Microsoft\Microsoft.NET.Sdk.Razor\build\netstandard2.0\Microsoft.NET.Sdk.Razor.props')" />
 
   <ItemGroup>
     <!-- Ensure Avalonia resources are properly included -->

@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.FileProviders;
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace CheapAvaloniaBlazor.Configuration;
