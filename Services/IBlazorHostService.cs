@@ -1,7 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-
-namespace CheapAvaloniaBlazor.Services;
+﻿namespace CheapAvaloniaBlazor.Services;
 
 public interface IBlazorHostService
 {

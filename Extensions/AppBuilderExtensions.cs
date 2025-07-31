@@ -1,7 +1,6 @@
 ﻿using Avalonia;
 using CheapAvaloniaBlazor.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 
 namespace CheapAvaloniaBlazor.Extensions;
 

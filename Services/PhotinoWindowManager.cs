@@ -1,11 +1,7 @@
-﻿using Photino.NET;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using CheapAvaloniaBlazor.Configuration;
 using Microsoft.Extensions.Logging;
-using CheapAvaloniaBlazor.Configuration;
+using Photino.NET;
+using System.Drawing;
 
 namespace CheapAvaloniaBlazor.Services;
 

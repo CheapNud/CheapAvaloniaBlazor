@@ -1,10 +1,4 @@
-﻿using Microsoft.JSInterop;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-
-namespace CheapAvaloniaBlazor.Services;
+﻿namespace CheapAvaloniaBlazor.Services;
 
 /// <summary>
 /// Service that provides desktop functionality to Blazor components

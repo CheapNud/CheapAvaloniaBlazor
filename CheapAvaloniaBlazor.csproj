@@ -9,7 +9,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.4</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>A unified library for building cross-platform desktop applications with Blazor Server, Avalonia, and Photino. Enables Blazor components in desktop apps with native file system access.</Description>
@@ -19,7 +19,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!--<PackageIcon>icon.png</PackageIcon>-->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Added missing Run() method to BlazorHostWindow for application startup.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed _Imports.razor not being applied to consuming projects - now auto-creates template _Imports.razor.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -63,6 +63,7 @@
     <!-- Content files that should be included in consuming projects -->
     <Content Include="build\CheapAvaloniaBlazor.props" PackagePath="build\" />
     <Content Include="build\CheapAvaloniaBlazor.targets" PackagePath="build\" />
+    <Content Include="content\_Imports.razor" PackagePath="content\" />
   </ItemGroup>
 
 </Project>

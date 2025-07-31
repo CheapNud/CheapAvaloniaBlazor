@@ -19,6 +19,24 @@
       Overwrite="true" />
   </Target>
 
+  <Target Name="EnsureImportsFile" BeforeTargets="Build">
+    <!-- Ensure _Imports.razor exists in the consuming project -->
+    <PropertyGroup>
+      <ImportFilePath>$(MSBuildProjectDirectory)\_Imports.razor</ImportFilePath>
+      <TemplateImportsPath>$(MSBuildThisFileDirectory)..\content\_Imports.razor</TemplateImportsPath>
+    </PropertyGroup>
+    
+    <!-- Copy template _Imports.razor if it doesn't exist -->
+    <Copy 
+      SourceFiles="$(TemplateImportsPath)" 
+      DestinationFiles="$(ImportFilePath)" 
+      Condition="!Exists('$(ImportFilePath)') AND Exists('$(TemplateImportsPath)')" 
+      SkipUnchangedFiles="true" />
+      
+    <Message Text="CheapAvaloniaBlazor: Created _Imports.razor from template" Importance="normal" 
+             Condition="!Exists('$(ImportFilePath)') AND Exists('$(TemplateImportsPath)')" />
+  </Target>
+
   <Target Name="CopyBlazorAssets" AfterTargets="Build">
     <!-- Copy embedded JavaScript interop file -->
     <Message Text="Copying CheapAvaloniaBlazor assets..." Importance="normal" />

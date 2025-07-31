@@ -1,10 +1,7 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
-using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Services;
 using Photino.NET;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace CheapAvaloniaBlazor.Windows;
 
@@ -15,7 +12,7 @@ public class BlazorHostWindow : Window, IBlazorWindow
 
     public BlazorHostWindow()
     {
-        
+
     }
 
     public BlazorHostWindow(IBlazorHostService? blazorHost = null)
@@ -50,7 +47,7 @@ public class BlazorHostWindow : Window, IBlazorWindow
         // Clean up Photino window
         _photinoWindow?.Close();
         _photinoWindow = null;
-        
+
         // Stop Blazor host service
         if (_blazorHost?.IsRunning == true)
         {
@@ -86,7 +83,7 @@ public class BlazorHostWindow : Window, IBlazorWindow
         {
             _photinoWindow.Center();
         }
-        
+
         // Configure taskbar visibility
         if (!ShowInTaskbar)
         {
@@ -109,10 +106,11 @@ public class BlazorHostWindow : Window, IBlazorWindow
     /// </summary>
     public void Run()
     {
-        // Show the window, which will trigger Photino window creation via OnWindowLoaded
-        Show();
-        
-        // The Photino window's WaitForClose() in InitializePhotinoAsync will handle the message loop
-        // This method completes immediately, letting the async initialization handle the app lifecycle
+        // Skip Avalonia window creation and go directly to initializing Photino
+        // This bypasses the Avalonia platform initialization issues
+        Task.Run(async () =>
+        {
+            await InitializePhotinoAsync();
+        }).Wait();
     }
 }

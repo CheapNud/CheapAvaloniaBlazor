@@ -6,8 +6,6 @@ using CheapAvaloniaBlazor.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
-using System;
-using System.Threading.Tasks;
 
 namespace CheapAvaloniaBlazor.Hosting;
 
