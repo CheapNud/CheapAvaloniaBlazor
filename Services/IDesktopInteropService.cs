@@ -1,4 +1,6 @@
-﻿namespace CheapAvaloniaBlazor.Services;
+﻿using CheapAvaloniaBlazor.Models;
+
+namespace CheapAvaloniaBlazor.Services;
 
 /// <summary>
 /// Service that provides desktop functionality to Blazor components
@@ -29,36 +31,4 @@ public interface IDesktopInteropService
     // Clipboard Operations
     Task<string?> GetClipboardTextAsync();
     Task SetClipboardTextAsync(string text);
-}
-
-
-// Supporting classes
-public class FileDialogOptions
-{
-    public string? Title { get; set; }
-    public bool MultiSelect { get; set; }
-    public string? DefaultFileName { get; set; }
-    public List<FileFilter>? Filters { get; set; }
-}
-
-public class FileFilter
-{
-    public string Name { get; set; } = "";
-    public string[] Extensions { get; set; } = Array.Empty<string>();
-}
-
-public enum WindowState
-{
-    Normal,
-    Minimized,
-    Maximized
-}
-
-// Extension methods
-internal static class FileFilterExtensions
-{
-    public static string[][] ToPhotinoFilters(this List<FileFilter> filters)
-    {
-        return filters.Select(f => new[] { f.Name, string.Join(";", f.Extensions) }).ToArray();
-    }
 }
