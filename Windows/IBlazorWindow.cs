@@ -36,4 +36,9 @@ public interface IBlazorWindow
     /// Close the window
     /// </summary>
     void Close();
+
+    /// <summary>
+    /// Run the window and start the application message loop
+    /// </summary>
+    void Run();
 }

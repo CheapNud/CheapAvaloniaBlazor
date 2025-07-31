@@ -9,7 +9,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>A unified library for building cross-platform desktop applications with Blazor Server, Avalonia, and Photino. Enables Blazor components in desktop apps with native file system access.</Description>
@@ -19,7 +19,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!--<PackageIcon>icon.png</PackageIcon>-->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Updated package metadata with correct author information.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added missing Run() method to BlazorHostWindow for application startup.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>

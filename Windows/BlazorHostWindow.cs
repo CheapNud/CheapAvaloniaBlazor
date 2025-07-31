@@ -103,4 +103,16 @@ public class BlazorHostWindow : Window, IBlazorWindow
         // Show Photino window
         _photinoWindow.WaitForClose();
     }
+
+    /// <summary>
+    /// Run the window and start the application
+    /// </summary>
+    public void Run()
+    {
+        // Show the window, which will trigger Photino window creation via OnWindowLoaded
+        Show();
+        
+        // The Photino window's WaitForClose() in InitializePhotinoAsync will handle the message loop
+        // This method completes immediately, letting the async initialization handle the app lifecycle
+    }
 }
