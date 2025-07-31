@@ -19,23 +19,6 @@
       Overwrite="true" />
   </Target>
 
-  <Target Name="EnsureImportsFile" BeforeTargets="Build">
-    <!-- Ensure _Imports.razor exists in the consuming project -->
-    <PropertyGroup>
-      <ImportFilePath>$(MSBuildProjectDirectory)\_Imports.razor</ImportFilePath>
-      <TemplateImportsPath>$(MSBuildThisFileDirectory)..\content\_Imports.razor</TemplateImportsPath>
-    </PropertyGroup>
-    
-    <!-- Copy template _Imports.razor if it doesn't exist -->
-    <Copy 
-      SourceFiles="$(TemplateImportsPath)" 
-      DestinationFiles="$(ImportFilePath)" 
-      Condition="!Exists('$(ImportFilePath)') AND Exists('$(TemplateImportsPath)')" 
-      SkipUnchangedFiles="true" />
-      
-    <Message Text="CheapAvaloniaBlazor: Created _Imports.razor from template" Importance="normal" 
-             Condition="!Exists('$(ImportFilePath)') AND Exists('$(TemplateImportsPath)')" />
-  </Target>
 
   <Target Name="CopyBlazorAssets" AfterTargets="Build">
     <!-- Copy embedded JavaScript interop file -->
@@ -69,4 +52,8 @@
       
     <Message Text="CheapAvaloniaBlazor: Assets copied to $(WwwRootPath)" Importance="normal" />
   </Target>
+  
+  <!-- Import Razor SDK targets if not already imported -->
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\Microsoft.NET.Sdk.Razor\build\netstandard2.0\Microsoft.NET.Sdk.Razor.targets" 
+          Condition="'$(UsingMicrosoftNETSdkRazor)' != 'true' and Exists('$(MSBuildExtensionsPath)\Microsoft\Microsoft.NET.Sdk.Razor\build\netstandard2.0\Microsoft.NET.Sdk.Razor.targets')" />
 </Project>

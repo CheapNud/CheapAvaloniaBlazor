@@ -68,24 +68,48 @@ dotnet add package CheapAvaloniaBlazor
 
 > **Note for Visual Studio Users:** Create folders and files using **Solution Explorer** → **Right-click project** → **Add** → **New Folder/Item**
 
-### 1. Replace Program.cs
+### 1. Update Project File
+Edit your `.csproj` file to use the Razor SDK (enables `_Imports.razor` support):
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.0.7" />
+  </ItemGroup>
+</Project>
+```
+
+### 2. Replace Program.cs
 ```csharp
 using CheapAvaloniaBlazor.Hosting;
 
-var builder = new HostBuilder()
-    .WithTitle("My Desktop App")
-    .WithSize(1200, 800)
-    .AddMudBlazor();
+namespace MyDesktopApp;
 
-// Add your services
-builder.Services.AddScoped<IMyService, MyService>();
+class Program
+{
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        var builder = new HostBuilder()
+            .WithTitle("My Desktop App")
+            .WithSize(1200, 800)
+            .AddMudBlazor();
 
-// Build and run
-var window = builder.Build();
-window.Run();
+        // Add your services
+        builder.Services.AddScoped<IMyService, MyService>();
+
+        // Run the app - all Avalonia complexity handled by the package
+        builder.RunApp(args);
+    }
+}
 ```
 
-### 2. Create Views/_Layout.cshtml
+### 3. Create Views/_Layout.cshtml
 > **Visual Studio:** Right-click project → Add → New Folder → "Views", then right-click Views → Add → New Item → "Razor Layout"
 ```html
 <!DOCTYPE html>
@@ -123,7 +147,7 @@ window.Run();
 </html>
 ```
 
-### 3. Create Views/_Host.cshtml
+### 4. Create Views/_Host.cshtml
 > **Visual Studio:** Right-click Views folder → Add → New Item → "Razor Page"
 
 ```html
@@ -137,7 +161,7 @@ window.Run();
 <component type="typeof(App)" render-mode="ServerPrerendered" />
 ```
 
-### 4. Create App.razor
+### 5. Create App.razor
 > **Visual Studio:** Right-click project → Add → New Item → "Razor Component"
 ```razor
 <Router AppAssembly="@typeof(App).Assembly">
@@ -153,7 +177,7 @@ window.Run();
 </Router>
 ```
 
-### 5. Create Shared/MainLayout.razor
+### 6. Create Shared/MainLayout.razor
 > **Visual Studio:** Right-click project → Add → New Folder → "Shared", then Add → New Item → "Razor Component"
 
 ```razor
@@ -191,7 +215,22 @@ window.Run();
 </MudLayout>
 ```
 
-### 6. Create Pages/Index.razor
+### 7. Create _Imports.razor
+> **Visual Studio:** Right-click project → Add → New Item → "Razor Component" → Name it "_Imports.razor"
+```razor
+@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@using MudBlazor
+@using CheapAvaloniaBlazor
+@using CheapAvaloniaBlazor.Services
+```
+
+### 8. Create Pages/Index.razor
 > **Visual Studio:** Right-click project → Add → New Folder → "Pages", then Add → New Item → "Razor Component"
 ```razor
 @page "/"
