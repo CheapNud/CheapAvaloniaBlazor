@@ -9,7 +9,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.9</Version>
+    <Version>1.0.10</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>A unified library for building cross-platform desktop applications with Blazor Server, Avalonia, and Photino. Enables Blazor components in desktop apps with native file system access.</Description>
@@ -19,7 +19,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!--<PackageIcon>icon.png</PackageIcon>-->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Critical security fixes: Fixed command injection in OpenUrlInBrowserAsync() with URL validation. Fixed JavaScript injection in PhotinoWindowManager ExecuteScriptAsync() and SendWebMessageAsync() with input sanitization and validation. Fixed RestoreWindowAsync() bug. This is a security-critical update.</PackageReleaseNotes>
+    <PackageReleaseNotes>Detect platform.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>

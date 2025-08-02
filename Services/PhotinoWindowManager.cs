@@ -1,4 +1,5 @@
 ﻿using CheapAvaloniaBlazor.Configuration;
+using CheapAvaloniaBlazor.Models;
 using Microsoft.Extensions.Logging;
 using Photino.NET;
 using System.Drawing;
@@ -553,14 +554,4 @@ public class PhotinoWindowManager : IDisposable
             _windowThread?.Join(5000); // Wait max 5 seconds for thread to finish
         }
     }
-}
-
-internal class WebMessage
-{
-    public string? Type { get; set; }
-    public string? Id { get; set; }
-    public string? Payload { get; set; }
-    public bool Success { get; set; }
-    public string? Result { get; set; }
-    public string? Error { get; set; }
 }
