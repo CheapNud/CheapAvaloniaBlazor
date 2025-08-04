@@ -1,5 +1,9 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Logging;
+using Avalonia.Win32;
+using Avalonia.Skia;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Services;
@@ -95,6 +99,37 @@ public class HostBuilder
     public HostBuilder WithTitle(string title)
     {
         _options.DefaultWindowTitle = title;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables comprehensive diagnostics logging for troubleshooting
+    /// </summary>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder EnableDiagnostics()
+    {
+        _options.EnableDiagnostics = true;
+        _options.EnableConsoleLogging = true; // Enable console logging for diagnostics
+        return this;
+    }
+
+    /// <summary>
+    /// Enables comprehensive diagnostics logging for troubleshooting (alias for EnableDiagnostics)
+    /// </summary>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithDiagnostics()
+    {
+        return EnableDiagnostics();
+    }
+
+    /// <summary>
+    /// Sets the recommended render mode for components (informational only)
+    /// </summary>
+    /// <param name="renderMode">Server or ServerPrerendered</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithRenderMode(string renderMode)
+    {
+        _options.RecommendedRenderMode = renderMode;
         return this;
     }
 
@@ -299,30 +334,8 @@ public class HostBuilder
     /// <param name="args">Command line arguments (from Main method)</param>
     public void RunApp(string[] args)
     {
-        // Configure services
-        var serviceProvider = ConfigureServices();
-        
-        // Create and run the Avalonia Application directly
-        var app = new CheapAvaloniaBlazorApp(_options, serviceProvider);
-
-        // Initialize Avalonia with minimal setup and run the app
-        var appBuilder = Avalonia.AppBuilder.Configure(() => app).UsePlatformDetect(); // <-- Required
-   //.UseSkia() // Optional, enables Skia rendering backend
-   // .With(new AvaloniaNativePlatformOptions
-   // {
-   //     UseDeferredRendering = true,
-   //     UseGpu = true,
-   //     TransparencyLevelHint = WindowTransparencyLevel.AcrylicBlur
-   // });;
-
-        // Start the application lifecycle
-        using var lifetime = new Avalonia.Controls.ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime();
-        app.ApplicationLifetime = lifetime;
-        
-        // Initialize and run
-        appBuilder.SetupWithoutStarting();
-        app.OnFrameworkInitializationCompleted();
-        lifetime.Start(args);
+        // FIXED: Use traditional Avalonia App structure for proper platform initialization
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
     /// <summary>
@@ -335,10 +348,17 @@ public class HostBuilder
         // Configure services first
         var serviceProvider = ConfigureServices();
 
-        // Create a custom Avalonia Application
-        var app = new CheapAvaloniaBlazorApp(_options, serviceProvider);
-
-        return Avalonia.AppBuilder.Configure(() => app);
+        // FIXED: Use traditional Avalonia App with proper AXAML structure
+        return AppBuilder.Configure(() =>
+        {
+            var app = new AvaloniaApp();
+            app.Initialize(_options, serviceProvider);
+            return app;
+        })
+        .UsePlatformDetect()
+        .UseWin32()
+        .UseSkia()
+        .LogToTrace();
     }
 
     private IServiceProvider ConfigureServices()
