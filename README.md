@@ -69,10 +69,11 @@ dotnet add package CheapAvaloniaBlazor
 > **Note for Visual Studio Users:** Create folders and files using **Solution Explorer** → **Right-click project** → **Add** → **New Folder/Item**
 
 ### 1. Update Project File
-Edit your `.csproj` file to use the Razor SDK (enables `_Imports.razor` support):
+Edit your `.csproj` file to use the Web SDK (includes MVC and Blazor support):
 ```xml
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -109,59 +110,62 @@ class Program
 }
 ```
 
-### 3. Create Views/_Layout.cshtml
-> **Visual Studio:** Right-click project → Add → New Folder → "Views", then right-click Views → Add → New Item → "Razor Layout"
+### 3. Create Components/_Host.cshtml
+> **Visual Studio:** Right-click project → Add → New Folder → "Components", then right-click Components → Add → New Item → "Razor Page"
+
 ```html
+@page "/"
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - My Desktop App</title>
+    <title>My Desktop App</title>
     <base href="~/" />
     
     <!-- MudBlazor CSS -->
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    
-    <!-- Material Design Icons -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    
+    <style>
+        #blazor-error-ui {
+            background: lightyellow;
+            bottom: 0;
+            box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+            display: none;
+            left: 0;
+            padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
+
+            #blazor-error-ui .dismiss {
+                cursor: pointer;
+                position: absolute;
+                right: 0.75rem;
+                top: 0.5rem;
+            }
+    </style>
 </head>
 <body>
-    @RenderBody()
-    
+    <component type="typeof(App)" render-mode="ServerPrerendered" />
+
     <div id="blazor-error-ui">
-        <environment include="Staging,Production">
-            An error has occurred. This application may no longer respond until reloaded.
-        </environment>
-        <environment include="Development">
-            An unhandled exception has occurred. See browser dev tools for details.
-        </environment>
+        An error has occurred. This application may no longer respond until reloaded.
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
 
-    <!-- Blazor Scripts -->
     <script src="_framework/blazor.server.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 </html>
 ```
 
-### 4. Create Views/_Host.cshtml
-> **Visual Studio:** Right-click Views folder → Add → New Item → "Razor Page"
-
-```html
-@page "/"
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-@{
-    Layout = "_Layout";
-    ViewData["Title"] = "Home";
-}
-
-<component type="typeof(App)" render-mode="ServerPrerendered" />
-```
-
-### 5. Create App.razor
+### 4. Create App.razor
 > **Visual Studio:** Right-click project → Add → New Item → "Razor Component"
 ```razor
 <Router AppAssembly="@typeof(App).Assembly">
@@ -177,7 +181,7 @@ class Program
 </Router>
 ```
 
-### 6. Create Shared/MainLayout.razor
+### 5. Create Shared/MainLayout.razor
 > **Visual Studio:** Right-click project → Add → New Folder → "Shared", then Add → New Item → "Razor Component"
 
 ```razor
@@ -215,7 +219,7 @@ class Program
 </MudLayout>
 ```
 
-### 7. Create _Imports.razor
+### 6. Create _Imports.razor
 > **Visual Studio:** Right-click project → Add → New Item → "Razor Component" → Name it "_Imports.razor"
 ```razor
 @using System.Net.Http
@@ -230,7 +234,7 @@ class Program
 @using CheapAvaloniaBlazor.Services
 ```
 
-### 8. Create Pages/Index.razor
+### 7. Create Pages/Index.razor
 > **Visual Studio:** Right-click project → Add → New Folder → "Pages", then Add → New Item → "Razor Component"
 ```razor
 @page "/"
@@ -361,9 +365,8 @@ var documentsPath = await Desktop.GetDocumentsPathAsync();
 MyDesktopApp/
 ├── Program.cs                 # Application entry point
 ├── App.razor                  # Blazor router configuration
-├── Views/
-│   ├── _Layout.cshtml        # HTML layout template
-│   └── _Host.cshtml          # Blazor host page
+├── Components/
+│   └── _Host.cshtml          # Blazor host page (contains full HTML)
 ├── Pages/
 │   ├── Index.razor           # Home page
 │   └── Files.razor           # File management page

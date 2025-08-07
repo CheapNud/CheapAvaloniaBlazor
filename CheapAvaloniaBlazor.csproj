@@ -9,17 +9,17 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.10</Version>
+    <Version>1.0.66</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
-    <Description>A unified library for building cross-platform desktop applications with Blazor Server, Avalonia, and Photino. Enables Blazor components in desktop apps with native file system access.</Description>
+    <Description>Fixed file dialogs using Avalonia StorageProvider with minimized window approach - full cross-platform file system access</Description>
     <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!--<PackageIcon>icon.png</PackageIcon>-->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Detect platform.</PackageReleaseNotes>
+    <PackageReleaseNotes>Forgot build</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -37,6 +37,8 @@
     <!-- Core Dependencies -->
     <PackageReference Include="Avalonia" Version="11.3.2" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
     <PackageReference Include="MudBlazor" Version="8.10.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
 
@@ -56,9 +58,13 @@
 
     <!-- Embedded Resources -->
     <EmbeddedResource Include="Resources\wwwroot\**\*" />
-    <EmbeddedResource Include="Resources\Views\**\*" />
-  </ItemGroup>
+    <EmbeddedResource Include="Resources\Components\**\*" />
 
+    <!-- Avalonia AXAML Files -->
+    <!--
+    <AvaloniaResource Include="Hosting\App.axaml" />
+    <AvaloniaResource Include="Windows\MainWindow.axaml" />-->
+  </ItemGroup>  
   <ItemGroup>
     <!-- Content files that should be included in consuming projects -->
     <Content Include="build\CheapAvaloniaBlazor.props" PackagePath="build\" />

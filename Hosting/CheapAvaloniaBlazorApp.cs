@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Services;
@@ -35,11 +36,22 @@ public class CheapAvaloniaBlazorApp : Application
             window.Width = _options.DefaultWindowWidth;
             window.Height = _options.DefaultWindowHeight;
 
+            // FIXED: Configure window properties before setting as MainWindow
+            window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            window.CanResize = _options.Resizable;
+
             desktop.MainWindow = window;
             desktop.Exit += OnExit;
 
-            // Start Blazor host
-            _ = Task.Run(StartBlazorHostAsync);
+            // FIXED: Start Blazor host synchronously during initialization to avoid timing issues
+            StartBlazorHostAsync().ContinueWith(task =>
+            {
+                if (task.IsFaulted)
+                {
+                    var logger = _serviceProvider.GetService<ILogger<CheapAvaloniaBlazorApp>>();
+                    logger?.LogError(task.Exception, "Failed to start Blazor host during app initialization");
+                }
+            });
         }
 
         base.OnFrameworkInitializationCompleted();

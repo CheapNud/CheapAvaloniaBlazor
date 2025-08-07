@@ -1,0 +1,15 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CheapAvaloniaBlazor.Windows.AvaloniaMainWindow"
+        Title="CheapAvaloniaBlazor"
+        Width="1024"
+        Height="768"
+        MinWidth="640"
+        MinHeight="480">
+  <Grid>
+    <TextBlock Text="CheapAvaloniaBlazor - Initializing..." 
+               HorizontalAlignment="Center" 
+               VerticalAlignment="Center"
+               FontSize="16" />
+  </Grid>
+</Window>

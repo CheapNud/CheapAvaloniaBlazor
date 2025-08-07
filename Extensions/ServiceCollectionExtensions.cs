@@ -12,12 +12,13 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
         services.AddSingleton<IBlazorHostService, EmbeddedBlazorHostService>();
-        services.AddSingleton<PhotinoWindowManager>();
+        
+        // Add DesktopInteropService using Avalonia's StorageProvider
         services.AddScoped<IDesktopInteropService, DesktopInteropService>();
 
-        // Add Blazor services
-        services.AddRazorPages();
-        services.AddServerSideBlazor();
+        // Note: Blazor services (RazorPages, ServerSideBlazor) are registered 
+        // in EmbeddedBlazorHostService.ConfigureServices() to avoid duplication issues
+        // Projects should use Microsoft.NET.Sdk.Web which includes MVC services automatically
 
         return services;
     }
