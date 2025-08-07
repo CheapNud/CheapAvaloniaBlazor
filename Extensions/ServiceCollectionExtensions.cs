@@ -15,6 +15,9 @@ public static class ServiceCollectionExtensions
         
         // Add DesktopInteropService using Avalonia's StorageProvider
         services.AddScoped<IDesktopInteropService, DesktopInteropService>();
+        
+        // Add lightweight message handler for JavaScript ↔ C# communication
+        services.AddSingleton<PhotinoMessageHandler>();
 
         // Note: Blazor services (RazorPages, ServerSideBlazor) are registered 
         // in EmbeddedBlazorHostService.ConfigureServices() to avoid duplication issues

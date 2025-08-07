@@ -9,7 +9,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.66</Version>
+    <Version>1.0.67</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Fixed file dialogs using Avalonia StorageProvider with minimized window approach - full cross-platform file system access</Description>

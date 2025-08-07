@@ -133,6 +133,10 @@ public class BlazorHostWindow : Window, IBlazorWindow
         Console.WriteLine($"Loading Photino window with URL: {baseUrl}");
         photinoWindow.Load(baseUrl);
 
+        // Attach message handler for JavaScript ↔ C# communication
+        var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
+        messageHandler.AttachToWindow(photinoWindow);
+
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {
