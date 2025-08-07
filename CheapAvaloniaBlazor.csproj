@@ -9,10 +9,10 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.41</Version>
+    <Version>1.0.66</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
-    <Description>Rename Views to Components</Description>
+    <Description>Fixed file dialogs using Avalonia StorageProvider with minimized window approach - full cross-platform file system access</Description>
     <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview</PackageTags>
@@ -64,8 +64,7 @@
     <!--
     <AvaloniaResource Include="Hosting\App.axaml" />
     <AvaloniaResource Include="Windows\MainWindow.axaml" />-->
-  </ItemGroup>
-
+  </ItemGroup>  
   <ItemGroup>
     <!-- Content files that should be included in consuming projects -->
     <Content Include="build\CheapAvaloniaBlazor.props" PackagePath="build\" />

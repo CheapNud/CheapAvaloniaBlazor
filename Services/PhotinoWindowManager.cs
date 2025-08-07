@@ -29,6 +29,28 @@ public class PhotinoWindowManager : IDisposable
     }
 
     /// <summary>
+    /// Set an existing Photino window (for direct window management)
+    /// </summary>
+    public void SetWindow(PhotinoWindow window)
+    {
+        lock (_lock)
+        {
+            if (_window != null)
+            {
+                _logger?.LogWarning("Window already set");
+                return;
+            }
+
+            _window = window;
+            _windowReadyTcs = new TaskCompletionSource<bool>();
+            _windowReadyTcs.SetResult(true);
+            IsWindowVisible = true;
+            
+            _logger?.LogInformation("Photino window set for PhotinoWindowManager");
+        }
+    }
+
+    /// <summary>
     /// Initialize the Photino window
     /// </summary>
     public void InitializeWindow(string url, CheapAvaloniaBlazorOptions options)

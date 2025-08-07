@@ -1,16 +1,18 @@
 ﻿using CheapAvaloniaBlazor.Models;
 using CheapAvaloniaBlazor.Services;
 using Microsoft.JSInterop;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
+using Avalonia;
+using Avalonia.Controls;
 
 public class DesktopInteropService : IDesktopInteropService
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly PhotinoWindowManager _windowManager;
 
-    public DesktopInteropService(IJSRuntime jsRuntime, PhotinoWindowManager windowManager)
+    public DesktopInteropService(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
-        _windowManager = windowManager;
     }
 
     // File System Operations
@@ -18,41 +20,70 @@ public class DesktopInteropService : IDesktopInteropService
     {
         options ??= new FileDialogOptions();
 
-        var result = await _windowManager.InvokeAsync<string[]?>(window =>
+        var topLevel = GetTopLevel();
+        if (topLevel?.StorageProvider is not { } storage)
+            return null;
+
+        var fileTypes = options.Filters?.Select(f => new FilePickerFileType(f.Name)
         {
-            return window.ShowOpenFile(
-                options.Title ?? "Open File",
-                defaultPath: null, // Provide a default path as the second argument
-                options.MultiSelect,
-                options.Filters?.ToPhotinoFilters());
+            Patterns = f.Extensions.ToArray()
+        }).ToArray() ?? [];
+
+        var result = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = options.Title ?? "Open File",
+            AllowMultiple = options.MultiSelect,
+            FileTypeFilter = fileTypes
         });
 
-        return result?.Length > 0 ? result[0] : null;
+        return result.FirstOrDefault()?.Path.LocalPath;
     }
 
     public async Task<string?> SaveFileDialogAsync(FileDialogOptions? options = null)
     {
         options ??= new FileDialogOptions();
 
-        return await _windowManager.InvokeAsync<string?>(window =>
+        var topLevel = GetTopLevel();
+        if (topLevel?.StorageProvider is not { } storage)
+            return null;
+
+        var fileTypes = options.Filters?.Select(f => new FilePickerFileType(f.Name)
         {
-            return window.ShowSaveFile(
-                options.Title ?? "Save File",
-                options.DefaultFileName,
-                options.Filters?.ToPhotinoFilters());
+            Patterns = f.Extensions.ToArray()
+        }).ToArray() ?? [];
+
+        var result = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = options.Title ?? "Save File",
+            SuggestedFileName = options.DefaultFileName,
+            FileTypeChoices = fileTypes
         });
+
+        return result?.Path.LocalPath;
     }
 
     public async Task<string?> OpenFolderDialogAsync()
     {
-        var result = await _windowManager.InvokeAsync<string?>(window =>
+        var topLevel = GetTopLevel();
+        if (topLevel?.StorageProvider is not { } storage)
+            return null;
+
+        var result = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            // Use ShowOpenFolder instead of the non-existent ShowSelectFolder
-            var folders = window.ShowOpenFolder("Select Folder");
-            return folders?.Length > 0 ? folders[0] : null;
+            Title = "Select Folder",
+            AllowMultiple = false
         });
 
-        return result;
+        return result.FirstOrDefault()?.Path.LocalPath;
+    }
+
+    private Window? GetTopLevel()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return desktop.MainWindow;
+        }
+        return null;
     }
 
     public Task<byte[]> ReadFileAsync(string path)
@@ -73,39 +104,56 @@ public class DesktopInteropService : IDesktopInteropService
     // Window Operations
     public Task MinimizeWindowAsync()
     {
-        return _windowManager.InvokeAsync(window => window.SetMinimized(true));
+        var window = GetTopLevel();
+        if (window != null)
+        {
+            window.WindowState = Avalonia.Controls.WindowState.Minimized;
+        }
+        return Task.CompletedTask;
     }
 
     public Task MaximizeWindowAsync()
     {
-        return _windowManager.InvokeAsync(window => window.SetMaximized(true));
+        var window = GetTopLevel();
+        if (window != null)
+        {
+            window.WindowState = Avalonia.Controls.WindowState.Maximized;
+        }
+        return Task.CompletedTask;
     }
 
     public Task RestoreWindowAsync()
     {
-        return _windowManager.InvokeAsync(window => window.SetMaximized(false)); // Fix: SetMaximized(false) restores window
+        var window = GetTopLevel();
+        if (window != null)
+        {
+            window.WindowState = Avalonia.Controls.WindowState.Normal;
+        }
+        return Task.CompletedTask;
     }
 
     public Task SetWindowTitleAsync(string title)
     {
-        return _windowManager.InvokeAsync(window => window.SetTitle(title));
+        var window = GetTopLevel();
+        if (window != null)
+        {
+            window.Title = title;
+        }
+        return Task.CompletedTask;
     }
 
-    public async Task<WindowState> GetWindowStateAsync()
+    public Task<CheapAvaloniaBlazor.Models.WindowState> GetWindowStateAsync()
     {
-        var state = await _windowManager.InvokeAsync<string>(window =>
-        {
-            if (window.Maximized) return "maximized";
-            if (window.Minimized) return "minimized";
-            return "normal";
-        });
+        var window = GetTopLevel();
+        if (window == null)
+            return Task.FromResult(CheapAvaloniaBlazor.Models.WindowState.Normal);
 
-        return state switch
+        return Task.FromResult(window.WindowState switch
         {
-            "maximized" => WindowState.Maximized,
-            "minimized" => WindowState.Minimized,
-            _ => WindowState.Normal
-        };
+            Avalonia.Controls.WindowState.Maximized => CheapAvaloniaBlazor.Models.WindowState.Maximized,
+            Avalonia.Controls.WindowState.Minimized => CheapAvaloniaBlazor.Models.WindowState.Minimized,
+            _ => CheapAvaloniaBlazor.Models.WindowState.Normal
+        });
     }
 
     // System Operations
