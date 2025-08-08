@@ -51,6 +51,92 @@ public class PhotinoMessageHandler : IDisposable
         _window.SendWebMessage(message);
     }
 
+    /// <summary>
+    /// Execute JavaScript in the web view and return the result
+    /// </summary>
+    public async Task<string> ExecuteScriptAsync(string script)
+    {
+        if (_window == null) 
+            throw new InvalidOperationException("No window attached");
+
+        // Security validation
+        if (string.IsNullOrWhiteSpace(script))
+            throw new ArgumentException("Script cannot be null or empty", nameof(script));
+
+        // Basic security checks - reject dangerous patterns
+        var dangerousPatterns = new[]
+        {
+            "</script>", "<script", "javascript:", "eval(", "Function(",
+            "document.write", "document.cookie", "localStorage.", "sessionStorage.",
+            "window.location", "location.href", "location.replace"
+        };
+
+        var lowerScript = script.ToLowerInvariant();
+        foreach (var pattern in dangerousPatterns)
+        {
+            if (lowerScript.Contains(pattern.ToLowerInvariant()))
+            {
+                throw new ArgumentException($"Script contains potentially dangerous pattern: {pattern}", nameof(script));
+            }
+        }
+
+        // Limit script length
+        if (script.Length > 10000)
+            throw new ArgumentException("Script is too long (max 10,000 characters)", nameof(script));
+
+        var tcs = new TaskCompletionSource<string>();
+        var resultId = Guid.NewGuid().ToString();
+
+        // Register temporary handler for script result
+        RegisterMessageHandler($"scriptResult_{resultId}", async (payload) =>
+        {
+            tcs.SetResult(payload);
+            return "";
+        });
+
+        // Create safe script wrapper
+        var escapedScript = JsonSerializer.Serialize(script);
+        var wrappedScript = $@"
+            (async function() {{
+                try {{
+                    const scriptToExecute = {escapedScript};
+                    const result = await (async function() {{ 
+                        return eval(scriptToExecute); 
+                    }})();
+                    window.chrome.webview.postMessage(JSON.stringify({{
+                        type: 'scriptResult_{resultId}',
+                        payload: result?.toString() || ''
+                    }}));
+                }} catch (error) {{
+                    window.chrome.webview.postMessage(JSON.stringify({{
+                        type: 'scriptResult_{resultId}',
+                        payload: 'ERROR: ' + error.toString()
+                    }}));
+                }}
+            }})();
+        ";
+
+        _window.SendWebMessage(wrappedScript);
+
+        // Wait for result with timeout
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        cts.Token.Register(() => tcs.TrySetCanceled());
+
+        try
+        {
+            return await tcs.Task;
+        }
+        catch (OperationCanceledException)
+        {
+            throw new TimeoutException("Script execution timed out after 30 seconds");
+        }
+        finally
+        {
+            // Clean up the temporary handler
+            _messageHandlers.Remove($"scriptResult_{resultId}");
+        }
+    }
+
     private void RegisterDefaultHandlers()
     {
         // Window control handlers - these work with our direct Photino approach
