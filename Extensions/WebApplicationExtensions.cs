@@ -1,5 +1,6 @@
 ﻿using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Hosting;
+using CheapAvaloniaBlazor.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -129,52 +130,4 @@ public static class WebApplicationExtensions
     }
 
     // Note: RunAsDesktopAsync method removed - use Avalonia-based approach with BlazorHostWindow instead
-}
-
-/// <summary>
-/// Options for Blazor endpoint configuration
-/// </summary>
-public class BlazorEndpointOptions
-{
-    /// <summary>
-    /// Enable health check endpoint
-    /// </summary>
-    public bool EnableHealthCheck { get; set; } = true;
-
-    /// <summary>
-    /// Health check endpoint path
-    /// </summary>
-    public string HealthCheckPath { get; set; } = "/health";
-
-    /// <summary>
-    /// Enable version endpoint
-    /// </summary>
-    public bool EnableVersionEndpoint { get; set; } = true;
-
-    /// <summary>
-    /// Version endpoint path
-    /// </summary>
-    public string VersionPath { get; set; } = "/version";
-
-    /// <summary>
-    /// Custom endpoints to map
-    /// </summary>
-    public List<CustomEndpoint> CustomEndpoints { get; } = new();
-
-    /// <summary>
-    /// Add a custom endpoint
-    /// </summary>
-    public void AddEndpoint(string pattern, RequestDelegate handler)
-    {
-        CustomEndpoints.Add(new CustomEndpoint { Pattern = pattern, Handler = handler });
-    }
-}
-
-/// <summary>
-/// Represents a custom endpoint
-/// </summary>
-public class CustomEndpoint
-{
-    public required string Pattern { get; init; }
-    public required RequestDelegate Handler { get; init; }
 }
