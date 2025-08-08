@@ -9,10 +9,10 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.66</Version>
+    <Version>1.0.68</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
-    <Description>Fixed file dialogs using Avalonia StorageProvider with minimized window approach - full cross-platform file system access</Description>
+    <Description>Cleaned architecture: Removed PhotinoWindowManager, enhanced PhotinoMessageHandler with ExecuteScriptAsync, optimized for stability and maintainability</Description>
     <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview</PackageTags>

@@ -128,23 +128,7 @@ public static class WebApplicationExtensions
         }
     }
 
-    /// <summary>
-    /// Run the application as a desktop app
-    /// </summary>
-    public static async Task RunAsDesktopAsync(
-        this WebApplication app,
-        CancellationToken cancellationToken = default)
-    {
-        // Start the web application in background
-        var webAppTask = app.RunAsync(cancellationToken);
-
-        // Create and run the desktop host
-        var desktopHost = app.Services.GetRequiredService<BlazorDesktopHost>();
-        await desktopHost.RunAsync(cancellationToken);
-
-        // Stop the web app when desktop closes
-        await app.StopAsync(cancellationToken);
-    }
+    // Note: RunAsDesktopAsync method removed - use Avalonia-based approach with BlazorHostWindow instead
 }
 
 /// <summary>

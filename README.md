@@ -80,7 +80,7 @@ Edit your `.csproj` file to use the Web SDK (includes MVC and Blazor support):
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.0.7" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.0.68" />
   </ItemGroup>
 </Project>
 ```
@@ -510,9 +510,10 @@ dotnet build
 - **Hot reload not working**: Enable "Hot Reload on File Save" in Debug settings
 
 **🚫 File Dialog Not Working**
-- Verify Photino permissions
+- ✅ **Fixed in v1.0.67+** - File dialogs now work via Avalonia StorageProvider
+- Ensure you're using latest version: `dotnet add package CheapAvaloniaBlazor`
 - Check `IDesktopInteropService` injection
-- Test with simple file operations first
+- If still having issues, please report - architecture was completely rebuilt for file dialog support
 
 **🚫 Hot Reload Not Working**
 - Restart application
@@ -580,12 +581,14 @@ var builder = new HostBuilder()
 
 ## 🚨 Project Status & Roadmap
 
-### Current Status: **Pre-Alpha Hobby Project** 🚧
+### Current Status: **Working Alpha v1.0.68** ✅
 - ✅ **Core Framework**: Avalonia + Blazor + Photino integration
 - ✅ **NuGet Package**: Published and functional
-- ✅ **File System Interop**: File dialogs, I/O operations
-- ✅ **Window Management**: Minimize, maximize, resize
+- ✅ **File System Interop**: **WORKING** - Cross-platform file dialogs via Avalonia StorageProvider
+- ✅ **Window Management**: Minimize, maximize, resize, title changes
+- ✅ **JavaScript ↔ C# Bridge**: Full bidirectional communication with ExecuteScriptAsync
 - ✅ **MudBlazor Integration**: Full component library support
+- ✅ **Clean Architecture**: Removed legacy code, optimized for stability
 
 ### Upcoming Features 🛣️
 - 🔄 **Testing Framework**: Unit and integration test support  
@@ -599,11 +602,10 @@ var builder = new HostBuilder()
 - 🔄 **Package Templates**: `dotnet new` project templates
 
 ### Known Limitations ⚠️
-- **Pre-alpha hobby project** - breaking changes expected
+- **Alpha stage project** - some breaking changes possible but architecture now stable
 - **Currently tested on Windows only** - Linux and macOS compatibility validation in progress
 - **MudBlazor-focused currently** - other UI framework integrations planned
-- **Limited support** - best-effort basis only
-- Some Photino features not yet exposed (alternatives planned)
+- **Community support** - best-effort basis with active development
 - Testing infrastructure in development
 
 ---
@@ -611,7 +613,7 @@ var builder = new HostBuilder()
 ## 🤝 Contributing & Support
 
 ### Project Status
-**This is a personal hobby project in pre-alpha stage.** I'm not currently accepting pull requests as the core architecture is still evolving and I'm working through fundamental design decisions.
+**This is a personal hobby project in alpha stage.** The core architecture is now stable (v1.0.67+ with working file dialogs), though some features are still evolving. Limited pull requests accepted for bug fixes and documentation improvements.
 
 ### How to Help
 - 🐛 **Report Issues**: Found a bug? [Create an issue](https://github.com/CheapNud/CheapAvaloniaBlazor/issues)
