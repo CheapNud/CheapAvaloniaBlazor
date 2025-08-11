@@ -9,7 +9,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.68</Version>
+    <Version>1.0.83</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Cleaned architecture: Removed PhotinoWindowManager, enhanced PhotinoMessageHandler with ExecuteScriptAsync, optimized for stability and maintainability</Description>
@@ -31,21 +31,22 @@
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <EnableDefaultRazorComponentItems>true</EnableDefaultRazorComponentItems>
     <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="11.3.2" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
-    <PackageReference Include="MudBlazor" Version="8.10.0" />
+    <PackageReference Include="Avalonia" Version="11.3.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.3" />
+    <PackageReference Include="MudBlazor" Version="8.11.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
 
     <!-- ASP.NET Core for Blazor -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.8" />
 
     <!-- Framework Reference for Blazor Server -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -55,16 +56,20 @@
     <!-- Package Assets -->
     <!--  <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" /> -->
     <None Include="README.md" Pack="true" PackagePath="\" />
-
-    <!-- Embedded Resources -->
-    <EmbeddedResource Include="Resources\wwwroot\**\*" />
+    
+    <!-- Embedded Resources for Components -->
     <EmbeddedResource Include="Resources\Components\**\*" />
 
     <!-- Avalonia AXAML Files -->
     <!--
     <AvaloniaResource Include="Hosting\App.axaml" />
     <AvaloniaResource Include="Windows\MainWindow.axaml" />-->
-  </ItemGroup>  
+    <!-- Include JS files as content in the package -->
+    <Content Include="Resources\wwwroot\**\*" PackagePath="contentFiles\any\any\Resources\wwwroot\" />
+
+    <!-- Package the JS files for the build targets to copy -->
+    <None Include="Resources\wwwroot\**\*" Pack="true" PackagePath="contentFiles\any\any\Resources\wwwroot\" />
+  </ItemGroup>
   <ItemGroup>
     <!-- Content files that should be included in consuming projects -->
     <Content Include="build\CheapAvaloniaBlazor.props" PackagePath="build\" />

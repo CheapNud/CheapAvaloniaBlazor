@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using Avalonia;
 using Avalonia.Controls;
+using System.Text.Json;
 
 public class DesktopInteropService : IDesktopInteropService
 {
@@ -211,5 +212,39 @@ public class DesktopInteropService : IDesktopInteropService
     public async Task SetClipboardTextAsync(string text)
     {
         await _jsRuntime.InvokeVoidAsync("cheapBlazor.setClipboardText", text);
+    }
+
+    // JavaScript Bridge Initialization
+    public async Task InitializeJavaScriptBridgeAsync()
+    {
+        var objRef = DotNetObjectReference.Create(this);
+        await _jsRuntime.InvokeVoidAsync("eval", 
+            "window.cheapBlazorInteropService = arguments[0];", objRef);
+    }
+
+    // File Drop Operations
+    public event Action<object[]>? OnFilesDroppedEvent;
+
+    [JSInvokable]
+    public Task OnFilesDropped(JsonElement[] files)
+    {
+        try
+        {
+            var fileInfos = files.Select(f => new
+            {
+                Name = f.TryGetProperty("name", out var name) ? name.GetString() : "",
+                Size = f.TryGetProperty("size", out var size) ? size.GetInt64() : 0,
+                Type = f.TryGetProperty("type", out var type) ? type.GetString() : "",
+                LastModified = f.TryGetProperty("lastModified", out var lastMod) ? lastMod.GetInt64() : 0
+            }).ToArray();
+
+            OnFilesDroppedEvent?.Invoke(fileInfos);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling dropped files: {ex.Message}");
+        }
+
+        return Task.CompletedTask;
     }
 }

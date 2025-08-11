@@ -83,9 +83,9 @@ window.cheapBlazor = {
             e.stopPropagation();
 
             const files = Array.from(e.dataTransfer.files);
-            if (files.length > 0 && window.DotNet) {
-                // Call back to Blazor
-                await DotNet.invokeMethodAsync('CheapAvaloniaBlazor', 'OnFilesDropped',
+            if (files.length > 0 && window.cheapBlazorInteropService) {
+                // Call back to Blazor service instance
+                await window.cheapBlazorInteropService.invokeMethodAsync('OnFilesDropped',
                     files.map(f => ({
                         name: f.name,
                         size: f.size,
