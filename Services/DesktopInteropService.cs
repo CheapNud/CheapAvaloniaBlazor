@@ -27,7 +27,9 @@ public class DesktopInteropService : IDesktopInteropService
 
         var fileTypes = options.Filters?.Select(f => new FilePickerFileType(f.Name)
         {
-            Patterns = f.Extensions.ToArray()
+            Patterns = f.Extensions.Select(ext =>
+                ext.StartsWith("*.") ? ext : $"*.{ext.TrimStart('*', '.')}"
+            ).ToArray()
         }).ToArray() ?? [];
 
         var result = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -50,7 +52,9 @@ public class DesktopInteropService : IDesktopInteropService
 
         var fileTypes = options.Filters?.Select(f => new FilePickerFileType(f.Name)
         {
-            Patterns = f.Extensions.ToArray()
+            Patterns = f.Extensions.Select(ext =>
+                ext.StartsWith("*.") ? ext : $"*.{ext.TrimStart('*', '.')}"
+            ).ToArray()
         }).ToArray() ?? [];
 
         var result = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
