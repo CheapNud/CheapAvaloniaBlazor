@@ -28,7 +28,6 @@
     <!-- Enable Razor support -->
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <EnableDefaultRazorComponentItems>true</EnableDefaultRazorComponentItems>
-    <EnableDefaultContentItems>false</EnableDefaultContentItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -46,11 +45,6 @@
   <ItemGroup>
     <!-- Package Assets -->
     <None Include="README.md" Pack="true" PackagePath="\" />
-
-    <!-- Embedded Resources for Components -->
-
-    <!-- Specific file to make sure it's included -->
-    <EmbeddedResource Include="wwwroot\cheap-blazor-interop.js" Condition="Exists('Resources\wwwroot\cheap-blazor-interop.js')" />
   </ItemGroup>
 
   <ItemGroup>
