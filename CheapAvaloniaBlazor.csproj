@@ -39,11 +39,7 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.7" />
     <PackageReference Include="MudBlazor" Version="8.13.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
-    <!-- ASP.NET Core for Blazor -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.10" />
-    <!-- Framework Reference for Blazor Server -->
+    <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
