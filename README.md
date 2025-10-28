@@ -6,7 +6,7 @@ Combine **Blazor Server** + **Your Choice of UI Framework** (currently **MudBlaz
 
 [![NuGet](https://img.shields.io/nuget/v/CheapAvaloniaBlazor.svg)](https://www.nuget.org/packages/CheapAvaloniaBlazor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 > 🚧 **PRE-ALPHA HOBBY PROJECT** 🚧  
 > This is an experimental project developed as a personal hobby. Expect breaking changes, incomplete features, and limited support. Use at your own risk in non-production environments.
@@ -43,7 +43,7 @@ dotnet add package CheapAvaloniaBlazor
 
 ### Option B: Visual Studio 2022 GUI Users
 1. **File** → **New** → **Project**
-2. Select **"Console App"** (.NET 9.0)
+2. Select **"Console App"** (.NET 10.0)
 3. Name your project (e.g., "MyDesktopApp")
 4. Right-click project → **"Manage NuGet Packages"**
 5. Search for **"CheapAvaloniaBlazor"** → **Install**
@@ -74,13 +74,13 @@ Edit your `.csproj` file to use the Web SDK (includes MVC and Blazor support):
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  
+
   <ItemGroup>
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.0.68" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.0.89" />
   </ItemGroup>
 </Project>
 ```
@@ -451,21 +451,21 @@ MyDesktopApp.exe
 ## 📋 System Requirements
 
 ### Runtime Requirements
-- **.NET 9.0** or later
+- **.NET 10.0** or later
 - **Windows 10+** ✅ **(Tested)**
 - **Linux with WebKit** ⚠️ **(Untested - on roadmap)**
 - **macOS 10.15+** ⚠️ **(Untested - on roadmap)**
 
 ### Development Requirements
 - **Visual Studio 2022** (17.8+) or **VS Code**
-- **.NET 9.0 SDK**
+- **.NET 10.0 SDK**
 - **C# 13** language features
 
 ### Package Dependencies
-- `Avalonia 11.3.2+` - Desktop framework
-- `MudBlazor 8.10.0+` - Material Design components  
+- `Avalonia 11.3.7+` - Desktop framework
+- `MudBlazor 8.13.0+` - Material Design components
 - `Photino.NET 4.0.16+` - WebView hosting
-- `Microsoft.AspNetCore.Components.Web 9.0.7+` - Blazor components
+- `Microsoft.AspNetCore.Components.Web 10.0+` - Blazor components
 
 ---
 
@@ -476,7 +476,7 @@ MyDesktopApp.exe
 **🚫 Build Errors**
 ```bash
 # Ensure correct .NET version
-dotnet --version  # Should be 9.0+
+dotnet --version  # Should be 10.0+
 
 # Clear and restore packages
 dotnet clean
@@ -518,7 +518,7 @@ dotnet build
 **🚫 Hot Reload Not Working**
 - Restart application
 - Check VS/VS Code Blazor extensions
-- Verify project targets .NET 9.0
+- Verify project targets .NET 10.0
 
 ### Debug Mode
 ```csharp
@@ -581,7 +581,7 @@ var builder = new HostBuilder()
 
 ## 🚨 Project Status & Roadmap
 
-### Current Status: **Working Alpha v1.0.68** ✅
+### Current Status: **Working Alpha v1.0.89** ✅
 - ✅ **Core Framework**: Avalonia + Blazor + Photino integration
 - ✅ **NuGet Package**: Published and functional
 - ✅ **File System Interop**: **WORKING** - Cross-platform file dialogs via Avalonia StorageProvider
