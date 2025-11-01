@@ -40,6 +40,17 @@ public class DiagnosticLogger
     }
 
     /// <summary>
+    /// Log verbose diagnostic information with automatic prefix (only when EnableDiagnostics is true)
+    /// </summary>
+    public void LogDiagnosticVerbose(string message, params object?[] args)
+    {
+        if (_options.EnableDiagnostics)
+        {
+            _logger.LogInformation($"{Constants.Diagnostics.Prefix} {message}", args);
+        }
+    }
+
+    /// <summary>
     /// Always log information (not affected by EnableDiagnostics)
     /// </summary>
     public void LogInformation(string message, params object?[] args)

@@ -461,20 +461,8 @@ public class HostBuilder
         // Start the Blazor host asynchronously
         _ = Task.Run(async () =>
         {
-            try
-            {
-                var blazorHost = serviceProvider.GetRequiredService<IBlazorHostService>();
-                await blazorHost.StartAsync();
-
-                var logger = serviceProvider.GetService<ILogger<HostBuilder>>();
-                logger?.LogInformation("Blazor host started successfully");
-            }
-            catch (Exception ex)
-            {
-                var logger = serviceProvider.GetService<ILogger<HostBuilder>>();
-                logger?.LogError(ex, "Failed to start Blazor host");
-                throw;
-            }
+            var blazorHost = serviceProvider.GetRequiredService<IBlazorHostService>();
+            await blazorHost.SafeStartAsync<HostBuilder>(serviceProvider);
         });
 
         return window;
@@ -489,42 +477,22 @@ public class HostBuilder
         var window = new T();
 
         // Configure window based on type
-        if (window is BlazorHostWindow blazorWindow)
+        if (window is BlazorHostWindow)
         {
-            // Set window properties from options
-            blazorWindow.Title = _options.DefaultWindowTitle;
-            blazorWindow.Width = _options.DefaultWindowWidth;
-            blazorWindow.Height = _options.DefaultWindowHeight;
+            // Apply base configuration using extension method
+            window.ApplyOptions(_options);
 
-            // Configure additional Avalonia window properties
-            if (window is Window avaloniaWindow)
+            // Set icon if specified
+            if (!string.IsNullOrEmpty(_options.IconPath) && System.IO.File.Exists(_options.IconPath))
             {
-                avaloniaWindow.CanResize = _options.Resizable;
-
-                if (_options.CenterWindow)
+                try
                 {
-                    avaloniaWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                    window.Icon = new WindowIcon(_options.IconPath);
                 }
-                else if (_options.WindowLeft.HasValue && _options.WindowTop.HasValue)
+                catch (Exception ex)
                 {
-                    avaloniaWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-                    avaloniaWindow.Position = new Avalonia.PixelPoint(
-                        _options.WindowLeft.Value,
-                        _options.WindowTop.Value);
-                }
-
-                // Set icon if specified
-                if (!string.IsNullOrEmpty(_options.IconPath) && System.IO.File.Exists(_options.IconPath))
-                {
-                    try
-                    {
-                        avaloniaWindow.Icon = new WindowIcon(_options.IconPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        var logger2 = serviceProvider.GetService<ILogger<HostBuilder>>();
-                        logger2?.LogWarning(ex, "Failed to load window icon from: {IconPath}", _options.IconPath);
-                    }
+                    var logger2 = serviceProvider.GetService<ILogger<HostBuilder>>();
+                    logger2?.LogWarning(ex, "Failed to load window icon from: {IconPath}", _options.IconPath);
                 }
             }
         }

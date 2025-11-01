@@ -24,16 +24,10 @@ public class DesktopInteropService : IDesktopInteropService
     {
         options ??= new FileDialogOptions();
 
-        var topLevel = GetTopLevel();
-        if (topLevel?.StorageProvider is not { } storage)
+        if (GetStorageProvider() is not { } storage)
             return null;
 
-        var fileTypes = options.Filters?.Select(f => new FilePickerFileType(f.Name)
-        {
-            Patterns = f.Extensions.Select(ext =>
-                ext.StartsWith("*.") ? ext : $"*.{ext.TrimStart('*', '.')}"
-            ).ToArray()
-        }).ToArray() ?? [];
+        var fileTypes = ConvertToFilePickerTypes(options);
 
         var result = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -49,16 +43,10 @@ public class DesktopInteropService : IDesktopInteropService
     {
         options ??= new FileDialogOptions();
 
-        var topLevel = GetTopLevel();
-        if (topLevel?.StorageProvider is not { } storage)
+        if (GetStorageProvider() is not { } storage)
             return null;
 
-        var fileTypes = options.Filters?.Select(f => new FilePickerFileType(f.Name)
-        {
-            Patterns = f.Extensions.Select(ext =>
-                ext.StartsWith("*.") ? ext : $"*.{ext.TrimStart('*', '.')}"
-            ).ToArray()
-        }).ToArray() ?? [];
+        var fileTypes = ConvertToFilePickerTypes(options);
 
         var result = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -72,8 +60,7 @@ public class DesktopInteropService : IDesktopInteropService
 
     public async Task<string?> OpenFolderDialogAsync()
     {
-        var topLevel = GetTopLevel();
-        if (topLevel?.StorageProvider is not { } storage)
+        if (GetStorageProvider() is not { } storage)
             return null;
 
         var result = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
@@ -253,5 +240,21 @@ public class DesktopInteropService : IDesktopInteropService
         }
 
         return Task.CompletedTask;
+    }
+
+    // Helper Methods
+    private IStorageProvider? GetStorageProvider()
+    {
+        return GetTopLevel()?.StorageProvider;
+    }
+
+    private static FilePickerFileType[] ConvertToFilePickerTypes(FileDialogOptions? options)
+    {
+        return options?.Filters?.Select(f => new FilePickerFileType(f.Name)
+        {
+            Patterns = f.Extensions.Select(ext =>
+                ext.StartsWith("*.") ? ext : $"*.{ext.TrimStart('*', '.')}"
+            ).ToArray()
+        }).ToArray() ?? Array.Empty<FilePickerFileType>();
     }
 }

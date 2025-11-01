@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Services;
+using CheapAvaloniaBlazor.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Photino.NET;
 
@@ -129,11 +130,8 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     private async Task InitializePhotino()
     {
-        if (_blazorHost == null || _options == null)
-        {
-            _logger?.LogError("Error: Required services not available");
+        if (!GuardClauses.RequireServices(_logger, _blazorHost, _options))
             return;
-        }
 
         _logger?.LogVerbose("InitializePhotino - Using direct Photino + Avalonia StorageProvider approach");
 
@@ -233,8 +231,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     private async Task WaitForServerReady(string baseUrl)
     {
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(Constants.Defaults.HttpClientTimeoutSeconds);
+        using var httpClient = HttpClientFactory.CreateForServerCheck();
 
         for (int i = 0; i < Constants.Defaults.ServerReadinessMaxAttempts; i++)
         {
