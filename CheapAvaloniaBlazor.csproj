@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.1.1 - Bug Fix: Replaced all Console.WriteLine calls with DiagnosticLogger to prevent unwanted console window spawning. Console window now only appears when EnableConsoleLogging is explicitly enabled. All 58 hardcoded console calls across 4 files now respect diagnostic settings.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.1.2 - Quality Release: Fixed console window spawning (58 Console.WriteLine → DiagnosticLogger). Major code refactoring: extracted 5 utility classes, eliminated 8 duplication patterns across 40+ call sites (~145 duplicate lines removed). Architecture improvements: enforced one-class-per-file rule, created reusable extensions (BlazorHostExtensions, WindowConfigurationExtensions, HttpClientFactory, GuardClauses). Updated Avalonia 11.3.7→11.3.8. Net impact: improved maintainability, centralized common patterns.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
