@@ -17,7 +17,7 @@ public class BlazorHostConfiguration
     /// <summary>
     /// The selector for the root component
     /// </summary>
-    public string RootComponentSelector { get; set; } = "app";
+    public string RootComponentSelector { get; set; } = Constants.ComponentNames.RootComponentSelector;
 
     /// <summary>
     /// Additional assemblies to scan for components
@@ -27,7 +27,7 @@ public class BlazorHostConfiguration
     /// <summary>
     /// The host page path (default: /_Host)
     /// </summary>
-    public string HostPage { get; set; } = "/_Host";
+    public string HostPage { get; set; } = Constants.Endpoints.HostPage;
 
     /// <summary>
     /// Static file options
@@ -67,7 +67,7 @@ public class BlazorHostConfiguration
     /// <summary>
     /// Disconnected circuit retention period
     /// </summary>
-    public TimeSpan DisconnectedCircuitRetentionPeriod { get; set; } = TimeSpan.FromMinutes(3);
+    public TimeSpan DisconnectedCircuitRetentionPeriod { get; set; } = TimeSpan.FromMinutes(Constants.Defaults.DisconnectedCircuitRetentionMinutes);
 
     /// <summary>
     /// Create default configuration
@@ -83,7 +83,7 @@ public class BlazorHostConfiguration
                 false,
 #endif
             JSInteropDefaultCallTimeout = TimeSpan.FromMinutes(1),
-            MaximumReceiveMessageSize = 32 * 1024 // 32KB
+            MaximumReceiveMessageSize = Constants.Defaults.MaximumReceiveMessageSizeBytes
         };
     }
 

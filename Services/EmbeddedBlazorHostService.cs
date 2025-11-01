@@ -17,10 +17,11 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
     private WebApplication? _app;
     private readonly CheapAvaloniaBlazorOptions _options;
     private readonly ILogger<EmbeddedBlazorHostService> _logger;
+    private readonly DiagnosticLogger _diagnosticLogger;
     private CancellationTokenSource? _hostCts;
 
     public bool IsRunning { get; private set; }
-    public string BaseUrl => $"{(_options.UseHttps ? "https" : "http")}://localhost:{_options.Port}";
+    public string BaseUrl => $"{(_options.UseHttps ? Constants.Defaults.HttpsScheme : Constants.Defaults.HttpScheme)}://{Constants.Defaults.LocalhostAddress}:{_options.Port}";
 
     public EmbeddedBlazorHostService(
         CheapAvaloniaBlazorOptions options,
@@ -28,6 +29,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
     {
         _options = options;
         _logger = logger;
+        _diagnosticLogger = new DiagnosticLogger(logger, options);
     }
 
     public async Task<string> StartAsync(CancellationToken cancellationToken = default)
@@ -57,6 +59,28 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             {
                 builder.Environment.ContentRootPath = _options.ContentRoot;
                 builder.WebHost.UseContentRoot(_options.ContentRoot);
+            }
+
+            // Extract JavaScript bridge from embedded resources to physical wwwroot
+            // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)
+            try
+            {
+                var contentRoot = !string.IsNullOrEmpty(_options.ContentRoot)
+                    ? _options.ContentRoot
+                    : Directory.GetCurrentDirectory();
+
+                var wwwrootPath = Path.Combine(contentRoot, Constants.Paths.WwwRoot);
+
+                _diagnosticLogger.LogDiagnostic("Extracting JavaScript bridge to: {WwwrootPath}", wwwrootPath);
+
+                var extractedPath = JavaScriptBridgeExtractor.ExtractJavaScriptBridge(wwwrootPath, _diagnosticLogger);
+
+                _diagnosticLogger.LogDiagnostic("JavaScript bridge extraction completed: {ExtractedPath}", extractedPath);
+            }
+            catch (Exception ex)
+            {
+                _diagnosticLogger.LogError(ex, "Failed to extract JavaScript bridge - application may not function correctly");
+                // Don't throw - let the app start anyway, manual serving might work
             }
 
             // Configure services
@@ -148,42 +172,39 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // Configure RazorPages to look in Components directory instead of Pages
             services.Configure<Microsoft.AspNetCore.Mvc.RazorPages.RazorPagesOptions>(options =>
             {
-                options.RootDirectory = "/Components";
+                options.RootDirectory = Constants.SpecialFolders.RootDirectory;
             });
             
             _logger.LogDebug("Adding ServerSideBlazor services...");
             var blazorBuilder = services.AddServerSideBlazor(options =>
             {
                 options.DetailedErrors = true;
-                options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(3);
-                options.DisconnectedCircuitMaxRetained = 100;
+                options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(Constants.Defaults.DisconnectedCircuitRetentionMinutes);
+                options.DisconnectedCircuitMaxRetained = Constants.Defaults.DisconnectedCircuitMaxRetained;
             });
             
             // Add comprehensive diagnostics
-            if (_options.EnableDiagnostics)
-            {
-                _logger.LogInformation("DIAGNOSTICS: Blazor Server services configured with DetailedErrors=true");
-            }
-            
+            _diagnosticLogger.LogVerbose(Constants.Diagnostics.ServerSideBlazorAdded);
+
             // Log all registered services for NavigationManager debugging
             services.AddScoped(serviceProvider =>
             {
                 var logger = serviceProvider.GetRequiredService<ILogger<EmbeddedBlazorHostService>>();
-                logger.LogInformation("DIAGNOSTICS: Service provider created for scope");
+                logger.LogInformation(Constants.Diagnostics.ServiceProviderCreated);
                 return serviceProvider;
             });
             
             // Configure hub options
             blazorBuilder.AddHubOptions(options =>
             {
-                options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
-                options.HandshakeTimeout = TimeSpan.FromSeconds(30);
-                options.MaximumReceiveMessageSize = 32 * 1024;
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(Constants.Defaults.ClientTimeoutSeconds);
+                options.HandshakeTimeout = TimeSpan.FromSeconds(Constants.Defaults.HandshakeTimeoutSeconds);
+                options.MaximumReceiveMessageSize = Constants.Defaults.MaximumReceiveMessageSizeBytes;
             });
             
-            // Find and log the App component 
+            // Find and log the App component
             var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
-            var appType = entryAssembly?.GetType("App") ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == "App");
+            var appType = entryAssembly?.GetType(Constants.ComponentNames.App) ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == Constants.ComponentNames.App);
             
             if (appType != null)
             {
@@ -202,28 +223,28 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // RemoteNavigationManager is internal to the framework and not directly accessible
             _logger.LogDebug("NavigationManager services automatically registered by AddServerSideBlazor");
             
-            if (_options.EnableDiagnostics)
+            // DIAGNOSTICS: Log the complete service registration
+            _diagnosticLogger.LogVerbose(Constants.Diagnostics.CompleteServiceRegistration);
+            _diagnosticLogger.LogVerbose(Constants.Diagnostics.RazorPagesAdded);
+            _diagnosticLogger.LogVerbose(Constants.Diagnostics.ServerSideBlazorAdded);
+            _diagnosticLogger.LogVerbose(Constants.Diagnostics.DesktopInteropAdded);
+            _diagnosticLogger.LogVerbose(Constants.Diagnostics.NavigationManagerAutoRegistered);
+            _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} - RecommendedRenderMode: {{RenderMode}}", _options.RecommendedRenderMode);
+
+            // Log all NavigationManager-related services
+            if (_diagnosticLogger.DiagnosticsEnabled)
             {
-                // DIAGNOSTICS: Log the complete service registration
-                _logger.LogInformation("DIAGNOSTICS: Complete service registration summary:");
-                _logger.LogInformation("DIAGNOSTICS: - RazorPages: Added");
-                _logger.LogInformation("DIAGNOSTICS: - ServerSideBlazor: Added with DetailedErrors=true");
-                _logger.LogInformation("DIAGNOSTICS: - DesktopInteropService: Added");
-                _logger.LogInformation("DIAGNOSTICS: - NavigationManager: Auto-registered by ServerSideBlazor");
-                _logger.LogInformation("DIAGNOSTICS: - RecommendedRenderMode: {RenderMode}", _options.RecommendedRenderMode);
-                
-                // Log all NavigationManager-related services
-                var serviceDescriptors = services.Where(s => 
-                    s.ServiceType.Name.Contains("Navigation") || 
+                var serviceDescriptors = services.Where(s =>
+                    s.ServiceType.Name.Contains("Navigation") ||
                     s.ServiceType.Name.Contains("Router") ||
                     s.ServiceType.Name.Contains("Circuit")).ToList();
-                
-                _logger.LogInformation("DIAGNOSTICS: Found {Count} navigation/routing related services:", serviceDescriptors.Count);
+
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Found {{Count}} navigation/routing related services:", serviceDescriptors.Count);
                 foreach (var descriptor in serviceDescriptors)
                 {
-                    _logger.LogInformation("DIAGNOSTICS: - {ServiceType} -> {ImplementationType} ({Lifetime})", 
-                        descriptor.ServiceType.Name, 
-                        descriptor.ImplementationType?.Name ?? "Factory", 
+                    _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} - {{ServiceType}} -> {{ImplementationType}} ({{Lifetime}})",
+                        descriptor.ServiceType.Name,
+                        descriptor.ImplementationType?.Name ?? "Factory",
                         descriptor.Lifetime);
                 }
             }
@@ -253,7 +274,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             if (!app.Environment.IsDevelopment())
             {
                 _logger.LogDebug("Adding production middleware (ExceptionHandler, HSTS)...");
-                app.UseExceptionHandler("/Error");
+                app.UseExceptionHandler(Constants.Endpoints.ErrorPage);
                 if (_options.UseHttps)
                 {
                     app.UseHsts();
@@ -279,44 +300,35 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
 
             _logger.LogDebug("Mapping Blazor hub...");
             app.MapBlazorHub();
-            
-            if (_options.EnableDiagnostics)
-            {
-                _logger.LogInformation("DIAGNOSTICS: Blazor SignalR hub mapped at /_blazor");
-            }
+
+            _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Blazor SignalR hub mapped at {Constants.Endpoints.BlazorHub}");
             
             _logger.LogDebug("Setting up Blazor Server...");
             
             // Find the App component type from the entry assembly
             var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
-            
-            if (_options.EnableDiagnostics)
-            {
-                _logger.LogInformation("DIAGNOSTICS: Entry assembly: {AssemblyName}", entryAssembly?.FullName ?? "NULL");
-            }
-            
-            var appType = entryAssembly?.GetType("App") ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == "App");
+
+            _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Entry assembly: {{AssemblyName}}", entryAssembly?.FullName ?? "NULL");
+
+            var appType = entryAssembly?.GetType(Constants.ComponentNames.App) ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == Constants.ComponentNames.App);
             if (appType != null)
             {
-                if (_options.EnableDiagnostics)
-                {
-                    _logger.LogInformation("DIAGNOSTICS: Found App component: {AppType}", appType.FullName);
-                    _logger.LogInformation("DIAGNOSTICS: App component assembly: {Assembly}", appType.Assembly.FullName);
-                    _logger.LogInformation("DIAGNOSTICS: App component base type: {BaseType}", appType.BaseType?.FullName ?? "NULL");
-                }
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Found App component: {{AppType}}", appType.FullName);
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} App component assembly: {{Assembly}}", appType.Assembly.FullName);
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} App component base type: {{BaseType}}", appType.BaseType?.FullName ?? "NULL");
             }
             else
             {
-                if (_options.EnableDiagnostics)
+                _diagnosticLogger.LogWarning($"{Constants.Diagnostics.Prefix} App component NOT FOUND in entry assembly");
+                if (_diagnosticLogger.DiagnosticsEnabled)
                 {
-                    _logger.LogWarning("DIAGNOSTICS: App component NOT FOUND in entry assembly");
-                    var allTypes = entryAssembly?.GetTypes().Where(t => t.Name.Contains("App")).ToList();
-                    _logger.LogInformation("DIAGNOSTICS: Found {Count} types containing 'App':", allTypes?.Count ?? 0);
+                    var allTypes = entryAssembly?.GetTypes().Where(t => t.Name.Contains(Constants.ComponentNames.App)).ToList();
+                    _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Found {{Count}} types containing 'App':", allTypes?.Count ?? 0);
                     if (allTypes != null)
                     {
                         foreach (var type in allTypes)
                         {
-                            _logger.LogInformation("DIAGNOSTICS: - {TypeName} ({FullName})", type.Name, type.FullName);
+                            _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} - {{TypeName}} ({{FullName}})", type.Name, type.FullName);
                         }
                     }
                 }
@@ -327,27 +339,27 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // Add diagnostic middleware to log all requests
             app.Use(async (context, next) =>
             {
-                _logger.LogInformation("DIAGNOSTICS: HTTP {Method} {Path} from {RemoteIP}", 
-                    context.Request.Method, 
+                _logger.LogInformation($"{Constants.Diagnostics.Prefix} HTTP {{Method}} {{Path}} from {{RemoteIP}}",
+                    context.Request.Method,
                     context.Request.Path,
                     context.Connection.RemoteIpAddress);
-                
+
                 // Log headers that might be relevant to Blazor
-                if (context.Request.Headers.ContainsKey("Connection"))
+                if (context.Request.Headers.ContainsKey(Constants.Http.ConnectionHeader))
                 {
-                    _logger.LogInformation("DIAGNOSTICS: Connection header: {Connection}", 
-                        context.Request.Headers["Connection"]);
+                    _logger.LogInformation($"{Constants.Diagnostics.Prefix} Connection header: {{Connection}}",
+                        context.Request.Headers[Constants.Http.ConnectionHeader]);
                 }
-                
+
                 try
                 {
                     await next();
-                    _logger.LogInformation("DIAGNOSTICS: Response {StatusCode} for {Path}", 
+                    _logger.LogInformation($"{Constants.Diagnostics.Prefix} Response {{StatusCode}} for {{Path}}",
                         context.Response.StatusCode, context.Request.Path);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "DIAGNOSTICS: Exception during request {Path}: {Message}", 
+                    _logger.LogError(ex, $"{Constants.Diagnostics.Prefix} Exception during request {{Path}}: {{Message}}",
                         context.Request.Path, ex.Message);
                     throw;
                 }
@@ -357,47 +369,47 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             app.MapRazorPages();
             
             // Add diagnostics to check if _Host.cshtml exists
-            if (_options.EnableDiagnostics)
+            if (_diagnosticLogger.DiagnosticsEnabled)
             {
                 var contentRoot = !string.IsNullOrEmpty(_options.ContentRoot) ? _options.ContentRoot : Directory.GetCurrentDirectory();
-                var hostPath = Path.Combine(contentRoot, "Components", "_Host.cshtml");
+                var hostPath = Path.Combine(contentRoot, Constants.Paths.ComponentsDirectory, Constants.Paths.HostFile);
                 var hostExists = File.Exists(hostPath);
-                _logger.LogInformation("DIAGNOSTICS: Content root: {ContentRoot}", contentRoot);
-                _logger.LogInformation("DIAGNOSTICS: Looking for _Host.cshtml at: {HostPath}", hostPath);
-                _logger.LogInformation("DIAGNOSTICS: _Host.cshtml exists: {HostExists}", hostExists);
-                
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Content root: {{ContentRoot}}", contentRoot);
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Looking for _Host.cshtml at: {{HostPath}}", hostPath);
+                _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} _Host.cshtml exists: {{HostExists}}", hostExists);
+
                 if (!hostExists)
                 {
-                    _logger.LogWarning("DIAGNOSTICS: _Host.cshtml NOT FOUND! This will cause 'Cannot find the fallback endpoint' error");
-                    _logger.LogInformation("DIAGNOSTICS: Content root directory contents:");
+                    _diagnosticLogger.LogWarning($"{Constants.Diagnostics.Prefix} _Host.cshtml NOT FOUND! This will cause 'Cannot find the fallback endpoint' error");
+                    _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Content root directory contents:");
                     try
                     {
-                        var files = Directory.GetFileSystemEntries(contentRoot, "*", SearchOption.AllDirectories)
-                            .Where(f => f.Contains("Host") || f.Contains(".cshtml"))
+                        var files = Directory.GetFileSystemEntries(contentRoot, Constants.SearchPatterns.AllFiles, SearchOption.AllDirectories)
+                            .Where(f => f.Contains(Constants.SearchPatterns.HostFiles) || f.Contains(Constants.SearchPatterns.CsHtmlFiles))
                             .Take(10);
                         foreach (var file in files)
                         {
-                            _logger.LogInformation("DIAGNOSTICS: - {File}", Path.GetRelativePath(contentRoot, file));
+                            _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} - {{File}}", Path.GetRelativePath(contentRoot, file));
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning("DIAGNOSTICS: Could not enumerate directory: {Error}", ex.Message);
+                        _diagnosticLogger.LogWarning($"{Constants.Diagnostics.Prefix} Could not enumerate directory: {{Error}}", ex.Message);
                     }
                 }
             }
-            
-            app.MapFallbackToPage("/_Host");
-            _logger.LogInformation("DIAGNOSTICS: Razor pages mapped, fallback to /_Host configured");
+
+            app.MapFallbackToPage(Constants.Endpoints.HostPage);
+            _diagnosticLogger.LogVerbose($"{Constants.Diagnostics.Prefix} Razor pages mapped, fallback to {Constants.Endpoints.HostPage} configured");
             
             // Add a more informative error page if _Host.cshtml is missing
             app.Use(async (context, next) =>
             {
                 await next();
-                if (context.Response.StatusCode == 404 && context.Request.Path == "/")
+                if (context.Response.StatusCode == Constants.Http.StatusCodeNotFound && context.Request.Path == "/")
                 {
-                    context.Response.StatusCode = 500;
-                    context.Response.ContentType = "text/html";
+                    context.Response.StatusCode = Constants.Http.StatusCodeInternalServerError;
+                    context.Response.ContentType = Constants.Http.ContentTypeHtml;
                     var errorHtml = $@"
 <html>
 <head><title>Configuration Error</title></head>
@@ -448,14 +460,14 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
 
     private async Task WaitForStartupAsync(CancellationToken cancellationToken)
     {
-        var maxWaitTime = TimeSpan.FromSeconds(30);
-        var checkInterval = TimeSpan.FromMilliseconds(100);
+        var maxWaitTime = TimeSpan.FromSeconds(Constants.Defaults.StartupTimeoutSeconds);
+        var checkInterval = TimeSpan.FromMilliseconds(Constants.Defaults.StartupCheckIntervalMilliseconds);
         var startTime = DateTime.UtcNow;
 
         _logger.LogInformation("Waiting for Blazor host to become available at {BaseUrl}...", BaseUrl);
 
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(5);
+        httpClient.Timeout = TimeSpan.FromSeconds(Constants.Defaults.HttpClientTimeoutSeconds);
 
         int attemptCount = 0;
         while (!cancellationToken.IsCancellationRequested)
@@ -504,7 +516,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
 
     private int FindAvailablePort(int startPort)
     {
-        for (int port = startPort; port < startPort + 100; port++)
+        for (int port = startPort; port < startPort + Constants.Defaults.PortScanRange; port++)
         {
             try
             {

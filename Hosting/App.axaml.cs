@@ -41,14 +41,15 @@ public partial class AvaloniaApp : Application
             
             Console.WriteLine("Creating BlazorHostWindow");
             var window = new BlazorHostWindow(_serviceProvider?.GetService<IBlazorHostService>());
-            
+
             Console.WriteLine("Setting as MainWindow");
             desktop.MainWindow = window;
-            
+
             Console.WriteLine("About to call window.Show()");
             // Explicitly show the window to trigger the Loaded event
+            // (Window is invisible and off-screen, but StorageProvider will be initialized)
             window.Show();
-            Console.WriteLine("window.Show() called");
+            Console.WriteLine("window.Show() called - window is hidden but functional");
         }
 
         Console.WriteLine("Calling base.OnFrameworkInitializationCompleted()");

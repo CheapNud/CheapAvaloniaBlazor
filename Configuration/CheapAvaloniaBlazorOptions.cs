@@ -12,7 +12,7 @@ public class CheapAvaloniaBlazorOptions
     /// <summary>
     /// Port number for the Blazor server
     /// </summary>
-    public int Port { get; set; } = 5000;
+    public int Port { get; set; } = Constants.Defaults.DefaultPort;
 
     /// <summary>
     /// Whether to use HTTPS for the Blazor server
@@ -33,7 +33,7 @@ public class CheapAvaloniaBlazorOptions
     /// Recommended render mode for components (Server vs ServerPrerendered)
     /// This is informational only - actual render mode is set in _Host.cshtml
     /// </summary>
-    public string RecommendedRenderMode { get; set; } = "ServerPrerendered";
+    public string RecommendedRenderMode { get; set; } = Constants.Defaults.RenderModeServerPrerendered;
 
     /// <summary>
     /// Content root path for the Blazor server
@@ -49,17 +49,17 @@ public class CheapAvaloniaBlazorOptions
     /// <summary>
     /// Default window title
     /// </summary>
-    public string DefaultWindowTitle { get; set; } = "Blazor Desktop App";
+    public string DefaultWindowTitle { get; set; } = Constants.Defaults.DefaultWindowTitle;
 
     /// <summary>
     /// Default window width
     /// </summary>
-    public int DefaultWindowWidth { get; set; } = 1200;
+    public int DefaultWindowWidth { get; set; } = Constants.Defaults.DefaultWindowWidth;
 
     /// <summary>
     /// Default window height
     /// </summary>
-    public int DefaultWindowHeight { get; set; } = 800;
+    public int DefaultWindowHeight { get; set; } = Constants.Defaults.DefaultWindowHeight;
 
     /// <summary>
     /// Window left position (null for default)
@@ -94,7 +94,7 @@ public class CheapAvaloniaBlazorOptions
     /// <summary>
     /// Default zoom level (percentage)
     /// </summary>
-    public int DefaultZoom { get; set; } = 100;
+    public int DefaultZoom { get; set; } = Constants.Defaults.DefaultZoomLevel;
 
     // WebView Options
     /// <summary>
@@ -147,12 +147,12 @@ public class CheapAvaloniaBlazorOptions
     /// <summary>
     /// Max retry attempts for starting Blazor server
     /// </summary>
-    public int MaxStartupRetries { get; set; } = 3;
+    public int MaxStartupRetries { get; set; } = Constants.Defaults.MaxStartupRetries;
 
     /// <summary>
     /// Timeout for Blazor server startup
     /// </summary>
-    public TimeSpan StartupTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan StartupTimeout { get; set; } = TimeSpan.FromSeconds(Constants.Defaults.StartupTimeoutSeconds);
 
     /// <summary>
     /// Whether to automatically open dev tools in debug mode
@@ -187,7 +187,7 @@ public class CheapAvaloniaBlazorOptions
     /// <summary>
     /// Reconnect interval in seconds
     /// </summary>
-    public int[] ReconnectIntervals { get; set; } = { 0, 2, 10, 30 };
+    public int[] ReconnectIntervals { get; set; } = Constants.Defaults.ReconnectIntervals;
 
     /// <summary>
     /// Enable hot reload in development
@@ -211,12 +211,12 @@ public class CheapAvaloniaBlazorOptions
     {
         return new CheapAvaloniaBlazorOptions
         {
-            Port = 5000,
+            Port = Constants.Defaults.DefaultPort,
             UseHttps = false,
             EnableConsoleLogging = false,
-            DefaultWindowTitle = "Blazor Desktop App",
-            DefaultWindowWidth = 1200,
-            DefaultWindowHeight = 800,
+            DefaultWindowTitle = Constants.Defaults.DefaultWindowTitle,
+            DefaultWindowWidth = Constants.Defaults.DefaultWindowWidth,
+            DefaultWindowHeight = Constants.Defaults.DefaultWindowHeight,
             CenterWindow = true,
             Resizable = true,
             EnableDevTools = false,

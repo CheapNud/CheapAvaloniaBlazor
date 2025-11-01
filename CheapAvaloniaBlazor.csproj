@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.89</Version>
+    <Version>1.0.94</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with embedded JavaScript bridge and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.0.89</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.0.94 - Refactoring: Added DiagnosticLogger abstraction to centralize verbose logging control, eliminating repetitive if(EnableDiagnostics) checks throughout codebase. Cleaner, more maintainable diagnostic code.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -45,6 +45,12 @@
   <ItemGroup>
     <!-- Package Assets -->
     <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Explicitly include JavaScript bridge as EmbeddedResource -->
+    <!-- SDK automatically includes wwwroot\*.js as Content, so we only add EmbeddedResource -->
+    <EmbeddedResource Include="wwwroot\cheap-blazor-interop.js" />
   </ItemGroup>
 
   <ItemGroup>

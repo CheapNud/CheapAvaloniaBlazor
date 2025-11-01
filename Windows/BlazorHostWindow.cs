@@ -10,7 +10,13 @@ using Photino.NET;
 
 namespace CheapAvaloniaBlazor.Windows;
 
-public class BlazorHostWindow : Window, IBlazorWindow
+/// <summary>
+/// Main window that hosts the Blazor application
+/// </summary>
+/// <remarks>
+/// Marked as partial for future splash screen expansion with XAML code-behind
+/// </remarks>
+public partial class BlazorHostWindow : Window, IBlazorWindow
 {
     private readonly IBlazorHostService? _blazorHost;
     private readonly CheapAvaloniaBlazorOptions? _options;
@@ -42,19 +48,25 @@ public class BlazorHostWindow : Window, IBlazorWindow
     protected virtual void InitializeWindow()
     {
         Console.WriteLine("InitializeWindow called - setting up Avalonia window");
-        
-        Title = "CheapAvaloniaBlazor App";
-        Width = 1024;
-        Height = 768;
-        MinWidth = 640;
-        MinHeight = 480;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        CanResize = true;
-        ShowInTaskbar = true;
 
+        // Configure window to be completely hidden but functional for StorageProvider
+        Title = Constants.Framework.Name;
+        Width = Constants.Defaults.MinimumWindowSize;  // Minimal size
+        Height = Constants.Defaults.MinimumWindowSize;
+        MinWidth = Constants.Defaults.MinimumWindowSize;
+        MinHeight = Constants.Defaults.MinimumWindowSize;
+        Position = new Avalonia.PixelPoint(Constants.Defaults.OffScreenPosition, Constants.Defaults.OffScreenPosition);  // Move far off-screen
+        WindowStartupLocation = WindowStartupLocation.Manual;  // Don't let OS position it
+        CanResize = false;  // Prevent resizing
+        ShowInTaskbar = false;  // Hide from taskbar
+        Opacity = 0;  // Make completely transparent
+        SystemDecorations = Avalonia.Controls.SystemDecorations.None;  // No window decorations (prevents black background)
+        TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };  // Enable transparency
+
+        Console.WriteLine("Avalonia window configured as hidden (no decorations, transparent, off-screen)");
         Console.WriteLine("Subscribing to Loaded event");
         Loaded += OnWindowLoaded;
-        
+
         Console.WriteLine("InitializeWindow completed");
     }
 
@@ -107,31 +119,43 @@ public class BlazorHostWindow : Window, IBlazorWindow
         
         // Test the server connectivity
         await WaitForServerReady(baseUrl);
-        
-        // Minimize the Avalonia window so it's available for StorageProvider but not visible
-        WindowState = Avalonia.Controls.WindowState.Minimized;
-        Console.WriteLine("Avalonia window minimized - available for StorageProvider but not visible");
-        
+
+        // NOTE: Avalonia window is already hidden (configured in App.axaml.cs)
+        // Keeping it available for StorageProvider but not visible
+        // WindowState = Avalonia.Controls.WindowState.Minimized; // COMMENTED OUT - window is already hidden
+        Console.WriteLine("Avalonia window is hidden - available for StorageProvider");
+
         // Create Photino window directly
         Console.WriteLine("Creating Photino window...");
         var photinoWindow = new PhotinoWindow()
             .SetTitle(_options.DefaultWindowTitle)
             .SetSize(_options.DefaultWindowWidth, _options.DefaultWindowHeight)
-            .SetMinSize(640, 480)
+            .SetMinSize(Constants.Defaults.MinimumResizableWidth, Constants.Defaults.MinimumResizableHeight)
             .SetResizable(_options.Resizable)
             .SetTopMost(false)
             .SetUseOsDefaultSize(false)
-            .SetUseOsDefaultLocation(false)
+            .SetUseOsDefaultLocation(false)  // Prevent OS from positioning window
             .SetDevToolsEnabled(true);
 
-        // Apply window startup location
-        if (_options.CenterWindow)
-        {
-            photinoWindow.Center();
-        }
+        // ALWAYS center the window on each launch to prevent Windows from caching position
+        // This ensures the window appears in the center, not in a saved position from previous runs
+        Console.WriteLine("Centering Photino window (prevents position caching)...");
+        photinoWindow.Center();
 
         Console.WriteLine($"Loading Photino window with URL: {baseUrl}");
         photinoWindow.Load(baseUrl);
+
+        // Bring Photino window to foreground by temporarily setting it as TopMost
+        // This ensures the window appears in front instead of staying hidden in taskbar
+        Console.WriteLine("Bringing Photino window to foreground...");
+        photinoWindow.SetTopMost(true);
+
+        // Small delay to ensure the window is actually shown
+        await Task.Delay(Constants.Defaults.WindowBringToFrontDelayMilliseconds);
+
+        // Remove TopMost flag so window behaves normally
+        photinoWindow.SetTopMost(false);
+        Console.WriteLine("Photino window brought to foreground");
 
         // Attach message handler for JavaScript ↔ C# communication
         var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
@@ -162,9 +186,9 @@ public class BlazorHostWindow : Window, IBlazorWindow
     private async Task WaitForServerReady(string baseUrl)
     {
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(5);
-        
-        for (int i = 0; i < 10; i++)
+        httpClient.Timeout = TimeSpan.FromSeconds(Constants.Defaults.HttpClientTimeoutSeconds);
+
+        for (int i = 0; i < Constants.Defaults.ServerReadinessMaxAttempts; i++)
         {
             try
             {
@@ -174,7 +198,7 @@ public class BlazorHostWindow : Window, IBlazorWindow
                 {
                     Console.WriteLine("Server is ready!");
                     // Extra delay to ensure the server is fully stabilized
-                    await Task.Delay(1000);
+                    await Task.Delay(Constants.Defaults.ServerStabilizationDelayMilliseconds);
                     Console.WriteLine("Server stabilization delay completed");
                     return;
                 }
@@ -183,11 +207,21 @@ public class BlazorHostWindow : Window, IBlazorWindow
             {
                 Console.WriteLine($"Server not ready yet: {ex.Message}");
             }
-            
-            await Task.Delay(500);
+
+
+            await Task.Delay(Constants.Defaults.ServerReadinessCheckDelayMilliseconds);
         }
-        
+
         Console.WriteLine("Warning: Server readiness check failed, proceeding anyway...");
+    }
+
+    /// <summary>
+    /// Show the window as a dialog (explicit interface implementation to match nullable signature)
+    /// </summary>
+    /// <param name="owner">The owner window (nullable to match interface contract)</param>
+    async Task IBlazorWindow.ShowDialog(Window? owner)
+    {
+        await base.ShowDialog(owner!);
     }
 
     /// <summary>

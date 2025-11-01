@@ -39,7 +39,7 @@ public static class WebApplicationExtensions
         // Configure the HTTP request pipeline
         if (!app.Environment.IsDevelopment())
         {
-            app.UseExceptionHandler("/Error");
+            app.UseExceptionHandler(Constants.Endpoints.ErrorPage);
             if (options.UseHttps)
             {
                 app.UseHsts();
@@ -68,7 +68,7 @@ public static class WebApplicationExtensions
         });
 
         // Map fallback to host page
-        app.MapFallbackToPage("/_Host");
+        app.MapFallbackToPage(Constants.Endpoints.HostPage);
 
         return app;
     }
@@ -76,7 +76,7 @@ public static class WebApplicationExtensions
     public static void MapCheapBlazorTestEndpoints(this WebApplication app)
     {
         // Test endpoint to verify embedded resources
-        app.MapGet("/_content/CheapAvaloniaBlazor/test", async context =>
+        app.MapGet(Constants.Endpoints.TestEndpoint, async context =>
         {
             var assembly = typeof(WebApplicationExtensions).Assembly;
             var resources = assembly.GetManifestResourceNames();
@@ -93,12 +93,12 @@ public static class WebApplicationExtensions
     </ul>
     
     <h2>JS File Test:</h2>
-    <script src='/_content/CheapAvaloniaBlazor/cheap-blazor-interop.js'></script>
+    <script src='{Constants.Endpoints.JavaScriptBridgeEndpoint}'></script>
     <script>
         setTimeout(() => {{
-            if (typeof window.cheapBlazor !== 'undefined') {{
+            if (typeof window.{Constants.JavaScript.CheapBlazorObject} !== 'undefined') {{
                 document.body.innerHTML += '<p style=""color: green;"">✅ JS Bridge loaded successfully!</p>';
-                document.body.innerHTML += '<p>Test result: ' + window.cheapBlazor.test() + '</p>';
+                document.body.innerHTML += '<p>Test result: ' + window.{Constants.JavaScript.CheapBlazorObject}.test() + '</p>';
             }} else {{
                 document.body.innerHTML += '<p style=""color: red;"">❌ JS Bridge failed to load</p>';
             }}
@@ -134,12 +134,12 @@ public static class WebApplicationExtensions
         // SOLUTION 1: Standard embedded file provider (most common case)
         try
         {
-            var embeddedProvider = new EmbeddedFileProvider(assembly, "CheapAvaloniaBlazor.wwwroot");
+            var embeddedProvider = new EmbeddedFileProvider(assembly, Constants.Paths.EmbeddedResourceNamespace);
 
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = embeddedProvider,
-                RequestPath = "/_content/CheapAvaloniaBlazor"
+                RequestPath = Constants.Endpoints.ContentPath
             });
 
             Console.WriteLine("✅ Standard EmbeddedFileProvider configured successfully");
@@ -155,8 +155,8 @@ public static class WebApplicationExtensions
 
                 app.UseStaticFiles(new StaticFileOptions
                 {
-                    FileProvider = new PrefixedEmbeddedFileProvider(fallbackProvider, "CheapAvaloniaBlazor.wwwroot"),
-                    RequestPath = "/_content/CheapAvaloniaBlazor"
+                    FileProvider = new PrefixedEmbeddedFileProvider(fallbackProvider, Constants.Paths.EmbeddedResourceNamespace),
+                    RequestPath = Constants.Endpoints.ContentPath
                 });
 
                 Console.WriteLine("✅ Fallback EmbeddedFileProvider configured successfully");
@@ -191,7 +191,7 @@ public static class WebApplicationExtensions
         }
 
         // Look for our specific JS file
-        var jsFiles = resources.Where(r => r.Contains("cheap-blazor-interop")).ToArray();
+        var jsFiles = resources.Where(r => r.Contains(Constants.Resources.JavaScriptBridgeResourcePattern)).ToArray();
         if (jsFiles.Any())
         {
             Console.WriteLine("🎯 Found JS files:");
@@ -202,7 +202,7 @@ public static class WebApplicationExtensions
         }
         else
         {
-            Console.WriteLine("❌ No cheap-blazor-interop.js files found in embedded resources!");
+            Console.WriteLine($"❌ No {Constants.Resources.JavaScriptBridgeFileName} files found in embedded resources!");
         }
 
         Console.WriteLine("🔍 === END DEBUG ===");
@@ -213,16 +213,16 @@ public static class WebApplicationExtensions
         Console.WriteLine("🔧 Configuring manual resource serving...");
 
         // Manual endpoint for serving the JS file
-        app.MapGet("/_content/CheapAvaloniaBlazor/cheap-blazor-interop.js", async context =>
+        app.MapGet(Constants.Endpoints.JavaScriptBridgeEndpoint, async context =>
         {
             try
             {
                 var resourceName = assembly.GetManifestResourceNames()
-                    .FirstOrDefault(r => r.Contains("cheap-blazor-interop.js"));
+                    .FirstOrDefault(r => r.Contains(Constants.Resources.JavaScriptBridgeResourcePattern));
 
                 if (resourceName == null)
                 {
-                    context.Response.StatusCode = 404;
+                    context.Response.StatusCode = Constants.Http.StatusCodeNotFound;
                     await context.Response.WriteAsync("JS file not found in embedded resources");
                     return;
                 }
@@ -230,12 +230,12 @@ public static class WebApplicationExtensions
                 using var stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)
                 {
-                    context.Response.StatusCode = 404;
+                    context.Response.StatusCode = Constants.Http.StatusCodeNotFound;
                     await context.Response.WriteAsync("Could not load JS stream");
                     return;
                 }
 
-                context.Response.ContentType = "application/javascript";
+                context.Response.ContentType = Constants.Http.ContentTypeJavaScript;
                 await stream.CopyToAsync(context.Response.Body);
 
                 Console.WriteLine($"✅ Manually served JS file: {resourceName}");
@@ -243,7 +243,7 @@ public static class WebApplicationExtensions
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ Manual serving failed: {ex.Message}");
-                context.Response.StatusCode = 500;
+                context.Response.StatusCode = Constants.Http.StatusCodeInternalServerError;
                 await context.Response.WriteAsync($"Error serving JS file: {ex.Message}");
             }
         });
@@ -276,8 +276,8 @@ public static class WebApplicationExtensions
         {
             app.MapGet(endpointOptions.VersionPath, () => Results.Ok(new
             {
-                version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown",
-                framework = "CheapAvaloniaBlazor"
+                version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? Constants.Reflection.UnknownVersion,
+                framework = Constants.Framework.Name
             }));
         }
     }
@@ -309,7 +309,7 @@ public class PrefixedEmbeddedFileProvider : IFileProvider
         if (_provider is EmbeddedFileProvider embeddedProvider)
         {
             var assembly = embeddedProvider.GetType()
-                .GetField("_assembly", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
+                .GetField(Constants.Reflection.AssemblyFieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
                 .GetValue(embeddedProvider) as Assembly;
 
             if (assembly != null)

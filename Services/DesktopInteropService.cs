@@ -166,7 +166,7 @@ public class DesktopInteropService : IDesktopInteropService
     {
         var path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "CheapAvaloniaBlazor");
+            Constants.Defaults.AppDataFolderName);
 
         Directory.CreateDirectory(path);
         return Task.FromResult(path);
@@ -190,8 +190,8 @@ public class DesktopInteropService : IDesktopInteropService
                 throw new ArgumentException("Invalid URL format", nameof(url));
 
             // Only allow http, https, and mailto schemes
-            if (uri.Scheme != "http" && uri.Scheme != "https" && uri.Scheme != "mailto")
-                throw new ArgumentException($"URL scheme '{uri.Scheme}' is not allowed. Only http, https, and mailto are supported.", nameof(url));
+            if (!Constants.Security.AllowedUrlSchemes.Contains(uri.Scheme))
+                throw new ArgumentException($"URL scheme '{uri.Scheme}' is not allowed. Only {string.Join(", ", Constants.Security.AllowedUrlSchemes)} are supported.", nameof(url));
 
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
@@ -204,26 +204,26 @@ public class DesktopInteropService : IDesktopInteropService
     public async Task ShowNotificationAsync(string title, string message)
     {
         // Use Photino's notification API if available, otherwise use JS
-        await _jsRuntime.InvokeVoidAsync("cheapBlazor.showNotification", title, message);
+        await _jsRuntime.InvokeVoidAsync(Constants.JavaScript.ShowNotificationMethod, title, message);
     }
 
     // Clipboard Operations
     public async Task<string?> GetClipboardTextAsync()
     {
-        return await _jsRuntime.InvokeAsync<string?>("cheapBlazor.getClipboardText");
+        return await _jsRuntime.InvokeAsync<string?>(Constants.JavaScript.GetClipboardTextMethod);
     }
 
     public async Task SetClipboardTextAsync(string text)
     {
-        await _jsRuntime.InvokeVoidAsync("cheapBlazor.setClipboardText", text);
+        await _jsRuntime.InvokeVoidAsync(Constants.JavaScript.SetClipboardTextMethod, text);
     }
 
     // JavaScript Bridge Initialization
     public async Task InitializeJavaScriptBridgeAsync()
     {
         var objRef = DotNetObjectReference.Create(this);
-        await _jsRuntime.InvokeVoidAsync("eval", 
-            "window.cheapBlazorInteropService = arguments[0];", objRef);
+        await _jsRuntime.InvokeVoidAsync(Constants.JavaScript.EvalFunction,
+            $"window.{Constants.JavaScript.CheapBlazorInteropService} = arguments[0];", objRef);
     }
 
     // File Drop Operations
