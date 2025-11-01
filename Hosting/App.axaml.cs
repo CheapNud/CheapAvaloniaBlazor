@@ -12,6 +12,7 @@ public partial class AvaloniaApp : Application
 {
     private CheapAvaloniaBlazorOptions? _options;
     private IServiceProvider? _serviceProvider;
+    private DiagnosticLogger? _logger;
 
     public override void Initialize()
     {
@@ -20,40 +21,43 @@ public partial class AvaloniaApp : Application
 
     public void Initialize(CheapAvaloniaBlazorOptions options, IServiceProvider serviceProvider)
     {
-        Console.WriteLine("=== AVALONIA APP INITIALIZE CALLED ===");
         _options = options;
         _serviceProvider = serviceProvider;
+        var loggerFactory = serviceProvider.GetRequiredService<IDiagnosticLoggerFactory>();
+        _logger = loggerFactory.CreateLogger<AvaloniaApp>();
+
+        _logger.LogVerbose("=== AVALONIA APP INITIALIZE CALLED ===");
         AvaloniaXamlLoader.Load(this);
-        Console.WriteLine("=== AVALONIA APP INITIALIZE COMPLETED ===");
+        _logger.LogVerbose("=== AVALONIA APP INITIALIZE COMPLETED ===");
     }
 
     public override void OnFrameworkInitializationCompleted()
     {
-        Console.WriteLine("OnFrameworkInitializationCompleted called");
-        
+        _logger?.LogVerbose("OnFrameworkInitializationCompleted called");
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            Console.WriteLine("Setting up desktop application lifetime");
-            
+            _logger?.LogVerbose("Setting up desktop application lifetime");
+
             // Prevent the application from shutting down when all windows are closed
             desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
-            Console.WriteLine("ShutdownMode set to OnExplicitShutdown");
-            
-            Console.WriteLine("Creating BlazorHostWindow");
+            _logger?.LogVerbose("ShutdownMode set to OnExplicitShutdown");
+
+            _logger?.LogVerbose("Creating BlazorHostWindow");
             var window = new BlazorHostWindow(_serviceProvider?.GetService<IBlazorHostService>());
 
-            Console.WriteLine("Setting as MainWindow");
+            _logger?.LogVerbose("Setting as MainWindow");
             desktop.MainWindow = window;
 
-            Console.WriteLine("About to call window.Show()");
+            _logger?.LogVerbose("About to call window.Show()");
             // Explicitly show the window to trigger the Loaded event
             // (Window is invisible and off-screen, but StorageProvider will be initialized)
             window.Show();
-            Console.WriteLine("window.Show() called - window is hidden but functional");
+            _logger?.LogVerbose("window.Show() called - window is hidden but functional");
         }
 
-        Console.WriteLine("Calling base.OnFrameworkInitializationCompleted()");
+        _logger?.LogVerbose("Calling base.OnFrameworkInitializationCompleted()");
         base.OnFrameworkInitializationCompleted();
-        Console.WriteLine("OnFrameworkInitializationCompleted completed");
+        _logger?.LogVerbose("OnFrameworkInitializationCompleted completed");
     }
 }

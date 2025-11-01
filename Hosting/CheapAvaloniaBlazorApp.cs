@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using CheapAvaloniaBlazor.Configuration;
+using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Services;
 using CheapAvaloniaBlazor.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,13 +33,7 @@ public class CheapAvaloniaBlazorApp : Application
             var window = new BlazorHostWindow(_serviceProvider.GetService<IBlazorHostService>());
 
             // Apply configuration
-            window.Title = _options.DefaultWindowTitle;
-            window.Width = _options.DefaultWindowWidth;
-            window.Height = _options.DefaultWindowHeight;
-
-            // FIXED: Configure window properties before setting as MainWindow
-            window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            window.CanResize = _options.Resizable;
+            window.ApplyOptions(_options);
 
             desktop.MainWindow = window;
             desktop.Exit += OnExit;
@@ -59,19 +54,8 @@ public class CheapAvaloniaBlazorApp : Application
 
     private async Task StartBlazorHostAsync()
     {
-        try
-        {
-            _blazorHost = _serviceProvider.GetRequiredService<IBlazorHostService>();
-            await _blazorHost.StartAsync();
-
-            var logger = _serviceProvider.GetService<ILogger<CheapAvaloniaBlazorApp>>();
-            logger?.LogInformation("Blazor host started successfully");
-        }
-        catch (Exception ex)
-        {
-            var logger = _serviceProvider.GetService<ILogger<CheapAvaloniaBlazorApp>>();
-            logger?.LogError(ex, "Failed to start Blazor host");
-        }
+        _blazorHost = _serviceProvider.GetRequiredService<IBlazorHostService>();
+        await _blazorHost.SafeStartAsync<CheapAvaloniaBlazorApp>(_serviceProvider);
     }
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)

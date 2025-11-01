@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.2</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.1.0 - Major Feature Release: Professional splash screen system (enabled by default, fully customizable with colors/text/custom content). Performance: ValueTask optimizations for zero-allocation synchronous operations. Architecture: DiagnosticLogger abstraction and Constants extraction (121+ magic strings eliminated). Previous: v1.0.95 eliminated Task.FromResult anti-pattern.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.1.2 - Quality Release: Fixed console window spawning (58 Console.WriteLine → DiagnosticLogger). Major code refactoring: extracted 5 utility classes, eliminated 8 duplication patterns across 40+ call sites (~145 duplicate lines removed). Architecture improvements: enforced one-class-per-file rule, created reusable extensions (BlazorHostExtensions, WindowConfigurationExtensions, HttpClientFactory, GuardClauses). Updated Avalonia 11.3.7→11.3.8. Net impact: improved maintainability, centralized common patterns.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -32,10 +32,10 @@
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="11.3.7" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.7" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.7" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.7" />
+    <PackageReference Include="Avalonia" Version="11.3.8" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.8" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8" />
     <PackageReference Include="MudBlazor" Version="8.13.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->

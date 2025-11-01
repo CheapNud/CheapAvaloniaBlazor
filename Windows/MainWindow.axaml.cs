@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using CheapAvaloniaBlazor.Configuration;
+using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,11 +37,7 @@ public partial class AvaloniaMainWindow : Window
     {
         if (_options != null)
         {
-            Title = _options.DefaultWindowTitle;
-            Width = _options.DefaultWindowWidth;
-            Height = _options.DefaultWindowHeight;
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            CanResize = _options.Resizable;
+            this.ApplyOptions(_options);
         }
     }
 
@@ -48,22 +45,11 @@ public partial class AvaloniaMainWindow : Window
     {
         if (_serviceProvider == null) return;
 
-        try
-        {
-            _blazorHost = _serviceProvider.GetRequiredService<IBlazorHostService>();
-            await _blazorHost.StartAsync();
+        _blazorHost = _serviceProvider.GetRequiredService<IBlazorHostService>();
+        await _blazorHost.SafeStartAsync<AvaloniaMainWindow>(_serviceProvider);
 
-            var logger = _serviceProvider.GetService<ILogger<AvaloniaMainWindow>>();
-            logger?.LogInformation("Blazor host started successfully in AvaloniaMainWindow");
-
-            // Hide this window and show Photino window
-            // Hide(); // TODO: Properly configure Photino window before hiding
-        }
-        catch (Exception ex)
-        {
-            var logger = _serviceProvider.GetService<ILogger<AvaloniaMainWindow>>();
-            logger?.LogError(ex, "Failed to start Blazor host in AvaloniaMainWindow");
-        }
+        // Hide this window and show Photino window
+        // Hide(); // TODO: Properly configure Photino window before hiding
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)

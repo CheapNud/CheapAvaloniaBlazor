@@ -40,6 +40,17 @@ public class DiagnosticLogger
     }
 
     /// <summary>
+    /// Log verbose diagnostic information with automatic prefix (only when EnableDiagnostics is true)
+    /// </summary>
+    public void LogDiagnosticVerbose(string message, params object?[] args)
+    {
+        if (_options.EnableDiagnostics)
+        {
+            _logger.LogInformation($"{Constants.Diagnostics.Prefix} {message}", args);
+        }
+    }
+
+    /// <summary>
     /// Always log information (not affected by EnableDiagnostics)
     /// </summary>
     public void LogInformation(string message, params object?[] args)
@@ -75,38 +86,4 @@ public class DiagnosticLogger
     /// Check if diagnostics are enabled
     /// </summary>
     public bool DiagnosticsEnabled => _options.EnableDiagnostics;
-}
-
-/// <summary>
-/// Factory for creating DiagnosticLogger instances
-/// </summary>
-public interface IDiagnosticLoggerFactory
-{
-    DiagnosticLogger CreateLogger<T>();
-    DiagnosticLogger CreateLogger(string categoryName);
-}
-
-/// <summary>
-/// Implementation of DiagnosticLogger factory
-/// </summary>
-public class DiagnosticLoggerFactory : IDiagnosticLoggerFactory
-{
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly CheapAvaloniaBlazorOptions _options;
-
-    public DiagnosticLoggerFactory(ILoggerFactory loggerFactory, CheapAvaloniaBlazorOptions options)
-    {
-        _loggerFactory = loggerFactory;
-        _options = options;
-    }
-
-    public DiagnosticLogger CreateLogger<T>()
-    {
-        return new DiagnosticLogger(_loggerFactory.CreateLogger<T>(), _options);
-    }
-
-    public DiagnosticLogger CreateLogger(string categoryName)
-    {
-        return new DiagnosticLogger(_loggerFactory.CreateLogger(categoryName), _options);
-    }
 }

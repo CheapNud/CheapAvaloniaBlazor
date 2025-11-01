@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Services;
+using CheapAvaloniaBlazor.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Photino.NET;
 
@@ -20,6 +21,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 {
     private readonly IBlazorHostService? _blazorHost;
     private readonly CheapAvaloniaBlazorOptions? _options;
+    private readonly DiagnosticLogger? _logger;
 
     public BlazorHostWindow()
     {
@@ -28,15 +30,15 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     public BlazorHostWindow(IBlazorHostService? blazorHost = null)
     {
-        Console.WriteLine("BlazorHostWindow constructor called");
-        
         _blazorHost = blazorHost ?? CheapAvaloniaBlazorRuntime.GetRequiredService<IBlazorHostService>();
         _options = CheapAvaloniaBlazorRuntime.GetRequiredService<CheapAvaloniaBlazorOptions>();
-        
-        Console.WriteLine("Services initialized, calling InitializeWindow");
+        var loggerFactory = CheapAvaloniaBlazorRuntime.GetRequiredService<IDiagnosticLoggerFactory>();
+        _logger = loggerFactory.CreateLogger<BlazorHostWindow>();
+
+        _logger.LogVerbose("BlazorHostWindow constructor called");
+        _logger.LogVerbose("Services initialized, calling InitializeWindow");
         InitializeWindow();
-        
-        Console.WriteLine("BlazorHostWindow constructor completed");
+        _logger.LogVerbose("BlazorHostWindow constructor completed");
     }
 
     public new string? Title // Match IBlazorWindow interface
@@ -47,14 +49,14 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     protected virtual void InitializeWindow()
     {
-        Console.WriteLine("InitializeWindow called - setting up Avalonia window");
+        _logger?.LogVerbose("InitializeWindow called - setting up Avalonia window");
 
         var splashConfig = _options?.SplashScreen;
         var showSplash = splashConfig?.Enabled ?? false;
 
         if (showSplash)
         {
-            Console.WriteLine("Splash screen enabled - showing splash during startup");
+            _logger?.LogVerbose("Splash screen enabled - showing splash during startup");
 
             // Configure window as visible splash screen
             Title = splashConfig!.Title;
@@ -71,11 +73,11 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             // Set splash content
             Content = splashConfig.CustomContentFactory?.Invoke() ?? splashConfig.CreateDefaultContent();
 
-            Console.WriteLine($"Splash screen configured: {splashConfig.Width}x{splashConfig.Height}");
+            _logger?.LogVerbose($"Splash screen configured: {splashConfig.Width}x{splashConfig.Height}");
         }
         else
         {
-            Console.WriteLine("Splash screen disabled - hiding Avalonia window");
+            _logger?.LogVerbose("Splash screen disabled - hiding Avalonia window");
 
             // Configure window to be completely hidden but functional for StorageProvider
             Title = Constants.Framework.Name;
@@ -91,13 +93,13 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             SystemDecorations = Avalonia.Controls.SystemDecorations.None;
             TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };
 
-            Console.WriteLine("Avalonia window configured as hidden (no decorations, transparent, off-screen)");
+            _logger?.LogVerbose("Avalonia window configured as hidden (no decorations, transparent, off-screen)");
         }
 
-        Console.WriteLine("Subscribing to Loaded event");
+        _logger?.LogVerbose("Subscribing to Loaded event");
         Loaded += OnWindowLoaded;
 
-        Console.WriteLine("InitializeWindow completed");
+        _logger?.LogVerbose("InitializeWindow completed");
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -109,8 +111,8 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     private async void OnWindowLoaded(object? sender, RoutedEventArgs e)
     {
-        Console.WriteLine("OnWindowLoaded called - Avalonia window loaded");
-        
+        _logger?.LogVerbose("OnWindowLoaded called - Avalonia window loaded");
+
         try
         {
             // Initialize Photino using the direct approach
@@ -118,7 +120,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error initializing Photino: {ex}");
+            _logger?.LogError(ex, "Error initializing Photino: {ErrorMessage}", ex.Message);
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.Shutdown();
@@ -128,35 +130,32 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     private async Task InitializePhotino()
     {
-        if (_blazorHost == null || _options == null)
-        {
-            Console.WriteLine("Error: Required services not available");
+        if (!GuardClauses.RequireServices(_logger, _blazorHost, _options))
             return;
-        }
 
-        Console.WriteLine("InitializePhotino - Using direct Photino + Avalonia StorageProvider approach");
-        
+        _logger?.LogVerbose("InitializePhotino - Using direct Photino + Avalonia StorageProvider approach");
+
         // Start Blazor host if not running
         if (!_blazorHost.IsRunning)
         {
-            Console.WriteLine("Starting Blazor host...");
+            _logger?.LogVerbose("Starting Blazor host...");
             await _blazorHost.StartAsync();
         }
 
         // Wait for the server to be fully ready
         var baseUrl = _blazorHost.BaseUrl;
-        Console.WriteLine($"Blazor server URL: {baseUrl}");
+        _logger?.LogVerbose($"Blazor server URL: {baseUrl}");
 
         // Test the server connectivity
         await WaitForServerReady(baseUrl);
 
         // Hide splash screen and transition to hidden storage provider mode
-        Console.WriteLine("Server ready - hiding splash screen and transitioning to hidden mode");
+        _logger?.LogVerbose("Server ready - hiding splash screen and transitioning to hidden mode");
         HideSplashScreen();
-        Console.WriteLine("Avalonia window transitioned to hidden mode - available for StorageProvider");
+        _logger?.LogVerbose("Avalonia window transitioned to hidden mode - available for StorageProvider");
 
         // Create Photino window directly
-        Console.WriteLine("Creating Photino window...");
+        _logger?.LogVerbose("Creating Photino window...");
         var photinoWindow = new PhotinoWindow()
             .SetTitle(_options.DefaultWindowTitle)
             .SetSize(_options.DefaultWindowWidth, _options.DefaultWindowHeight)
@@ -169,15 +168,15 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
         // ALWAYS center the window on each launch to prevent Windows from caching position
         // This ensures the window appears in the center, not in a saved position from previous runs
-        Console.WriteLine("Centering Photino window (prevents position caching)...");
+        _logger?.LogVerbose("Centering Photino window (prevents position caching)...");
         photinoWindow.Center();
 
-        Console.WriteLine($"Loading Photino window with URL: {baseUrl}");
+        _logger?.LogVerbose($"Loading Photino window with URL: {baseUrl}");
         photinoWindow.Load(baseUrl);
 
         // Bring Photino window to foreground by temporarily setting it as TopMost
         // This ensures the window appears in front instead of staying hidden in taskbar
-        Console.WriteLine("Bringing Photino window to foreground...");
+        _logger?.LogVerbose("Bringing Photino window to foreground...");
         photinoWindow.SetTopMost(true);
 
         // Small delay to ensure the window is actually shown
@@ -185,7 +184,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
         // Remove TopMost flag so window behaves normally
         photinoWindow.SetTopMost(false);
-        Console.WriteLine("Photino window brought to foreground");
+        _logger?.LogVerbose("Photino window brought to foreground");
 
         // Attach message handler for JavaScript ↔ C# communication
         var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
@@ -194,7 +193,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {
-            Console.WriteLine("Photino window closing - shutting down application");
+            _logger?.LogVerbose("Photino window closing - shutting down application");
             Dispatcher.UIThread.Post(() =>
             {
                 if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime)
@@ -205,11 +204,11 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             return false; // Allow window to close
         };
 
-        Console.WriteLine("About to call WaitForClose - direct approach");
-        
+        _logger?.LogVerbose("About to call WaitForClose - direct approach");
+
         // Direct blocking call - simple and reliable
         photinoWindow.WaitForClose();
-        Console.WriteLine("WaitForClose completed");
+        _logger?.LogVerbose("WaitForClose completed");
     }
 
 
@@ -232,34 +231,33 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
 
     private async Task WaitForServerReady(string baseUrl)
     {
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(Constants.Defaults.HttpClientTimeoutSeconds);
+        using var httpClient = HttpClientFactory.CreateForServerCheck();
 
         for (int i = 0; i < Constants.Defaults.ServerReadinessMaxAttempts; i++)
         {
             try
             {
-                Console.WriteLine($"Checking server readiness... attempt {i + 1}");
+                _logger?.LogVerbose($"Checking server readiness... attempt {i + 1}");
                 var response = await httpClient.GetAsync(baseUrl);
                 if (response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("Server is ready!");
+                    _logger?.LogVerbose("Server is ready!");
                     // Extra delay to ensure the server is fully stabilized
                     await Task.Delay(Constants.Defaults.ServerStabilizationDelayMilliseconds);
-                    Console.WriteLine("Server stabilization delay completed");
+                    _logger?.LogVerbose("Server stabilization delay completed");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Server not ready yet: {ex.Message}");
+                _logger?.LogVerbose($"Server not ready yet: {ex.Message}");
             }
 
 
             await Task.Delay(Constants.Defaults.ServerReadinessCheckDelayMilliseconds);
         }
 
-        Console.WriteLine("Warning: Server readiness check failed, proceeding anyway...");
+        _logger?.LogWarning("Warning: Server readiness check failed, proceeding anyway...");
     }
 
     /// <summary>
