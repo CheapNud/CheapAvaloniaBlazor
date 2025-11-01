@@ -11,10 +11,12 @@ using CheapAvaloniaBlazor;
 public class DesktopInteropService : IDesktopInteropService
 {
     private readonly IJSRuntime _jsRuntime;
+    private readonly DiagnosticLogger _logger;
 
-    public DesktopInteropService(IJSRuntime jsRuntime)
+    public DesktopInteropService(IJSRuntime jsRuntime, IDiagnosticLoggerFactory loggerFactory)
     {
         _jsRuntime = jsRuntime;
+        _logger = loggerFactory.CreateLogger<DesktopInteropService>();
     }
 
     // File System Operations
@@ -247,7 +249,7 @@ public class DesktopInteropService : IDesktopInteropService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error handling dropped files: {ex.Message}");
+            _logger.LogError(ex, "Error handling dropped files: {ErrorMessage}", ex.Message);
         }
 
         return Task.CompletedTask;

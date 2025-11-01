@@ -119,6 +119,9 @@ public static class WebApplicationExtensions
     // Add this temporarily to your WebApplicationExtensions.cs ConfigureStaticFiles method
     private static void ConfigureStaticFiles(WebApplication app, CheapAvaloniaBlazorOptions options)
     {
+        var loggerFactory = app.Services.GetRequiredService<Services.IDiagnosticLoggerFactory>();
+        var logger = loggerFactory.CreateLogger(nameof(WebApplicationExtensions));
+
         // Serve wwwroot files from consuming project
         app.UseStaticFiles();
 
@@ -128,7 +131,7 @@ public static class WebApplicationExtensions
         // DEBUG: Show what's actually embedded (remove after testing)
         if (app.Environment.IsDevelopment())
         {
-            DebugEmbeddedResources(assembly);
+            DebugEmbeddedResources(assembly, logger);
         }
 
         // SOLUTION 1: Standard embedded file provider (most common case)
@@ -142,11 +145,11 @@ public static class WebApplicationExtensions
                 RequestPath = Constants.Endpoints.ContentPath
             });
 
-            Console.WriteLine("✅ Standard EmbeddedFileProvider configured successfully");
+            logger.LogVerbose("✅ Standard EmbeddedFileProvider configured successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Standard EmbeddedFileProvider failed: {ex.Message}");
+            logger.LogVerbose($"❌ Standard EmbeddedFileProvider failed: {ex.Message}");
 
             // SOLUTION 2: Fallback - try without namespace prefix
             try
@@ -159,14 +162,14 @@ public static class WebApplicationExtensions
                     RequestPath = Constants.Endpoints.ContentPath
                 });
 
-                Console.WriteLine("✅ Fallback EmbeddedFileProvider configured successfully");
+                logger.LogVerbose("✅ Fallback EmbeddedFileProvider configured successfully");
             }
             catch (Exception fallbackEx)
             {
-                Console.WriteLine($"❌ Fallback EmbeddedFileProvider also failed: {fallbackEx.Message}");
+                logger.LogVerbose($"❌ Fallback EmbeddedFileProvider also failed: {fallbackEx.Message}");
 
                 // SOLUTION 3: Manual resource serving as last resort
-                ConfigureManualResourceServing(app, assembly);
+                ConfigureManualResourceServing(app, assembly, logger);
             }
         }
 
@@ -177,40 +180,40 @@ public static class WebApplicationExtensions
         }
     }
 
-    private static void DebugEmbeddedResources(Assembly assembly)
+    private static void DebugEmbeddedResources(Assembly assembly, Services.DiagnosticLogger logger)
     {
-        Console.WriteLine("🔍 === EMBEDDED RESOURCES DEBUG ===");
-        Console.WriteLine($"Assembly: {assembly.FullName}");
+        logger.LogVerbose("🔍 === EMBEDDED RESOURCES DEBUG ===");
+        logger.LogVerbose($"Assembly: {assembly.FullName}");
 
         var resources = assembly.GetManifestResourceNames();
-        Console.WriteLine($"Found {resources.Length} embedded resources:");
+        logger.LogVerbose($"Found {resources.Length} embedded resources:");
 
         foreach (var resource in resources.OrderBy(r => r))
         {
-            Console.WriteLine($"  📄 {resource}");
+            logger.LogVerbose($"  📄 {resource}");
         }
 
         // Look for our specific JS file
         var jsFiles = resources.Where(r => r.Contains(Constants.Resources.JavaScriptBridgeResourcePattern)).ToArray();
         if (jsFiles.Any())
         {
-            Console.WriteLine("🎯 Found JS files:");
+            logger.LogVerbose("🎯 Found JS files:");
             foreach (var js in jsFiles)
             {
-                Console.WriteLine($"  ⚡ {js}");
+                logger.LogVerbose($"  ⚡ {js}");
             }
         }
         else
         {
-            Console.WriteLine($"❌ No {Constants.Resources.JavaScriptBridgeFileName} files found in embedded resources!");
+            logger.LogVerbose($"❌ No {Constants.Resources.JavaScriptBridgeFileName} files found in embedded resources!");
         }
 
-        Console.WriteLine("🔍 === END DEBUG ===");
+        logger.LogVerbose("🔍 === END DEBUG ===");
     }
 
-    private static void ConfigureManualResourceServing(WebApplication app, Assembly assembly)
+    private static void ConfigureManualResourceServing(WebApplication app, Assembly assembly, Services.DiagnosticLogger logger)
     {
-        Console.WriteLine("🔧 Configuring manual resource serving...");
+        logger.LogVerbose("🔧 Configuring manual resource serving...");
 
         // Manual endpoint for serving the JS file
         app.MapGet(Constants.Endpoints.JavaScriptBridgeEndpoint, async context =>
@@ -238,11 +241,11 @@ public static class WebApplicationExtensions
                 context.Response.ContentType = Constants.Http.ContentTypeJavaScript;
                 await stream.CopyToAsync(context.Response.Body);
 
-                Console.WriteLine($"✅ Manually served JS file: {resourceName}");
+                logger.LogVerbose($"✅ Manually served JS file: {resourceName}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Manual serving failed: {ex.Message}");
+                logger.LogVerbose($"❌ Manual serving failed: {ex.Message}");
                 context.Response.StatusCode = Constants.Http.StatusCodeInternalServerError;
                 await context.Response.WriteAsync($"Error serving JS file: {ex.Message}");
             }

@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.1.0 - Major Feature Release: Professional splash screen system (enabled by default, fully customizable with colors/text/custom content). Performance: ValueTask optimizations for zero-allocation synchronous operations. Architecture: DiagnosticLogger abstraction and Constants extraction (121+ magic strings eliminated). Previous: v1.0.95 eliminated Task.FromResult anti-pattern.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.1.1 - Bug Fix: Replaced all Console.WriteLine calls with DiagnosticLogger to prevent unwanted console window spawning. Console window now only appears when EnableConsoleLogging is explicitly enabled. All 58 hardcoded console calls across 4 files now respect diagnostic settings.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
