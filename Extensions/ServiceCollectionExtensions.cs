@@ -12,14 +12,17 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
         services.AddSingleton<IBlazorHostService, EmbeddedBlazorHostService>();
-        
+
+        // Add diagnostic logger factory
+        services.AddSingleton<IDiagnosticLoggerFactory, DiagnosticLoggerFactory>();
+
         // Add DesktopInteropService using Avalonia's StorageProvider
         services.AddScoped<IDesktopInteropService, DesktopInteropService>();
-        
+
         // Add lightweight message handler for JavaScript ↔ C# communication
         services.AddSingleton<PhotinoMessageHandler>();
 
-        // Note: Blazor services (RazorPages, ServerSideBlazor) are registered 
+        // Note: Blazor services (RazorPages, ServerSideBlazor) are registered
         // in EmbeddedBlazorHostService.ConfigureServices() to avoid duplication issues
         // Projects should use Microsoft.NET.Sdk.Web which includes MVC services automatically
 
