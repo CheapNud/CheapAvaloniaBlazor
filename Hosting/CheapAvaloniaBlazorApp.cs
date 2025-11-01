@@ -78,7 +78,7 @@ public class CheapAvaloniaBlazorApp : Application
     {
         if (_blazorHost?.IsRunning == true)
         {
-            _blazorHost.StopAsync().Wait(TimeSpan.FromSeconds(5));
+            _blazorHost.StopAsync().Wait(TimeSpan.FromSeconds(Constants.Defaults.ServerShutdownTimeoutSeconds));
         }
     }
 }

@@ -6,7 +6,7 @@ Combine **Blazor Server** + **Your Choice of UI Framework** (currently **MudBlaz
 
 [![NuGet](https://img.shields.io/nuget/v/CheapAvaloniaBlazor.svg)](https://www.nuget.org/packages/CheapAvaloniaBlazor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 > 🚧 **PRE-ALPHA HOBBY PROJECT** 🚧  
 > This is an experimental project developed as a personal hobby. Expect breaking changes, incomplete features, and limited support. Use at your own risk in non-production environments.
@@ -29,11 +29,23 @@ Combine **Blazor Server** + **Your Choice of UI Framework** (currently **MudBlaz
 
 ---
 
-## 📦 Installation Options
+## 📚 Documentation
 
-### Option A: Command Line (VS Code/Terminal Users)
+**Complete documentation available in the [docs](./docs) folder:**
+
+- **[Installation Guide](./docs/installation.md)** - System requirements, installation methods, verification, and troubleshooting
+- **[Getting Started](./docs/getting-started.md)** - Step-by-step tutorial for your first desktop app
+- **[Splash Screen](./docs/splash-screen.md)** - Professional splash screen configuration and customization
+- **[Desktop Interop API](./docs/desktop-interop.md)** - File dialogs, window management, system integration, clipboard operations
+- **[Diagnostics & Debugging](./docs/diagnostics.md)** - Diagnostic system, logging, and troubleshooting
+- **[Advanced Configuration](./docs/advanced-configuration.md)** - HostBuilder API reference, SignalR, hot reload, custom pipeline
+
+---
+
+## 📦 Quick Installation
+
 ```bash
-# Create a new console project (CheapAvaloniaBlazor handles the desktop setup)
+# Create a new console project
 dotnet new console -n MyDesktopApp
 cd MyDesktopApp
 
@@ -41,51 +53,28 @@ cd MyDesktopApp
 dotnet add package CheapAvaloniaBlazor
 ```
 
-### Option B: Visual Studio 2022 GUI Users
-1. **File** → **New** → **Project**
-2. Select **"Console App"** (.NET 9.0)
-3. Name your project (e.g., "MyDesktopApp")
-4. Right-click project → **"Manage NuGet Packages"**
-5. Search for **"CheapAvaloniaBlazor"** → **Install**
-
-### Option C: Start with Avalonia Template (Advanced)
-```bash
-# Install Avalonia templates first
-dotnet new install Avalonia.ProjectTemplates
-
-# Create Avalonia project, then add CheapAvaloniaBlazor
-dotnet new avalonia.app -n MyDesktopApp
-cd MyDesktopApp
-dotnet add package CheapAvaloniaBlazor
-# Note: You'll need to integrate with existing Avalonia setup
-```
-
-> 💡 **Why start with Console App?** CheapAvaloniaBlazor handles all the desktop framework setup for you! No need for complex Avalonia/Blazor project templates - just add the package and you're ready to build.
+**More installation options:** See the **[Installation Guide](./docs/installation.md)** for Visual Studio GUI instructions, Avalonia templates, and troubleshooting.
 
 ---
 
-## 🚀 Quick Start (5 Minutes)
+## 🚀 Quick Start
 
-> **Note for Visual Studio Users:** Create folders and files using **Solution Explorer** → **Right-click project** → **Add** → **New Folder/Item**
+### Minimal Example (3 Steps)
 
-### 1. Update Project File
-Edit your `.csproj` file to use the Web SDK (includes MVC and Blazor support):
+**1. Update your `.csproj` to use Web SDK:**
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-  
   <ItemGroup>
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.0.68" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.0" />
   </ItemGroup>
 </Project>
 ```
 
-### 2. Replace Program.cs
+**2. Replace `Program.cs`:**
 ```csharp
 using CheapAvaloniaBlazor.Hosting;
 
@@ -96,266 +85,93 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        var builder = new HostBuilder()
+        new HostBuilder()
             .WithTitle("My Desktop App")
             .WithSize(1200, 800)
-            .AddMudBlazor();
-
-        // Add your services
-        builder.Services.AddScoped<IMyService, MyService>();
-
-        // Run the app - all Avalonia complexity handled by the package
-        builder.RunApp(args);
+            .AddMudBlazor()
+            .RunApp(args);
     }
 }
 ```
 
-### 3. Create Components/_Host.cshtml
-> **Visual Studio:** Right-click project → Add → New Folder → "Components", then right-click Components → Add → New Item → "Razor Page"
+**3. Add Blazor components** (App.razor, MainLayout.razor, Index.razor, etc.)
 
-```html
-@page "/"
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Desktop App</title>
-    <base href="~/" />
-    
-    <!-- MudBlazor CSS -->
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    
-    <style>
-        #blazor-error-ui {
-            background: lightyellow;
-            bottom: 0;
-            box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-            display: none;
-            left: 0;
-            padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-        }
-
-            #blazor-error-ui .dismiss {
-                cursor: pointer;
-                position: absolute;
-                right: 0.75rem;
-                top: 0.5rem;
-            }
-    </style>
-</head>
-<body>
-    <component type="typeof(App)" render-mode="ServerPrerendered" />
-
-    <div id="blazor-error-ui">
-        An error has occurred. This application may no longer respond until reloaded.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
-    </div>
-
-    <script src="_framework/blazor.server.js"></script>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-</body>
-</html>
-```
-
-### 4. Create App.razor
-> **Visual Studio:** Right-click project → Add → New Item → "Razor Component"
-```razor
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
-```
-
-### 5. Create Shared/MainLayout.razor
-> **Visual Studio:** Right-click project → Add → New Folder → "Shared", then Add → New Item → "Razor Component"
-
-```razor
-@inherits LayoutComponentBase
-
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
-
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
-        <MudSpacer />
-        <MudText Typo="Typo.h6">My Desktop App</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="Icons.Material.Filled.Settings" Color="Color.Inherit" />
-    </MudAppBar>
-    
-    <MudDrawer Open="true" Elevation="1">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h6">Navigation</MudText>
-        </MudDrawerHeader>
-        <MudNavMenu>
-            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="Icons.Material.Filled.Home">Home</MudNavLink>
-            <MudNavLink Href="/files" Icon="Icons.Material.Filled.Folder">Files</MudNavLink>
-        </MudNavMenu>
-    </MudDrawer>
-    
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-16 pt-16">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
-```
-
-### 6. Create _Imports.razor
-> **Visual Studio:** Right-click project → Add → New Item → "Razor Component" → Name it "_Imports.razor"
-```razor
-@using System.Net.Http
-@using System.Net.Http.Json
-@using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.AspNetCore.Components.Routing
-@using Microsoft.AspNetCore.Components.Web
-@using Microsoft.AspNetCore.Components.Web.Virtualization
-@using Microsoft.JSInterop
-@using MudBlazor
-@using CheapAvaloniaBlazor
-@using CheapAvaloniaBlazor.Services
-```
-
-### 7. Create Pages/Index.razor
-> **Visual Studio:** Right-click project → Add → New Folder → "Pages", then Add → New Item → "Razor Component"
-```razor
-@page "/"
-@inject IDesktopInteropService Desktop
-
-<PageTitle>Home</PageTitle>
-
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.h4" GutterBottom="true">Welcome to Your Desktop App! 🎉</MudText>
-        <MudText Class="mb-4">
-            This is a native desktop application built with Blazor and running with full file system access.
-        </MudText>
-        
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="OpenFileDialog">
-            Open File Dialog
-        </MudButton>
-        
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick="ShowNotification" Class="ml-2">
-            Show Notification
-        </MudButton>
-    </MudCardContent>
-</MudCard>
-
-@code {
-    private async Task OpenFileDialog()
-    {
-        var file = await Desktop.OpenFileDialogAsync(new()
-        {
-            Title = "Select a file",
-            Filters = new()
-            {
-                new() { Name = "Text Files", Extensions = new[] { "*.txt", "*.md" } },
-                new() { Name = "All Files", Extensions = new[] { "*.*" } }
-            }
-        });
-        
-        if (file != null)
-        {
-            await Desktop.ShowNotificationAsync("File Selected", $"You selected: {Path.GetFileName(file)}");
-        }
-    }
-    
-    private async Task ShowNotification()
-    {
-        await Desktop.ShowNotificationAsync("Hello Desktop!", "This is a native desktop notification! 🚀");
-    }
-}
-```
+**Full tutorial:** See the **[Getting Started Guide](./docs/getting-started.md)** for complete step-by-step instructions with all files.
 
 ---
 
-## 🔧 Advanced Configuration
+## 🎨 Features
 
-### HostBuilder Fluent API
+### Professional Splash Screen (v1.1.0)
+**Enabled by default** - Shows a professional loading screen while your app initializes.
+
 ```csharp
-var builder = new HostBuilder()
-    .WithTitle("Advanced Desktop App")
-    .WithSize(1400, 900)
-    .WithPosition(100, 100)           // Custom window position
-    .UsePort(5001)                    // Custom port
-    .UseHttps(true)                   // Enable HTTPS
-    .EnableConsoleLogging(true)       // Enable console logging
-    .AddMudBlazor(config =>           // Current: MudBlazor support
-    {
-        config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomLeft;
-    })
-    // .AddRadzen()                   // Coming: Radzen components
-    // .AddTelerik()                  // Coming: Telerik UI
-    // .AddBootstrap()                // Coming: Bootstrap components
-    .AddHttpClient("API", client =>   // Named HTTP client
-    {
-        client.BaseAddress = new Uri("https://api.example.com");
-    })
-    .ConfigureOptions(options =>      // Advanced options
-    {
-        options.EnableDevTools = true;
-        options.EnableContextMenu = false;
-        options.Resizable = true;
-    });
-
-// Add custom services
-builder.Services.AddSingleton<IDataService, DataService>();
-builder.Services.AddScoped<IFileManager, FileManager>();
-
-var window = builder.Build();
-window.Run();
+// Customize splash screen
+new HostBuilder()
+    .WithTitle("My App")
+    .WithSplashScreen("My App", "Loading workspace...")
+    .AddMudBlazor()
+    .RunApp(args);
 ```
 
-### Desktop Interop Features
+**Full documentation:** See **[Splash Screen Guide](./docs/splash-screen.md)** for customization options, custom content, and advanced configuration.
+
+### Desktop Interop API
+Full native desktop capabilities with **ValueTask optimization** for zero-allocation performance:
+
 ```csharp
 @inject IDesktopInteropService Desktop
 
-// File System Operations
-var selectedFile = await Desktop.OpenFileDialogAsync();
-var saveLocation = await Desktop.SaveFileDialogAsync();
-var folder = await Desktop.OpenFolderDialogAsync();
-
-// File I/O
-var content = await Desktop.ReadFileAsync("document.txt");
-await Desktop.WriteFileAsync("output.txt", Encoding.UTF8.GetBytes("Hello Desktop!"));
-var exists = await Desktop.FileExistsAsync("somefile.txt");
-
-// Window Management
-await Desktop.MinimizeWindowAsync();
-await Desktop.MaximizeWindowAsync();
-await Desktop.SetWindowTitleAsync("New Title");
-var state = await Desktop.GetWindowStateAsync();
-
-// System Integration
-await Desktop.OpenUrlInBrowserAsync("https://github.com");
+// File dialogs, window management, clipboard, notifications, and more
+var file = await Desktop.OpenFileDialogAsync();
 await Desktop.ShowNotificationAsync("Title", "Message");
-
-// Clipboard Operations
-var clipboardText = await Desktop.GetClipboardTextAsync();
-await Desktop.SetClipboardTextAsync("Copied from desktop app!");
-
-// Get system paths
-var appDataPath = await Desktop.GetAppDataPathAsync();
-var documentsPath = await Desktop.GetDocumentsPathAsync();
 ```
+
+**Full API reference:** See **[Desktop Interop API](./docs/desktop-interop.md)** for all available methods and examples.
+
+### Diagnostics & Logging
+Comprehensive diagnostic system for troubleshooting:
+
+```csharp
+new HostBuilder()
+    .EnableDiagnostics()  // Detailed startup and operation logging
+    .AddMudBlazor()
+    .RunApp(args);
+```
+
+**Full guide:** See **[Diagnostics & Debugging](./docs/diagnostics.md)** for DiagnosticLogger usage and troubleshooting scenarios.
+
+---
+
+## 🔧 Configuration
+
+### HostBuilder Fluent API
+Configure your application with an intuitive fluent interface:
+
+```csharp
+new HostBuilder()
+    // Window
+    .WithTitle("My App").WithSize(1400, 900).Chromeless(false)
+
+    // Splash Screen
+    .WithSplashScreen("My App", "Loading...")
+
+    // Server
+    .UsePort(5001).UseHttps(true)
+
+    // Diagnostics
+    .EnableDiagnostics().EnableDevTools(true)
+
+    // UI Framework
+    .AddMudBlazor()
+
+    // Advanced options
+    .ConfigureOptions(opts => { /* ... */ })
+
+    .RunApp(args);
+```
+
+**Complete reference:** See **[Advanced Configuration](./docs/advanced-configuration.md)** for all HostBuilder methods, SignalR configuration, custom pipeline/endpoints, and more.
 
 ---
 
@@ -451,21 +267,21 @@ MyDesktopApp.exe
 ## 📋 System Requirements
 
 ### Runtime Requirements
-- **.NET 9.0** or later
+- **.NET 10.0** or later
 - **Windows 10+** ✅ **(Tested)**
 - **Linux with WebKit** ⚠️ **(Untested - on roadmap)**
 - **macOS 10.15+** ⚠️ **(Untested - on roadmap)**
 
 ### Development Requirements
 - **Visual Studio 2022** (17.8+) or **VS Code**
-- **.NET 9.0 SDK**
+- **.NET 10.0 SDK**
 - **C# 13** language features
 
 ### Package Dependencies
-- `Avalonia 11.3.2+` - Desktop framework
-- `MudBlazor 8.10.0+` - Material Design components  
+- `Avalonia 11.3.7+` - Desktop framework
+- `MudBlazor 8.13.0+` - Material Design components
 - `Photino.NET 4.0.16+` - WebView hosting
-- `Microsoft.AspNetCore.Components.Web 9.0.7+` - Blazor components
+- `Microsoft.AspNetCore.Components.Web 10.0+` - Blazor components
 
 ---
 
@@ -476,7 +292,7 @@ MyDesktopApp.exe
 **🚫 Build Errors**
 ```bash
 # Ensure correct .NET version
-dotnet --version  # Should be 9.0+
+dotnet --version  # Should be 10.0+
 
 # Clear and restore packages
 dotnet clean
@@ -518,7 +334,7 @@ dotnet build
 **🚫 Hot Reload Not Working**
 - Restart application
 - Check VS/VS Code Blazor extensions
-- Verify project targets .NET 9.0
+- Verify project targets .NET 10.0
 
 ### Debug Mode
 ```csharp
@@ -581,14 +397,16 @@ var builder = new HostBuilder()
 
 ## 🚨 Project Status & Roadmap
 
-### Current Status: **Working Alpha v1.0.68** ✅
+### Current Status: **Working Alpha v1.1.0** ✅
 - ✅ **Core Framework**: Avalonia + Blazor + Photino integration
 - ✅ **NuGet Package**: Published and functional
+- ✅ **Professional Splash Screen**: Enabled by default, fully customizable (v1.1.0)
 - ✅ **File System Interop**: **WORKING** - Cross-platform file dialogs via Avalonia StorageProvider
 - ✅ **Window Management**: Minimize, maximize, resize, title changes
 - ✅ **JavaScript ↔ C# Bridge**: Full bidirectional communication with ExecuteScriptAsync
 - ✅ **MudBlazor Integration**: Full component library support
-- ✅ **Clean Architecture**: Removed legacy code, optimized for stability
+- ✅ **Clean Architecture**: Constants extraction (121+ magic strings), DiagnosticLogger abstraction
+- ✅ **Performance Optimizations**: ValueTask for zero-allocation synchronous operations
 
 ### Upcoming Features 🛣️
 - 🔄 **Testing Framework**: Unit and integration test support  

@@ -64,12 +64,7 @@ public class PhotinoMessageHandler : IDisposable
             throw new ArgumentException("Script cannot be null or empty", nameof(script));
 
         // Basic security checks - reject dangerous patterns
-        var dangerousPatterns = new[]
-        {
-            "</script>", "<script", "javascript:", "eval(", "Function(",
-            "document.write", "document.cookie", "localStorage.", "sessionStorage.",
-            "window.location", "location.href", "location.replace"
-        };
+        var dangerousPatterns = Constants.Security.DangerousScriptPatterns;
 
         var lowerScript = script.ToLowerInvariant();
         foreach (var pattern in dangerousPatterns)
@@ -81,14 +76,14 @@ public class PhotinoMessageHandler : IDisposable
         }
 
         // Limit script length
-        if (script.Length > 10000)
-            throw new ArgumentException("Script is too long (max 10,000 characters)", nameof(script));
+        if (script.Length > Constants.Defaults.MaxScriptLength)
+            throw new ArgumentException($"Script is too long (max {Constants.Defaults.MaxScriptLength} characters)", nameof(script));
 
         var tcs = new TaskCompletionSource<string>();
         var resultId = Guid.NewGuid().ToString();
 
         // Register temporary handler for script result
-        RegisterMessageHandler($"scriptResult_{resultId}", async (payload) =>
+        RegisterMessageHandler($"{Constants.MessageTypes.ScriptResultPrefix}{resultId}", async (payload) =>
         {
             tcs.SetResult(payload);
             return "";
@@ -100,17 +95,17 @@ public class PhotinoMessageHandler : IDisposable
             (async function() {{
                 try {{
                     const scriptToExecute = {escapedScript};
-                    const result = await (async function() {{ 
-                        return eval(scriptToExecute); 
+                    const result = await (async function() {{
+                        return eval(scriptToExecute);
                     }})();
-                    window.chrome.webview.postMessage(JSON.stringify({{
-                        type: 'scriptResult_{resultId}',
+                    {Constants.JavaScript.ChromeWebViewPostMessage}(JSON.stringify({{
+                        type: '{Constants.MessageTypes.ScriptResultPrefix}{resultId}',
                         payload: result?.toString() || ''
                     }}));
                 }} catch (error) {{
-                    window.chrome.webview.postMessage(JSON.stringify({{
-                        type: 'scriptResult_{resultId}',
-                        payload: 'ERROR: ' + error.toString()
+                    {Constants.JavaScript.ChromeWebViewPostMessage}(JSON.stringify({{
+                        type: '{Constants.MessageTypes.ScriptResultPrefix}{resultId}',
+                        payload: '{Constants.Html.ErrorPrefix}' + error.toString()
                     }}));
                 }}
             }})();
@@ -119,7 +114,7 @@ public class PhotinoMessageHandler : IDisposable
         _window.SendWebMessage(wrappedScript);
 
         // Wait for result with timeout
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Constants.Defaults.ScriptExecutionTimeoutSeconds));
         cts.Token.Register(() => tcs.TrySetCanceled());
 
         try
@@ -128,31 +123,31 @@ public class PhotinoMessageHandler : IDisposable
         }
         catch (OperationCanceledException)
         {
-            throw new TimeoutException("Script execution timed out after 30 seconds");
+            throw new TimeoutException($"Script execution timed out after {Constants.Defaults.ScriptExecutionTimeoutSeconds} seconds");
         }
         finally
         {
             // Clean up the temporary handler
-            _messageHandlers.Remove($"scriptResult_{resultId}");
+            _messageHandlers.Remove($"{Constants.MessageTypes.ScriptResultPrefix}{resultId}");
         }
     }
 
     private void RegisterDefaultHandlers()
     {
         // Window control handlers - these work with our direct Photino approach
-        RegisterMessageHandler("minimize", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.Minimize, async (payload) =>
         {
             _window?.SetMinimized(true);
             return "ok";
         });
 
-        RegisterMessageHandler("maximize", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.Maximize, async (payload) =>
         {
             _window?.SetMaximized(true);
             return "ok";
         });
 
-        RegisterMessageHandler("restore", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.Restore, async (payload) =>
         {
             if (_window != null)
             {
@@ -162,7 +157,7 @@ public class PhotinoMessageHandler : IDisposable
             return "ok";
         });
 
-        RegisterMessageHandler("toggleMaximize", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.ToggleMaximize, async (payload) =>
         {
             if (_window != null)
             {
@@ -172,14 +167,14 @@ public class PhotinoMessageHandler : IDisposable
             return "ok";
         });
 
-        RegisterMessageHandler("close", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.Close, async (payload) =>
         {
             // Don't close directly - let the window closing handler manage this
             _window?.Close();
             return "ok";
         });
 
-        RegisterMessageHandler("setTitle", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.SetTitle, async (payload) =>
         {
             if (!string.IsNullOrEmpty(payload) && _window != null)
             {
@@ -188,13 +183,13 @@ public class PhotinoMessageHandler : IDisposable
             return "ok";
         });
 
-        RegisterMessageHandler("getWindowState", async (payload) =>
+        RegisterMessageHandler(Constants.MessageTypes.GetWindowState, async (payload) =>
         {
-            if (_window == null) return "normal";
-            
-            if (_window.Maximized) return "maximized";
-            if (_window.Minimized) return "minimized";
-            return "normal";
+            if (_window == null) return Constants.WindowStates.Normal;
+
+            if (_window.Maximized) return Constants.WindowStates.Maximized;
+            if (_window.Minimized) return Constants.WindowStates.Minimized;
+            return Constants.WindowStates.Normal;
         });
     }
 
@@ -208,7 +203,7 @@ public class PhotinoMessageHandler : IDisposable
             if (messageData?.Type == null) return;
 
             // Handle one-time result handlers
-            var resultKey = $"result_{messageData.Type}";
+            var resultKey = $"{Constants.MessageTypes.ResultPrefix}{messageData.Type}";
             if (_messageHandlers.ContainsKey(resultKey))
             {
                 Task.Run(async () =>
@@ -232,7 +227,7 @@ public class PhotinoMessageHandler : IDisposable
                         var result = await messageHandler(messageData.Payload ?? "");
                         if (!string.IsNullOrEmpty(result))
                         {
-                            SendMessage($"response_{messageData.Type}", result);
+                            SendMessage($"{Constants.MessageTypes.ResponsePrefix}{messageData.Type}", result);
                         }
                     }
                     catch (Exception ex)

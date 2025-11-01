@@ -4,59 +4,21 @@
     <Message Text="CheapAvaloniaBlazor: Configuring Blazor desktop application..." Importance="high" />
   </Target>
 
-  <Target Name="EnsureWwwrootExists" BeforeTargets="Build">
+  <!-- Only create wwwroot if it doesn't exist, no copying -->
+  <Target Name="EnsureWwwrootExists" BeforeTargets="Build" Condition="!Exists('$(MSBuildProjectDirectory)\wwwroot')">
     <PropertyGroup>
-      <WwwRootPath Condition="'$(WwwRootPath)' == ''">$(MSBuildProjectDirectory)\wwwroot</WwwRootPath>
+      <WwwRootPath>$(MSBuildProjectDirectory)\wwwroot</WwwRootPath>
     </PropertyGroup>
 
-    <MakeDir Directories="$(WwwRootPath)" Condition="!Exists('$(WwwRootPath)')" />
-    <MakeDir Directories="$(WwwRootPath)\_content\CheapAvaloniaBlazor" Condition="!Exists('$(WwwRootPath)\_content\CheapAvaloniaBlazor')" />
-  </Target>
+    <MakeDir Directories="$(WwwRootPath)" />
 
-  <Target Name="CopyBlazorAssets" AfterTargets="Build">
-    <Message Text="CheapAvaloniaBlazor: Copying package assets..." Importance="normal" />
+    <!-- Create minimal favicon to prevent 404s -->
+    <WriteLinesToFile
+      File="$(WwwRootPath)\favicon.ico"
+      Lines=""
+      Overwrite="false" />
 
-    <PropertyGroup>
-      <WwwRootPath Condition="'$(WwwRootPath)' == ''">$(MSBuildProjectDirectory)\wwwroot</WwwRootPath>
-      <PackageContentPath>$(MSBuildThisFileDirectory)..\contentFiles\any\any\Resources\wwwroot</PackageContentPath>
-    </PropertyGroup>
-
-    <!-- Debug: Show what we're looking for -->
-    <Message Text="Looking for package assets at: $(PackageContentPath)" Importance="normal" />
-
-    <!-- Find all JS files in package content -->
-    <ItemGroup>
-      <CheapAvaloniaBlazorAssets Include="$(PackageContentPath)\**\*" Condition="Exists('$(PackageContentPath)')" />
-    </ItemGroup>
-
-    <!-- Copy to _content/CheapAvaloniaBlazor path for Blazor static assets -->
-    <Copy
-      SourceFiles="@(CheapAvaloniaBlazorAssets)"
-      DestinationFiles="@(CheapAvaloniaBlazorAssets->'$(WwwRootPath)\_content\CheapAvaloniaBlazor\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true"
-      Condition="@(CheapAvaloniaBlazorAssets->Count()) > 0" />
-
-    <!-- Also copy directly to wwwroot for legacy access -->
-    <Copy
-      SourceFiles="@(CheapAvaloniaBlazorAssets)"
-      DestinationFiles="@(CheapAvaloniaBlazorAssets->'$(WwwRootPath)\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true"
-      Condition="@(CheapAvaloniaBlazorAssets->Count()) > 0" />
-
-    <Message Text="CheapAvaloniaBlazor: Copied @(CheapAvaloniaBlazorAssets->Count()) assets to $(WwwRootPath)" Importance="normal" />
-  </Target>
-
-  <!-- Register static web assets for Blazor -->
-  <Target Name="IncludeCheapAvaloniaBlazorStaticWebAssets" BeforeTargets="ResolveStaticWebAssetsInputs">
-    <ItemGroup>
-      <StaticWebAsset Include="$(MSBuildProjectDirectory)\wwwroot\_content\CheapAvaloniaBlazor\**\*" Condition="Exists('$(MSBuildProjectDirectory)\wwwroot\_content\CheapAvaloniaBlazor')">
-        <SourceType>Discovered</SourceType>
-        <SourceId>$(MSBuildProjectName)</SourceId>
-        <ContentRoot>$(MSBuildProjectDirectory)\wwwroot\</ContentRoot>
-        <BasePath>_content/CheapAvaloniaBlazor</BasePath>
-        <RelativePath>$([MSBuild]::MakeRelative($(MSBuildProjectDirectory)\wwwroot\_content\CheapAvaloniaBlazor\, %(FullPath)))</RelativePath>
-      </StaticWebAsset>
-    </ItemGroup>
+    <Message Text="CheapAvaloniaBlazor: Created minimal wwwroot folder" Importance="normal" />
   </Target>
 
   <!-- Import Razor SDK targets if not already imported -->

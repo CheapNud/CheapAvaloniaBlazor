@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
-
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -9,17 +8,16 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.0.83</Version>
+    <Version>1.1.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
-    <Description>Cleaned architecture: Removed PhotinoWindowManager, enhanced PhotinoMessageHandler with ExecuteScriptAsync, optimized for stability and maintainability</Description>
+    <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
     <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
-    <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview</PackageTags>
+    <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <!--<PackageIcon>icon.png</PackageIcon>-->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Forgot build</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.1.0 - Major Feature Release: Professional splash screen system (enabled by default, fully customizable with colors/text/custom content). Performance: ValueTask optimizations for zero-allocation synchronous operations. Architecture: DiagnosticLogger abstraction and Constants extraction (121+ magic strings eliminated). Previous: v1.0.95 eliminated Task.FromResult anti-pattern.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -30,50 +28,34 @@
     <!-- Enable Razor support -->
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <EnableDefaultRazorComponentItems>true</EnableDefaultRazorComponentItems>
-    <EnableDefaultContentItems>false</EnableDefaultContentItems>
-    
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="11.3.3" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.3" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.3" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.3" />
-    <PackageReference Include="MudBlazor" Version="8.11.0" />
+    <PackageReference Include="Avalonia" Version="11.3.7" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.7" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.7" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.7" />
+    <PackageReference Include="MudBlazor" Version="8.13.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
-
-    <!-- ASP.NET Core for Blazor -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.8" />
-
-    <!-- Framework Reference for Blazor Server -->
+    <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Package Assets -->
-    <!--  <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" /> -->
     <None Include="README.md" Pack="true" PackagePath="\" />
-    
-    <!-- Embedded Resources for Components -->
-    <EmbeddedResource Include="Resources\Components\**\*" />
-
-    <!-- Avalonia AXAML Files -->
-    <!--
-    <AvaloniaResource Include="Hosting\App.axaml" />
-    <AvaloniaResource Include="Windows\MainWindow.axaml" />-->
-    <!-- Include JS files as content in the package -->
-    <Content Include="Resources\wwwroot\**\*" PackagePath="contentFiles\any\any\Resources\wwwroot\" />
-
-    <!-- Package the JS files for the build targets to copy -->
-    <None Include="Resources\wwwroot\**\*" Pack="true" PackagePath="contentFiles\any\any\Resources\wwwroot\" />
   </ItemGroup>
+
   <ItemGroup>
-    <!-- Content files that should be included in consuming projects -->
+    <!-- Explicitly include JavaScript bridge as EmbeddedResource -->
+    <!-- SDK automatically includes wwwroot\*.js as Content, so we only add EmbeddedResource -->
+    <EmbeddedResource Include="wwwroot\cheap-blazor-interop.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Build targets for consuming projects -->
     <Content Include="build\CheapAvaloniaBlazor.props" PackagePath="build\" />
     <Content Include="build\CheapAvaloniaBlazor.targets" PackagePath="build\" />
   </ItemGroup>
-
 </Project>

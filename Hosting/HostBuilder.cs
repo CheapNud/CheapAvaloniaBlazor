@@ -275,6 +275,54 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Configure the splash screen
+    /// </summary>
+    /// <param name="configure">Action to configure the splash screen</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder ConfigureSplashScreen(Action<SplashScreenConfig> configure)
+    {
+        configure(_options.SplashScreen);
+        return this;
+    }
+
+    /// <summary>
+    /// Enable or disable the splash screen
+    /// </summary>
+    /// <param name="enabled">Whether to show the splash screen during startup</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithSplashScreen(bool enabled = true)
+    {
+        _options.SplashScreen.Enabled = enabled;
+        return this;
+    }
+
+    /// <summary>
+    /// Set the splash screen title and loading message
+    /// </summary>
+    /// <param name="title">Splash screen title</param>
+    /// <param name="loadingMessage">Loading message to display</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithSplashScreen(string title, string loadingMessage = Constants.Defaults.SplashLoadingMessage)
+    {
+        _options.SplashScreen.Enabled = true;
+        _options.SplashScreen.Title = title;
+        _options.SplashScreen.LoadingMessage = loadingMessage;
+        return this;
+    }
+
+    /// <summary>
+    /// Set custom splash screen content
+    /// </summary>
+    /// <param name="contentFactory">Factory function that creates the splash screen content</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithCustomSplashScreen(Func<Control> contentFactory)
+    {
+        _options.SplashScreen.Enabled = true;
+        _options.SplashScreen.CustomContentFactory = contentFactory;
+        return this;
+    }
+
+    /// <summary>
     /// Configure the Blazor server pipeline
     /// </summary>
     /// <param name="configure">Action to configure the pipeline</param>
