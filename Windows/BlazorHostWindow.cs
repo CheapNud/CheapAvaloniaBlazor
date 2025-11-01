@@ -49,21 +49,51 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
     {
         Console.WriteLine("InitializeWindow called - setting up Avalonia window");
 
-        // Configure window to be completely hidden but functional for StorageProvider
-        Title = Constants.Framework.Name;
-        Width = Constants.Defaults.MinimumWindowSize;  // Minimal size
-        Height = Constants.Defaults.MinimumWindowSize;
-        MinWidth = Constants.Defaults.MinimumWindowSize;
-        MinHeight = Constants.Defaults.MinimumWindowSize;
-        Position = new Avalonia.PixelPoint(Constants.Defaults.OffScreenPosition, Constants.Defaults.OffScreenPosition);  // Move far off-screen
-        WindowStartupLocation = WindowStartupLocation.Manual;  // Don't let OS position it
-        CanResize = false;  // Prevent resizing
-        ShowInTaskbar = false;  // Hide from taskbar
-        Opacity = 0;  // Make completely transparent
-        SystemDecorations = Avalonia.Controls.SystemDecorations.None;  // No window decorations (prevents black background)
-        TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };  // Enable transparency
+        var splashConfig = _options?.SplashScreen;
+        var showSplash = splashConfig?.Enabled ?? false;
 
-        Console.WriteLine("Avalonia window configured as hidden (no decorations, transparent, off-screen)");
+        if (showSplash)
+        {
+            Console.WriteLine("Splash screen enabled - showing splash during startup");
+
+            // Configure window as visible splash screen
+            Title = splashConfig!.Title;
+            Width = splashConfig.Width;
+            Height = splashConfig.Height;
+            MinWidth = splashConfig.Width;
+            MinHeight = splashConfig.Height;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            CanResize = false;
+            ShowInTaskbar = true;
+            Opacity = 1;
+            SystemDecorations = Avalonia.Controls.SystemDecorations.None;
+
+            // Set splash content
+            Content = splashConfig.CustomContentFactory?.Invoke() ?? splashConfig.CreateDefaultContent();
+
+            Console.WriteLine($"Splash screen configured: {splashConfig.Width}x{splashConfig.Height}");
+        }
+        else
+        {
+            Console.WriteLine("Splash screen disabled - hiding Avalonia window");
+
+            // Configure window to be completely hidden but functional for StorageProvider
+            Title = Constants.Framework.Name;
+            Width = Constants.Defaults.MinimumWindowSize;
+            Height = Constants.Defaults.MinimumWindowSize;
+            MinWidth = Constants.Defaults.MinimumWindowSize;
+            MinHeight = Constants.Defaults.MinimumWindowSize;
+            Position = new Avalonia.PixelPoint(Constants.Defaults.OffScreenPosition, Constants.Defaults.OffScreenPosition);
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            CanResize = false;
+            ShowInTaskbar = false;
+            Opacity = 0;
+            SystemDecorations = Avalonia.Controls.SystemDecorations.None;
+            TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };
+
+            Console.WriteLine("Avalonia window configured as hidden (no decorations, transparent, off-screen)");
+        }
+
         Console.WriteLine("Subscribing to Loaded event");
         Loaded += OnWindowLoaded;
 
@@ -116,14 +146,14 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         // Wait for the server to be fully ready
         var baseUrl = _blazorHost.BaseUrl;
         Console.WriteLine($"Blazor server URL: {baseUrl}");
-        
+
         // Test the server connectivity
         await WaitForServerReady(baseUrl);
 
-        // NOTE: Avalonia window is already hidden (configured in App.axaml.cs)
-        // Keeping it available for StorageProvider but not visible
-        // WindowState = Avalonia.Controls.WindowState.Minimized; // COMMENTED OUT - window is already hidden
-        Console.WriteLine("Avalonia window is hidden - available for StorageProvider");
+        // Hide splash screen and transition to hidden storage provider mode
+        Console.WriteLine("Server ready - hiding splash screen and transitioning to hidden mode");
+        HideSplashScreen();
+        Console.WriteLine("Avalonia window transitioned to hidden mode - available for StorageProvider");
 
         // Create Photino window directly
         Console.WriteLine("Creating Photino window...");
@@ -182,6 +212,23 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         Console.WriteLine("WaitForClose completed");
     }
 
+
+    private void HideSplashScreen()
+    {
+        // Transition Avalonia window to hidden mode for StorageProvider
+        Width = Constants.Defaults.MinimumWindowSize;
+        Height = Constants.Defaults.MinimumWindowSize;
+        MinWidth = Constants.Defaults.MinimumWindowSize;
+        MinHeight = Constants.Defaults.MinimumWindowSize;
+        Position = new Avalonia.PixelPoint(Constants.Defaults.OffScreenPosition, Constants.Defaults.OffScreenPosition);
+        ShowInTaskbar = false;
+        Opacity = 0;
+        SystemDecorations = Avalonia.Controls.SystemDecorations.None;
+        TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };
+
+        // Clear content to free memory
+        Content = null;
+    }
 
     private async Task WaitForServerReady(string baseUrl)
     {

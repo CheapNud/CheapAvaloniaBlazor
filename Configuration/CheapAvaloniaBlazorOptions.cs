@@ -96,6 +96,11 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public int DefaultZoom { get; set; } = Constants.Defaults.DefaultZoomLevel;
 
+    /// <summary>
+    /// Splash screen configuration
+    /// </summary>
+    public SplashScreenConfig SplashScreen { get; set; } = SplashScreenConfig.CreateDefault();
+
     // WebView Options
     /// <summary>
     /// Enable developer tools in the web view
@@ -223,7 +228,8 @@ public class CheapAvaloniaBlazorOptions
             EnableContextMenu = true,
             GrantBrowserPermissions = true,
             EnableAutoReconnect = true,
-            EnableHotReload = true
+            EnableHotReload = true,
+            SplashScreen = SplashScreenConfig.CreateDefault()
         };
     }
 }

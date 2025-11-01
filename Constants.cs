@@ -111,6 +111,15 @@ public static class Constants
 
         // Reconnect intervals
         public static readonly int[] ReconnectIntervals = { 0, 2, 10, 30 };
+
+        // Splash Screen
+        public const string SplashLoadingMessage = "Loading...";
+        public const int SplashWindowWidth = 400;
+        public const int SplashWindowHeight = 250;
+        public const string SplashBackgroundColor = "#2D2D30";
+        public const string SplashForegroundColor = "#FFFFFF";
+        public const double SplashTitleFontSize = 24.0;
+        public const double SplashMessageFontSize = 14.0;
     }
 
     /// <summary>
