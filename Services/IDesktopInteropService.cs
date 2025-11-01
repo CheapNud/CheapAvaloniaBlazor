@@ -13,18 +13,18 @@ public interface IDesktopInteropService
     Task<string?> OpenFolderDialogAsync();
     Task<byte[]> ReadFileAsync(string path);
     Task WriteFileAsync(string path, byte[] data);
-    Task<bool> FileExistsAsync(string path);
+    ValueTask<bool> FileExistsAsync(string path);
 
     // Window Operations
-    Task MinimizeWindowAsync();
-    Task MaximizeWindowAsync();
-    Task RestoreWindowAsync();
-    Task SetWindowTitleAsync(string title);
-    Task<WindowState> GetWindowStateAsync();
+    ValueTask MinimizeWindowAsync();
+    ValueTask MaximizeWindowAsync();
+    ValueTask RestoreWindowAsync();
+    ValueTask SetWindowTitleAsync(string title);
+    ValueTask<WindowState> GetWindowStateAsync();
 
     // System Operations
-    Task<string> GetAppDataPathAsync();
-    Task<string> GetDocumentsPathAsync();
+    ValueTask<string> GetAppDataPathAsync();
+    ValueTask<string> GetDocumentsPathAsync();
     Task OpenUrlInBrowserAsync(string url);
     Task ShowNotificationAsync(string title, string message);
 

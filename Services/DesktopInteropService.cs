@@ -6,6 +6,7 @@ using Avalonia.Platform.Storage;
 using Avalonia;
 using Avalonia.Controls;
 using System.Text.Json;
+using CheapAvaloniaBlazor;
 
 public class DesktopInteropService : IDesktopInteropService
 {
@@ -101,59 +102,59 @@ public class DesktopInteropService : IDesktopInteropService
         return Task.Run(() => File.WriteAllBytes(path, data));
     }
 
-    public Task<bool> FileExistsAsync(string path)
+    public ValueTask<bool> FileExistsAsync(string path)
     {
-        return Task.FromResult(File.Exists(path));
+        return new ValueTask<bool>(File.Exists(path));
     }
 
     // Window Operations
-    public Task MinimizeWindowAsync()
+    public ValueTask MinimizeWindowAsync()
     {
         var window = GetTopLevel();
         if (window != null)
         {
             window.WindowState = Avalonia.Controls.WindowState.Minimized;
         }
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task MaximizeWindowAsync()
+    public ValueTask MaximizeWindowAsync()
     {
         var window = GetTopLevel();
         if (window != null)
         {
             window.WindowState = Avalonia.Controls.WindowState.Maximized;
         }
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task RestoreWindowAsync()
+    public ValueTask RestoreWindowAsync()
     {
         var window = GetTopLevel();
         if (window != null)
         {
             window.WindowState = Avalonia.Controls.WindowState.Normal;
         }
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task SetWindowTitleAsync(string title)
+    public ValueTask SetWindowTitleAsync(string title)
     {
         var window = GetTopLevel();
         if (window != null)
         {
             window.Title = title;
         }
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task<CheapAvaloniaBlazor.Models.WindowState> GetWindowStateAsync()
+    public ValueTask<CheapAvaloniaBlazor.Models.WindowState> GetWindowStateAsync()
     {
         var window = GetTopLevel();
         if (window == null)
-            return Task.FromResult(CheapAvaloniaBlazor.Models.WindowState.Normal);
+            return new ValueTask<CheapAvaloniaBlazor.Models.WindowState>(CheapAvaloniaBlazor.Models.WindowState.Normal);
 
-        return Task.FromResult(window.WindowState switch
+        return new ValueTask<CheapAvaloniaBlazor.Models.WindowState>(window.WindowState switch
         {
             Avalonia.Controls.WindowState.Maximized => CheapAvaloniaBlazor.Models.WindowState.Maximized,
             Avalonia.Controls.WindowState.Minimized => CheapAvaloniaBlazor.Models.WindowState.Minimized,
@@ -162,19 +163,19 @@ public class DesktopInteropService : IDesktopInteropService
     }
 
     // System Operations
-    public Task<string> GetAppDataPathAsync()
+    public ValueTask<string> GetAppDataPathAsync()
     {
         var path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             Constants.Defaults.AppDataFolderName);
 
         Directory.CreateDirectory(path);
-        return Task.FromResult(path);
+        return new ValueTask<string>(path);
     }
 
-    public Task<string> GetDocumentsPathAsync()
+    public ValueTask<string> GetDocumentsPathAsync()
     {
-        return Task.FromResult(
+        return new ValueTask<string>(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
     }
 
