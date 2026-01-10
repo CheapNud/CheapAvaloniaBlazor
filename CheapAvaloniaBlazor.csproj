@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.1.3</Version>
+    <Version>1.1.4</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
