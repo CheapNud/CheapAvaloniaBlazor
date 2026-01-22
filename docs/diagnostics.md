@@ -349,19 +349,18 @@ When running under Visual Studio with a debugger attached:
 2. Select **Debug** from the "Show output from" dropdown
 3. Application logs appear in real-time as the app runs
 
-### Automatic Debug Opening
+### Enabling DevTools
 
-In Debug builds, developer tools open automatically by default:
+Enable browser developer tools to debug the WebView:
 
 ```csharp
 var builder = new HostBuilder()
     .WithTitle("My Application")
-    .ConfigureOptions(options =>
-    {
-        options.AutoOpenDevToolsInDebug = true;  // Default in Debug builds
-    })
+    .EnableDevTools()  // Enable browser DevTools (F12)
     .AddMudBlazor();
 ```
+
+Once enabled, press F12 to open DevTools.
 
 ---
 
