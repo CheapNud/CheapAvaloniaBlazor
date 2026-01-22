@@ -500,18 +500,6 @@ builder.EnableDevTools(false)     // Disable (default)
 
 When enabled, users can open DevTools with F12 or right-click → Inspect.
 
-### Auto-Open DevTools in Debug
-
-Automatically open DevTools when running in Debug mode:
-
-```csharp
-builder.ConfigureOptions(options =>
-{
-    options.AutoOpenDevToolsInDebug = true;   // Default
-    options.AutoOpenDevToolsInDebug = false;  // Disable
-});
-```
-
 ### Context Menu
 
 Enable/disable right-click context menu:
@@ -874,7 +862,6 @@ var builder = new HostBuilder()
     .ConfigureOptions(options =>
     {
         options.EnableContextMenu = true;
-        options.AutoOpenDevToolsInDebug = true;
         options.EnableHotReload = true;
         options.CustomCss = @"
             body {
@@ -982,7 +969,6 @@ var builder = new HostBuilder()
     .ConfigureOptions(options =>
     {
         options.EnableDevTools = true;
-        options.AutoOpenDevToolsInDebug = true;
         options.EnableContextMenu = true;
         options.GrantBrowserPermissions = true;
         options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB
@@ -1105,7 +1091,6 @@ Complete table of all `CheapAvaloniaBlazorOptions` properties:
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `EnableHotReload` | bool | true | Enable hot reload in development |
-| `AutoOpenDevToolsInDebug` | bool | true | Auto-open DevTools in Debug mode |
 
 ### Startup Configuration
 
@@ -1239,8 +1224,8 @@ Ensure:
 ### DevTools Not Opening
 
 Check:
-1. `EnableDevTools()` is called
-2. `AutoOpenDevToolsInDebug` is true (or manually open with F12)
+1. `EnableDevTools()` is called (or `options.EnableDevTools = true`)
+2. Press F12 to open DevTools manually
 3. WebView2 runtime is properly installed
 
 ## Best Practices

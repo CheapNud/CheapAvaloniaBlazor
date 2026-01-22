@@ -160,11 +160,6 @@ public class CheapAvaloniaBlazorOptions
     public TimeSpan StartupTimeout { get; set; } = TimeSpan.FromSeconds(Constants.Defaults.StartupTimeoutSeconds);
 
     /// <summary>
-    /// Whether to automatically open dev tools in debug mode
-    /// </summary>
-    public bool AutoOpenDevToolsInDebug { get; set; } = true;
-
-    /// <summary>
     /// Custom CSS to inject into the web view
     /// </summary>
     public string? CustomCss { get; set; }
