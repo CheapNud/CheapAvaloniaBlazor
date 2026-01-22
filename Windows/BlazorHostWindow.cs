@@ -164,7 +164,8 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             .SetTopMost(false)
             .SetUseOsDefaultSize(false)
             .SetUseOsDefaultLocation(false)  // Prevent OS from positioning window
-            .SetDevToolsEnabled(true);
+            .SetDevToolsEnabled(_options.EnableDevTools)
+            .SetContextMenuEnabled(_options.EnableContextMenu);
 
         // ALWAYS center the window on each launch to prevent Windows from caching position
         // This ensures the window appears in the center, not in a saved position from previous runs
