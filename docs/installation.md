@@ -220,7 +220,7 @@ Edit `MyDesktopApp.csproj` to use Web SDK:
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.7" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.0+" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
 ```
@@ -417,7 +417,7 @@ dotnet --version
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
 ```

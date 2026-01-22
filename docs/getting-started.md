@@ -57,7 +57,7 @@ Open your `.csproj` file and modify it:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
 ```
