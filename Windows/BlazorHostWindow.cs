@@ -154,6 +154,13 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         HideSplashScreen();
         _logger?.LogVerbose("Avalonia window transitioned to hidden mode - available for StorageProvider");
 
+        // Hide console window when console logging is disabled (native app feel)
+        if (!_options.EnableConsoleLogging)
+        {
+            _logger?.LogVerbose("Hiding console window (EnableConsoleLogging=false)");
+            ConsoleHelper.HideConsoleWindow();
+        }
+
         // Create Photino window directly
         _logger?.LogVerbose("Creating Photino window...");
         var photinoWindow = new PhotinoWindow()
