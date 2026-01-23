@@ -1,18 +1,23 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace CheapAvaloniaBlazor.Utilities;
 
 /// <summary>
-/// Helper class for controlling the console window visibility
+/// Helper class for controlling the console window visibility.
+/// Uses Win32 API to show/hide the console window at runtime.
 /// </summary>
 internal static class ConsoleHelper
 {
+    // Win32 ShowWindow constants
     private const int SW_HIDE = 0;
     private const int SW_SHOW = 5;
 
+    [SupportedOSPlatform("windows")]
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetConsoleWindow();
 
+    [SupportedOSPlatform("windows")]
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
@@ -26,13 +31,12 @@ internal static class ConsoleHelper
 
         var handle = GetConsoleWindow();
         if (handle != IntPtr.Zero)
-        {
             ShowWindow(handle, SW_HIDE);
-        }
     }
 
     /// <summary>
     /// Shows the console window on Windows. No-op on other platforms.
+    /// Useful for debugging scenarios where console output is needed after initial hide.
     /// </summary>
     public static void ShowConsoleWindow()
     {
@@ -41,8 +45,6 @@ internal static class ConsoleHelper
 
         var handle = GetConsoleWindow();
         if (handle != IntPtr.Zero)
-        {
             ShowWindow(handle, SW_SHOW);
-        }
     }
 }
