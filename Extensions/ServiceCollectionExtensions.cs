@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
 
         // Note: Blazor services (RazorPages, ServerSideBlazor) are registered
         // in EmbeddedBlazorHostService.ConfigureServices() to avoid duplication issues
-        // Projects should use Microsoft.NET.Sdk.Web which includes MVC services automatically
+        // Projects should use Microsoft.NET.Sdk.Razor with FrameworkReference to Microsoft.AspNetCore.App
 
         return services;
     }

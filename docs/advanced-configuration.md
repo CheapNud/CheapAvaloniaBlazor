@@ -490,27 +490,60 @@ Then inject `IHttpClientFactory`:
 
 ### Developer Tools
 
-Enable browser developer tools:
+Enable browser developer tools for debugging JavaScript, inspecting the DOM, monitoring network requests, and viewing console output:
 
 ```csharp
+// Fluent API
 builder.EnableDevTools()          // Enable
 builder.EnableDevTools(true)      // Enable
 builder.EnableDevTools(false)     // Disable (default)
+
+// Or via ConfigureOptions
+builder.ConfigureOptions(options =>
+{
+    options.EnableDevTools = true;
+});
 ```
 
-When enabled, users can open DevTools with F12 or right-click → Inspect.
+**How to access DevTools:**
+- Press **F12** to open/close DevTools
+- Right-click in the application → Select "Inspect" (requires `EnableContextMenu = true`)
+
+**What you can do with DevTools:**
+- **Console tab**: View JavaScript errors, warnings, and `console.log` output
+- **Network tab**: Monitor SignalR WebSocket connections and HTTP requests
+- **Elements tab**: Inspect and modify the DOM in real-time
+- **Sources tab**: Debug JavaScript with breakpoints
+
+**Default:** Disabled (`false`)
 
 ### Context Menu
 
-Enable/disable right-click context menu:
+Enable/disable the browser's right-click context menu:
 
 ```csharp
+// Fluent API
+builder.EnableContextMenu()        // Enable
+builder.EnableContextMenu(true)    // Enable (default)
+builder.EnableContextMenu(false)   // Disable
+
+// Or via ConfigureOptions
 builder.ConfigureOptions(options =>
 {
     options.EnableContextMenu = true;   // Default
     options.EnableContextMenu = false;  // Disable
 });
 ```
+
+**When enabled:**
+- Right-click shows browser context menu (copy, paste, inspect, etc.)
+- Required for "Inspect" option to access DevTools via right-click
+
+**When disabled:**
+- Right-click does nothing (cleaner native app feel)
+- DevTools still accessible via F12 if `EnableDevTools = true`
+
+**Default:** Enabled (`true`)
 
 ### Browser Permissions
 
@@ -720,13 +753,39 @@ builder.WithCustomSplashScreen(() =>
 
 ### Console Logging
 
-Enable console output:
+Enable console window for logging output:
 
 ```csharp
-builder.EnableConsoleLogging()
-builder.EnableConsoleLogging(true)
-builder.EnableConsoleLogging(false)
+// Fluent API
+builder.EnableConsoleLogging()        // Enable
+builder.EnableConsoleLogging(true)    // Enable
+builder.EnableConsoleLogging(false)   // Disable (default)
+
+// Or via ConfigureOptions
+builder.ConfigureOptions(options =>
+{
+    options.EnableConsoleLogging = true;
+});
 ```
+
+**Behavior:**
+- **When enabled (`true`):**
+  - Console window is shown for logging output
+  - If launched from Windows Explorer (no parent console), a new console window is automatically allocated
+  - Photino WebView logging is set to verbose (level 2)
+  - Useful for debugging startup issues and monitoring runtime behavior
+
+- **When disabled (`false`):**
+  - Console window is hidden for a native desktop app feel
+  - Standard output/error are redirected to null
+  - Photino WebView logging is set to critical only (level 0)
+  - This is the default for production applications
+
+**Platform notes:**
+- On Windows, uses `AllocConsole()` to create a console if none exists
+- On Linux/macOS, console behavior follows standard terminal behavior
+
+**Default:** Disabled (`false`)
 
 ### Comprehensive Diagnostics
 

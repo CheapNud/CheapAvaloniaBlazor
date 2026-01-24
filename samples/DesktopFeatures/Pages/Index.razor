@@ -1,0 +1,269 @@
+@page "/"
+@inject IDesktopInteropService DesktopInterop
+@inject SettingsService SettingsService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" Class="mb-4">Desktop Features Demo</MudText>
+<MudText Typo="Typo.body1" Class="mb-6">
+    Demonstrates native desktop capabilities provided by CheapAvaloniaBlazor.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">File Dialogs</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.FolderOpen"
+                           OnClick="OpenFile">
+                    Open File
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveFile">
+                    Save File
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Tertiary"
+                           StartIcon="@Icons.Material.Filled.Folder"
+                           OnClick="OpenFolder">
+                    Open Folder
+                </MudButton>
+
+                @if (!string.IsNullOrEmpty(_selectedPath))
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-2">
+                        <MudText Typo="Typo.body2">@_selectedPath</MudText>
+                    </MudAlert>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Window Controls</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Minimize"
+                           OnClick="@(() => DesktopInterop.MinimizeWindowAsync())">
+                    Minimize
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Fullscreen"
+                           OnClick="@(() => DesktopInterop.MaximizeWindowAsync())">
+                    Maximize
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.FullscreenExit"
+                           OnClick="@(() => DesktopInterop.RestoreWindowAsync())">
+                    Restore
+                </MudButton>
+
+                <MudTextField @bind-Value="_windowTitle"
+                              Label="Window Title"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Edit"
+                              OnAdornmentClick="SetWindowTitle" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Clipboard</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_clipboardText"
+                              Label="Clipboard Text"
+                              Variant="Variant.Outlined"
+                              Lines="3" />
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.ContentCopy"
+                               OnClick="CopyToClipboard">
+                        Copy
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.ContentPaste"
+                               OnClick="PasteFromClipboard">
+                        Paste
+                    </MudButton>
+                </MudButtonGroup>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">System</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.OpenInBrowser"
+                           OnClick="@(() => DesktopInterop.OpenUrlInBrowserAsync("https://github.com/CheapNud/CheapAvaloniaBlazor"))">
+                    Open GitHub
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Folder"
+                           OnClick="ShowAppDataPath">
+                    Show AppData Path
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Description"
+                           OnClick="ShowDocumentsPath">
+                    Show Documents Path
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
+
+            @if (SettingsService.Settings.RecentFiles.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    No recent files. Use "Open File" to add some.
+                </MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var file in SettingsService.Settings.RecentFiles)
+                    {
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                            @file
+                        </MudListItem>
+                    }
+                </MudList>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="ClearRecentFiles"
+                           Class="mt-2">
+                    Clear Recent Files
+                </MudButton>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? _selectedPath;
+    private string _windowTitle = "Desktop Features Demo";
+    private string _clipboardText = "";
+
+    private async Task OpenFile()
+    {
+        var options = new CheapAvaloniaBlazor.Models.FileDialogOptions
+        {
+            Title = "Select a file",
+            Filters =
+            [
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "All Files", Extensions = ["*"] },
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "Text Files", Extensions = ["txt", "md"] },
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "Images", Extensions = ["png", "jpg", "jpeg", "gif"] }
+            ]
+        };
+
+        _selectedPath = await DesktopInterop.OpenFileDialogAsync(options);
+
+        if (!string.IsNullOrEmpty(_selectedPath))
+        {
+            await SettingsService.UpdateAsync(s => s.AddRecentFile(_selectedPath));
+            Snackbar.Add($"Opened: {Path.GetFileName(_selectedPath)}", Severity.Success);
+        }
+    }
+
+    private async Task SaveFile()
+    {
+        var options = new CheapAvaloniaBlazor.Models.FileDialogOptions
+        {
+            Title = "Save file as",
+            DefaultFileName = "document.txt",
+            Filters =
+            [
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "Text Files", Extensions = ["txt"] },
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "All Files", Extensions = ["*"] }
+            ]
+        };
+
+        _selectedPath = await DesktopInterop.SaveFileDialogAsync(options);
+
+        if (!string.IsNullOrEmpty(_selectedPath))
+        {
+            await SettingsService.UpdateAsync(s => s.LastSavedFile = _selectedPath);
+            Snackbar.Add($"Save location: {Path.GetFileName(_selectedPath)}", Severity.Success);
+        }
+    }
+
+    private async Task OpenFolder()
+    {
+        _selectedPath = await DesktopInterop.OpenFolderDialogAsync();
+
+        if (!string.IsNullOrEmpty(_selectedPath))
+        {
+            await SettingsService.UpdateAsync(s => s.LastOpenedFolder = _selectedPath);
+            Snackbar.Add($"Selected folder: {_selectedPath}", Severity.Success);
+        }
+    }
+
+    private async Task SetWindowTitle()
+    {
+        if (!string.IsNullOrWhiteSpace(_windowTitle))
+        {
+            await DesktopInterop.SetWindowTitleAsync(_windowTitle);
+            Snackbar.Add("Window title updated", Severity.Info);
+        }
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(_clipboardText))
+        {
+            await DesktopInterop.SetClipboardTextAsync(_clipboardText);
+            Snackbar.Add("Copied to clipboard", Severity.Success);
+        }
+    }
+
+    private async Task PasteFromClipboard()
+    {
+        var text = await DesktopInterop.GetClipboardTextAsync();
+        if (text is not null)
+        {
+            _clipboardText = text;
+            Snackbar.Add("Pasted from clipboard", Severity.Success);
+        }
+    }
+
+    private async Task ShowAppDataPath()
+    {
+        var path = await DesktopInterop.GetAppDataPathAsync();
+        Snackbar.Add($"AppData: {path}", Severity.Info);
+    }
+
+    private async Task ShowDocumentsPath()
+    {
+        var path = await DesktopInterop.GetDocumentsPathAsync();
+        Snackbar.Add($"Documents: {path}", Severity.Info);
+    }
+
+    private async Task ClearRecentFiles()
+    {
+        await SettingsService.UpdateAsync(s => s.RecentFiles.Clear());
+        Snackbar.Add("Recent files cleared", Severity.Warning);
+    }
+}

@@ -4,13 +4,10 @@ using System.Runtime.Versioning;
 namespace CheapAvaloniaBlazor.Utilities;
 
 /// <summary>
-/// Helper class for controlling the console window visibility.
-/// Uses Win32 API to show/hide the console window at runtime.
+/// Helper class for controlling the console window visibility on Windows.
 /// </summary>
 internal static class ConsoleHelper
 {
-    // Win32 ShowWindow constants
-    private const int SW_HIDE = 0;
     private const int SW_SHOW = 5;
 
     [SupportedOSPlatform("windows")]
@@ -21,36 +18,93 @@ internal static class ConsoleHelper
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool FreeConsole();
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool AllocConsole();
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    private const int STD_OUTPUT_HANDLE = -11;
+
     /// <summary>
-    /// Hides the console window on Windows. No-op on other platforms.
+    /// Suppresses console window for desktop apps. Call early in startup.
+    /// Detaches from any inherited console and redirects stdout/stderr to null.
     /// </summary>
-    /// <returns>True if console was hidden, false if not Windows or no console attached.</returns>
-    public static bool HideConsoleWindow()
+    public static void SuppressConsole()
     {
         if (!OperatingSystem.IsWindows())
-            return false;
+            return;
 
-        var handle = GetConsoleWindow();
-        if (handle == IntPtr.Zero)
-            return false; // No console window attached (e.g., WinExe app)
+        // Detach from any inherited/parent console
+        FreeConsole();
 
-        return ShowWindow(handle, SW_HIDE);
+        // Redirect stdout/stderr to prevent Console.Write from allocating a new console
+        try
+        {
+            Console.SetOut(TextWriter.Null);
+            Console.SetError(TextWriter.Null);
+        }
+        catch
+        {
+            // Ignore if redirection fails
+        }
     }
 
     /// <summary>
-    /// Shows the console window on Windows. No-op on other platforms.
-    /// Useful for debugging scenarios where console output is needed after initial hide.
+    /// Shows the console window. Used for error recovery during startup failures.
     /// </summary>
-    /// <returns>True if console was shown, false if not Windows or no console attached.</returns>
-    public static bool ShowConsoleWindow()
+    public static void ShowConsoleWindow()
     {
         if (!OperatingSystem.IsWindows())
-            return false;
+            return;
 
         var handle = GetConsoleWindow();
-        if (handle == IntPtr.Zero)
-            return false; // No console window attached
+        if (handle != IntPtr.Zero)
+        {
+            ShowWindow(handle, SW_SHOW);
+        }
+    }
 
-        return ShowWindow(handle, SW_SHOW);
+    /// <summary>
+    /// Ensures a console window exists for logging output.
+    /// Allocates a new console if one doesn't exist (e.g., when launched from Windows Explorer).
+    /// </summary>
+    public static void EnsureConsole()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        try
+        {
+            var handle = GetConsoleWindow();
+            if (handle == IntPtr.Zero)
+            {
+                // No console exists, allocate one
+                if (AllocConsole())
+                {
+                    // Reopen stdout/stderr to the new console
+                    var stdOut = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
+                    var stdErr = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
+                    Console.SetOut(stdOut);
+                    Console.SetError(stdErr);
+                }
+            }
+            else
+            {
+                // Console exists, make sure it's visible
+                ShowWindow(handle, SW_SHOW);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Console allocation failed - log to debug output and continue
+            System.Diagnostics.Debug.WriteLine($"Console allocation failed: {ex.Message}");
+        }
     }
 }

@@ -216,10 +216,6 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _logger.LogWarning("Could not find App component in entry assembly");
             }
 
-            // Add the DesktopInteropService that might be needed
-            _logger.LogDebug("Adding DesktopInteropService...");
-            services.AddScoped<IDesktopInteropService, DesktopInteropService>();
-            
             // Navigation services are automatically registered by AddServerSideBlazor()
             // RemoteNavigationManager is internal to the framework and not directly accessible
             _logger.LogDebug("NavigationManager services automatically registered by AddServerSideBlazor");
@@ -256,7 +252,23 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _logger.LogDebug("Invoking user-configured services...");
                 _options.ConfigureServices.Invoke(services);
             }
-            
+
+            // Register services from the runtime to ensure same instances are used
+            // IMPORTANT: This must be AFTER _options.ConfigureServices to override any type registrations
+            // PhotinoMessageHandler is attached to the Photino window in BlazorHostWindow
+            _logger.LogDebug("Registering PhotinoMessageHandler from runtime (overriding any previous registration)...");
+            var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
+            services.AddSingleton(messageHandler);
+
+            // Register the diagnostic logger factory from runtime
+            _logger.LogDebug("Registering IDiagnosticLoggerFactory from runtime...");
+            var loggerFactory = CheapAvaloniaBlazorRuntime.GetRequiredService<IDiagnosticLoggerFactory>();
+            services.AddSingleton(loggerFactory);
+
+            // Add the DesktopInteropService
+            _logger.LogDebug("Adding DesktopInteropService...");
+            services.AddScoped<IDesktopInteropService, DesktopInteropService>();
+
             _logger.LogInformation("Service configuration completed successfully");
         }
         catch (Exception ex)

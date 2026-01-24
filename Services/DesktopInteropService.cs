@@ -12,11 +12,13 @@ public class DesktopInteropService : IDesktopInteropService
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly DiagnosticLogger _logger;
+    private readonly PhotinoMessageHandler _messageHandler;
 
-    public DesktopInteropService(IJSRuntime jsRuntime, IDiagnosticLoggerFactory loggerFactory)
+    public DesktopInteropService(IJSRuntime jsRuntime, IDiagnosticLoggerFactory loggerFactory, PhotinoMessageHandler messageHandler)
     {
         _jsRuntime = jsRuntime;
         _logger = loggerFactory.CreateLogger<DesktopInteropService>();
+        _messageHandler = messageHandler;
     }
 
     // File System Operations
@@ -96,59 +98,41 @@ public class DesktopInteropService : IDesktopInteropService
         return new ValueTask<bool>(File.Exists(path));
     }
 
-    // Window Operations
+    // Window Operations - Use PhotinoMessageHandler to control the Photino window
     public ValueTask MinimizeWindowAsync()
     {
-        var window = GetTopLevel();
-        if (window != null)
-        {
-            window.WindowState = Avalonia.Controls.WindowState.Minimized;
-        }
+        _messageHandler.MinimizeWindow();
         return ValueTask.CompletedTask;
     }
 
     public ValueTask MaximizeWindowAsync()
     {
-        var window = GetTopLevel();
-        if (window != null)
-        {
-            window.WindowState = Avalonia.Controls.WindowState.Maximized;
-        }
+        _messageHandler.MaximizeWindow();
         return ValueTask.CompletedTask;
     }
 
     public ValueTask RestoreWindowAsync()
     {
-        var window = GetTopLevel();
-        if (window != null)
-        {
-            window.WindowState = Avalonia.Controls.WindowState.Normal;
-        }
+        _messageHandler.RestoreWindow();
         return ValueTask.CompletedTask;
     }
 
     public ValueTask SetWindowTitleAsync(string title)
     {
-        var window = GetTopLevel();
-        if (window != null)
-        {
-            window.Title = title;
-        }
+        _messageHandler.SetWindowTitle(title);
         return ValueTask.CompletedTask;
     }
 
     public ValueTask<CheapAvaloniaBlazor.Models.WindowState> GetWindowStateAsync()
     {
-        var window = GetTopLevel();
-        if (window == null)
-            return new ValueTask<CheapAvaloniaBlazor.Models.WindowState>(CheapAvaloniaBlazor.Models.WindowState.Normal);
-
-        return new ValueTask<CheapAvaloniaBlazor.Models.WindowState>(window.WindowState switch
+        var state = _messageHandler.GetWindowState();
+        var result = state switch
         {
-            Avalonia.Controls.WindowState.Maximized => CheapAvaloniaBlazor.Models.WindowState.Maximized,
-            Avalonia.Controls.WindowState.Minimized => CheapAvaloniaBlazor.Models.WindowState.Minimized,
+            Constants.WindowStates.Maximized => CheapAvaloniaBlazor.Models.WindowState.Maximized,
+            Constants.WindowStates.Minimized => CheapAvaloniaBlazor.Models.WindowState.Minimized,
             _ => CheapAvaloniaBlazor.Models.WindowState.Normal
-        });
+        };
+        return ValueTask.FromResult(result);
     }
 
     // System Operations

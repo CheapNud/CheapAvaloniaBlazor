@@ -51,6 +51,49 @@ public class PhotinoMessageHandler : IDisposable
         _window.SendWebMessage(message);
     }
 
+    // Direct window control methods for C# callers (e.g., DesktopInteropService)
+
+    /// <summary>
+    /// Minimize the Photino window
+    /// </summary>
+    public void MinimizeWindow() => _window?.SetMinimized(true);
+
+    /// <summary>
+    /// Maximize the Photino window
+    /// </summary>
+    public void MaximizeWindow() => _window?.SetMaximized(true);
+
+    /// <summary>
+    /// Restore the Photino window to normal state
+    /// </summary>
+    public void RestoreWindow()
+    {
+        _window?.SetMaximized(false);
+        _window?.SetMinimized(false);
+    }
+
+    /// <summary>
+    /// Set the Photino window title
+    /// </summary>
+    public void SetWindowTitle(string title)
+    {
+        if (!string.IsNullOrEmpty(title))
+            _window?.SetTitle(title);
+    }
+
+    /// <summary>
+    /// Get the current window state
+    /// </summary>
+    public string GetWindowState()
+    {
+        // Local copy for thread safety
+        var window = _window;
+        if (window == null) return Constants.WindowStates.Normal;
+        if (window.Maximized) return Constants.WindowStates.Maximized;
+        if (window.Minimized) return Constants.WindowStates.Minimized;
+        return Constants.WindowStates.Normal;
+    }
+
     /// <summary>
     /// Execute JavaScript in the web view and return the result
     /// </summary>
