@@ -1,0 +1,32 @@
+@page "/"
+
+<MudText Typo="Typo.h3" GutterBottom="true">Welcome to CheapAvaloniaBlazor!</MudText>
+
+<MudText Typo="Typo.body1" Class="mb-4">
+    This is a minimal desktop application built with Blazor and MudBlazor.
+</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" GutterBottom="true">Native App Features</MudText>
+    <MudList T="string" Dense="true">
+        <MudListItem Icon="@Icons.Material.Filled.DesktopWindows">No console window</MudListItem>
+        <MudListItem Icon="@Icons.Material.Filled.Block">F12 DevTools disabled</MudListItem>
+        <MudListItem Icon="@Icons.Material.Filled.TouchApp">Right-click menu disabled</MudListItem>
+        <MudListItem Icon="@Icons.Material.Filled.DragIndicator">Image/text drag disabled</MudListItem>
+    </MudList>
+</MudPaper>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ShowMessage">
+    Click Me
+</MudButton>
+
+<MudText Class="mt-4">@message</MudText>
+
+@code {
+    private string message = "";
+
+    private void ShowMessage()
+    {
+        message = $"Button clicked at {DateTime.Now:HH:mm:ss}";
+    }
+}

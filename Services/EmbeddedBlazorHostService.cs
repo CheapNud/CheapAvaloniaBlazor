@@ -99,6 +99,13 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
 
             _app = builder.Build();
 
+            // Suppress any console window that ASP.NET Core / Kestrel may have allocated
+            // This must happen after Build() because Kestrel initialization can create a console
+            if (!_options.EnableConsoleLogging)
+            {
+                Utilities.ConsoleHelper.SuppressConsole();
+            }
+
             // Configure pipeline
             ConfigurePipeline(_app);
 

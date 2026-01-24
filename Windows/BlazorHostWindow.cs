@@ -165,7 +165,10 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             .SetUseOsDefaultSize(false)
             .SetUseOsDefaultLocation(false)  // Prevent OS from positioning window
             .SetDevToolsEnabled(_options.EnableDevTools)
-            .SetContextMenuEnabled(_options.EnableContextMenu);
+            .SetContextMenuEnabled(_options.EnableContextMenu)
+            // Suppress Photino's native console logging when console logging is disabled
+            // LogVerbosity: 0=Critical only, 1=+Warnings, 2=Verbose (default), >2=All
+            .SetLogVerbosity(_options.EnableConsoleLogging ? 2 : 0);
 
         // ALWAYS center the window on each launch to prevent Windows from caching position
         // This ensures the window appears in the center, not in a saved position from previous runs

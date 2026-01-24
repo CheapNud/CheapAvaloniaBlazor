@@ -21,6 +21,28 @@ internal static class ConsoleHelper
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool FreeConsole();
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool AttachConsole(int dwProcessId);
+
+    /// <summary>
+    /// Detaches from any console window. Call this early to prevent console allocation.
+    /// </summary>
+    /// <returns>True if successfully detached, false if not Windows.</returns>
+    public static bool DetachConsole()
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+
+        // FreeConsole detaches from any attached console, preventing child processes
+        // or libraries (like ASP.NET Core) from inheriting or allocating a console
+        return FreeConsole();
+    }
+
     /// <summary>
     /// Hides the console window on Windows. No-op on other platforms.
     /// </summary>
@@ -35,6 +57,40 @@ internal static class ConsoleHelper
             return false; // No console window attached (e.g., WinExe app)
 
         return ShowWindow(handle, SW_HIDE);
+    }
+
+    /// <summary>
+    /// Ensures no console is visible by first detaching, then hiding any remaining console.
+    /// This is the recommended method for production apps to suppress all console windows.
+    /// </summary>
+    /// <returns>True if any action was taken, false if not Windows.</returns>
+    public static bool SuppressConsole()
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+
+        // First detach from any inherited console
+        FreeConsole();
+
+        // Then hide any console window that might still exist
+        var handle = GetConsoleWindow();
+        if (handle != IntPtr.Zero)
+        {
+            ShowWindow(handle, SW_HIDE);
+        }
+
+        // Redirect stdout/stderr to prevent any Console.Write calls from allocating a console
+        try
+        {
+            Console.SetOut(TextWriter.Null);
+            Console.SetError(TextWriter.Null);
+        }
+        catch
+        {
+            // Ignore if redirection fails
+        }
+
+        return true;
     }
 
     /// <summary>

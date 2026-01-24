@@ -31,6 +31,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Exclude samples folder from library compilation -->
+    <Compile Remove="samples\**" />
+    <Content Remove="samples\**" />
+    <EmbeddedResource Remove="samples\**" />
+    <None Remove="samples\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Core Dependencies -->
     <PackageReference Include="Avalonia" Version="11.3.11" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.11" />
