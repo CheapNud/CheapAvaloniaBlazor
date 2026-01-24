@@ -336,13 +336,37 @@ dotnet build
 - Verify project targets .NET 10.0
 
 ### Debug Mode
+
+Three options control debugging features:
+
 ```csharp
 var builder = new HostBuilder()
-    .EnableConsoleLogging(true)  // Enable detailed logging
-    .ConfigureOptions(options => 
+    .WithTitle("My App")
+    .ConfigureOptions(options =>
     {
-        options.EnableDevTools = true;  // Enable browser dev tools
-    });
+        // Console window for logging output
+        // When true: Shows console window (allocates one if launched from Explorer)
+        // When false: Hides console for native desktop feel (default)
+        options.EnableConsoleLogging = true;
+
+        // Browser developer tools (F12)
+        // When true: F12 opens DevTools for JS debugging, DOM inspection, network monitoring
+        // When false: F12 does nothing (default)
+        options.EnableDevTools = true;
+
+        // Right-click context menu
+        // When true: Right-click shows browser menu with copy, paste, inspect (default)
+        // When false: Right-click disabled for cleaner native app feel
+        options.EnableContextMenu = true;
+    })
+    .AddMudBlazor();
+```
+
+**Fluent API equivalents:**
+```csharp
+builder.EnableConsoleLogging(true)  // Show console window
+       .EnableDevTools(true)        // Enable F12 DevTools
+       .EnableContextMenu(true);    // Enable right-click menu
 ```
 
 ---

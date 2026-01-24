@@ -22,6 +22,16 @@ internal static class ConsoleHelper
     [DllImport("kernel32.dll")]
     private static extern bool FreeConsole();
 
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool AllocConsole();
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    private const int STD_OUTPUT_HANDLE = -11;
+
     /// <summary>
     /// Suppresses console window for desktop apps. Call early in startup.
     /// Detaches from any inherited console and redirects stdout/stderr to null.
@@ -57,6 +67,35 @@ internal static class ConsoleHelper
         var handle = GetConsoleWindow();
         if (handle != IntPtr.Zero)
         {
+            ShowWindow(handle, SW_SHOW);
+        }
+    }
+
+    /// <summary>
+    /// Ensures a console window exists for logging output.
+    /// Allocates a new console if one doesn't exist (e.g., when launched from Windows Explorer).
+    /// </summary>
+    public static void EnsureConsole()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var handle = GetConsoleWindow();
+        if (handle == IntPtr.Zero)
+        {
+            // No console exists, allocate one
+            if (AllocConsole())
+            {
+                // Reopen stdout/stderr to the new console
+                var stdOut = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
+                var stdErr = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
+                Console.SetOut(stdOut);
+                Console.SetError(stdErr);
+            }
+        }
+        else
+        {
+            // Console exists, make sure it's visible
             ShowWindow(handle, SW_SHOW);
         }
     }

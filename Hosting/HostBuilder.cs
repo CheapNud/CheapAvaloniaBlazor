@@ -226,6 +226,17 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Enable or disable the right-click context menu in the web view
+    /// </summary>
+    /// <param name="enable">Whether to enable context menu (default: true)</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder EnableContextMenu(bool enable = true)
+    {
+        _options.EnableContextMenu = enable;
+        return this;
+    }
+
+    /// <summary>
     /// Set whether the window should be centered on screen
     /// </summary>
     /// <param name="center">Whether to center the window</param>
@@ -382,9 +393,15 @@ public class HostBuilder
     /// <param name="args">Command line arguments (from Main method)</param>
     public void RunApp(string[] args)
     {
-        // Suppress console for native desktop app feel
-        if (!_options.EnableConsoleLogging)
+        // Handle console visibility based on logging preference
+        if (_options.EnableConsoleLogging)
         {
+            // Ensure console exists for logging (allocates if launched from Explorer)
+            Utilities.ConsoleHelper.EnsureConsole();
+        }
+        else
+        {
+            // Suppress console for native desktop app feel
             Utilities.ConsoleHelper.SuppressConsole();
         }
 

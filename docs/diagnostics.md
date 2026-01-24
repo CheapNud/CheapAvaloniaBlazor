@@ -323,23 +323,77 @@ This ensures diagnostic messages (Debug level) are visible in the console when l
 
 ## Development Tools
 
+Three key options control debugging capabilities:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `EnableConsoleLogging` | `false` | Show console window for log output |
+| `EnableDevTools` | `false` | Enable F12 browser developer tools |
+| `EnableContextMenu` | `true` | Enable right-click context menu |
+
+### Console Logging
+
+Controls whether a console window is visible for logging output:
+
+```csharp
+var builder = new HostBuilder()
+    .WithTitle("My Application")
+    .EnableConsoleLogging(true)  // Show console window
+    .AddMudBlazor();
+```
+
+**Behavior when enabled:**
+- Console window is displayed for logging output
+- If launched from Windows Explorer (no parent console), a new console window is automatically allocated
+- Photino WebView logging is set to verbose (level 2)
+- All `Console.WriteLine` and framework logs are visible
+
+**Behavior when disabled (default):**
+- Console window is hidden for a native desktop app feel
+- Standard output/error are redirected to null
+- Photino WebView logging is set to critical only (level 0)
+
 ### Browser Developer Tools
 
-When `EnableDevTools` is true, you can access browser developer tools while the application is running:
+Enable browser developer tools for debugging JavaScript, inspecting the DOM, and monitoring network traffic:
 
 ```csharp
 var builder = new HostBuilder()
     .WithTitle("My Application")
     .EnableDevTools(true)  // Enable developer tools in webview
-    .EnableDiagnostics()
     .AddMudBlazor();
 ```
 
-**Accessing Developer Tools:**
-- Right-click in the application window
-- Select "Inspect" or similar option (platform-dependent)
-- Browser DevTools console shows JavaScript errors and warnings
-- Network tab shows SignalR communication and HTTP requests
+**How to access DevTools:**
+- Press **F12** to open/close DevTools
+- Right-click → "Inspect" (requires `EnableContextMenu = true`)
+
+**What you can do with DevTools:**
+- **Console tab**: View JavaScript errors, warnings, and `console.log` output
+- **Network tab**: Monitor SignalR WebSocket connections and HTTP requests
+- **Elements tab**: Inspect and modify the DOM in real-time
+- **Sources tab**: Debug JavaScript with breakpoints
+
+### Context Menu
+
+Controls whether right-click shows the browser context menu:
+
+```csharp
+var builder = new HostBuilder()
+    .WithTitle("My Application")
+    .EnableContextMenu(true)   // Enable (default)
+    .EnableContextMenu(false)  // Disable for cleaner native feel
+    .AddMudBlazor();
+```
+
+**When enabled (default):**
+- Right-click shows browser menu (copy, paste, inspect, etc.)
+- Required for accessing DevTools via right-click → "Inspect"
+
+**When disabled:**
+- Right-click does nothing
+- Creates a cleaner native app experience
+- DevTools still accessible via F12 if enabled
 
 ### Debug Output Window (Visual Studio)
 
@@ -348,19 +402,6 @@ When running under Visual Studio with a debugger attached:
 1. Open **Debug > Windows > Output**
 2. Select **Debug** from the "Show output from" dropdown
 3. Application logs appear in real-time as the app runs
-
-### Enabling DevTools
-
-Enable browser developer tools to debug the WebView:
-
-```csharp
-var builder = new HostBuilder()
-    .WithTitle("My Application")
-    .EnableDevTools()  // Enable browser DevTools (F12)
-    .AddMudBlazor();
-```
-
-Once enabled, press F12 to open DevTools.
 
 ---
 
