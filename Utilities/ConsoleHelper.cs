@@ -80,23 +80,31 @@ internal static class ConsoleHelper
         if (!OperatingSystem.IsWindows())
             return;
 
-        var handle = GetConsoleWindow();
-        if (handle == IntPtr.Zero)
+        try
         {
-            // No console exists, allocate one
-            if (AllocConsole())
+            var handle = GetConsoleWindow();
+            if (handle == IntPtr.Zero)
             {
-                // Reopen stdout/stderr to the new console
-                var stdOut = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
-                var stdErr = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
-                Console.SetOut(stdOut);
-                Console.SetError(stdErr);
+                // No console exists, allocate one
+                if (AllocConsole())
+                {
+                    // Reopen stdout/stderr to the new console
+                    var stdOut = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
+                    var stdErr = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
+                    Console.SetOut(stdOut);
+                    Console.SetError(stdErr);
+                }
+            }
+            else
+            {
+                // Console exists, make sure it's visible
+                ShowWindow(handle, SW_SHOW);
             }
         }
-        else
+        catch (Exception ex)
         {
-            // Console exists, make sure it's visible
-            ShowWindow(handle, SW_SHOW);
+            // Console allocation failed - log to debug output and continue
+            System.Diagnostics.Debug.WriteLine($"Console allocation failed: {ex.Message}");
         }
     }
 }

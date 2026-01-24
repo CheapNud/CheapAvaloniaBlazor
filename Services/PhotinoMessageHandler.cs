@@ -86,9 +86,11 @@ public class PhotinoMessageHandler : IDisposable
     /// </summary>
     public string GetWindowState()
     {
-        if (_window == null) return Constants.WindowStates.Normal;
-        if (_window.Maximized) return Constants.WindowStates.Maximized;
-        if (_window.Minimized) return Constants.WindowStates.Minimized;
+        // Local copy for thread safety
+        var window = _window;
+        if (window == null) return Constants.WindowStates.Normal;
+        if (window.Maximized) return Constants.WindowStates.Maximized;
+        if (window.Minimized) return Constants.WindowStates.Minimized;
         return Constants.WindowStates.Normal;
     }
 

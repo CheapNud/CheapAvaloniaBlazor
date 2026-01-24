@@ -754,6 +754,59 @@ See main README.md **Advanced Configuration** section for details.
 
 ---
 
+## Migration Guide
+
+### Migrating from 1.1.x to 1.2.0
+
+Version 1.2.0 includes important fixes and a **breaking change** to the project SDK.
+
+#### Required: Update Project SDK
+
+Change your `.csproj` file from:
+
+```xml
+<!-- OLD (1.1.x) -->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+```
+
+To:
+
+```xml
+<!-- NEW (1.2.0+) -->
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <!-- ... other properties ... -->
+  </PropertyGroup>
+</Project>
+```
+
+**Why this change?**
+- `Microsoft.NET.Sdk.Web` caused a console window to flash briefly on startup
+- `Microsoft.NET.Sdk.Razor` provides the same Blazor functionality without the console issue
+- The `AddRazorSupportForMvc` property ensures Razor pages work correctly
+
+#### What's Fixed in 1.2.0
+
+1. **Window operations now work** - Minimize, maximize, restore, and set title buttons now function correctly
+2. **Console logging allocates a window** - `EnableConsoleLogging = true` now properly creates a console window when launched from Windows Explorer
+3. **New fluent API** - Added `EnableContextMenu()` method for consistency
+
+#### Optional: Review Debug Options
+
+The three debug options are now fully functional:
+
+```csharp
+builder.ConfigureOptions(options =>
+{
+    options.EnableConsoleLogging = true;  // Shows/allocates console window
+    options.EnableDevTools = true;        // Enables F12 DevTools
+    options.EnableContextMenu = true;     // Enables right-click menu (default)
+});
+```
+
+---
+
 ## Installation Summary Table
 
 | Method | Best For | Difficulty | Time |

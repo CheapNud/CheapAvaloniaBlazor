@@ -16,7 +16,7 @@ class Program
             {
                 options.EnableDevTools = true;
                 options.EnableContextMenu = true;
-                options.EnableConsoleLogging = false;
+                options.EnableConsoleLogging = true;
             })
             .AddMudBlazor();
 
