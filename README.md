@@ -68,7 +68,7 @@ dotnet add package CheapAvaloniaBlazor
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.0" />
   </ItemGroup>
 </Project>
 ```
@@ -392,7 +392,7 @@ This application showcases how CheapAvaloniaBlazor can be used to build full-fea
 
 ## Project Status & Roadmap
 
-### Current Status: Working Alpha v1.1.5
+### Current Status: Working Alpha v1.2.0
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
 - Splash Screen: Enabled by default, fully customizable (v1.1.0)
