@@ -382,8 +382,25 @@ public class HostBuilder
     /// <param name="args">Command line arguments (from Main method)</param>
     public void RunApp(string[] args)
     {
-        // FIXED: Use traditional Avalonia App structure for proper platform initialization
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        // Hide console window early if console logging is disabled (native app feel)
+        // This must happen before any other initialization to prevent console flash
+        if (!_options.EnableConsoleLogging)
+        {
+            Utilities.ConsoleHelper.HideConsoleWindow();
+        }
+
+        try
+        {
+            // FIXED: Use traditional Avalonia App structure for proper platform initialization
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            // Show console and log error before re-throwing for debugging
+            Utilities.ConsoleHelper.ShowConsoleWindow();
+            Console.Error.WriteLine($"Fatal error during application startup: {ex}");
+            throw;
+        }
     }
 
     /// <summary>
