@@ -207,19 +207,20 @@ dotnet add package CheapAvaloniaBlazor
 
 #### Step 4: Update Project File
 
-Edit `MyDesktopApp.csproj` to use Web SDK:
+Edit `MyDesktopApp.csproj` to use Razor SDK:
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.7" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
@@ -408,15 +409,17 @@ dotnet --version
 2. Verify the structure matches this template:
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
@@ -437,7 +440,7 @@ dotnet --version
 |---|---|
 | Conflicting package versions | Delete `obj/` and `bin/` folders, run `dotnet restore` |
 | Corrupted package cache | Run: `dotnet nuget locals all --clear` |
-| Incomplete .csproj | Ensure Web SDK is specified: `Sdk="Microsoft.NET.Sdk.Web"` |
+| Incomplete .csproj | Ensure Razor SDK is specified: `Sdk="Microsoft.NET.Sdk.Razor"` |
 
 **Nuclear Option (last resort):**
 ```bash

@@ -382,9 +382,7 @@ public class HostBuilder
     /// <param name="args">Command line arguments (from Main method)</param>
     public void RunApp(string[] args)
     {
-        // Suppress console window early if console logging is disabled (native app feel)
-        // This detaches from any inherited console AND hides any existing console window
-        // Must happen before any other initialization to prevent console flash
+        // Suppress console for native desktop app feel
         if (!_options.EnableConsoleLogging)
         {
             Utilities.ConsoleHelper.SuppressConsole();

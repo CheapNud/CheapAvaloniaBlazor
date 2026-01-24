@@ -43,31 +43,32 @@ dotnet add package CheapAvaloniaBlazor
 
 The `.csproj` file tells .NET how to build your project. By default, console apps use the `Microsoft.NET.Sdk`, but Blazor needs the Web SDK which includes MVC and Blazor support.
 
-**Why?** The Web SDK includes the necessary infrastructure for ASP.NET Core (which Blazor runs on top of). Without it, the Blazor compiler won't work.
+**Why?** The Razor SDK with ASP.NET Core framework reference provides the necessary infrastructure for Blazor Server. Using `WinExe` output type ensures no console window appears.
 
 Open your `.csproj` file and modify it:
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
 ```
 
 **Key Changes:**
-- `Sdk="Microsoft.NET.Sdk.Web"` - Changes from Microsoft.NET.Sdk to Web SDK
-- `<OutputType>Exe</OutputType>` - Keeps it as a desktop executable (not a DLL)
-- `<TargetFramework>net10.0</TargetFramework>` - Uses .NET 10.0 (or higher)
-- `<Nullable>enable</Nullable>` - Enables nullable reference types (C# best practice)
-- `<ImplicitUsings>enable</ImplicitUsings>` - Auto-imports common namespaces
+- `Sdk="Microsoft.NET.Sdk.Razor"` - Razor SDK for Blazor component compilation
+- `<OutputType>WinExe</OutputType>` - Windows executable without console window
+- `<FrameworkReference Include="Microsoft.AspNetCore.App" />` - ASP.NET Core for Blazor Server
+- `<AddRazorSupportForMvc>true</AddRazorSupportForMvc>` - Enables Razor page compilation
 
 ### Step 3: Create Program.cs
 

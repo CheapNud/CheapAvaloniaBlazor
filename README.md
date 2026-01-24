@@ -58,14 +58,16 @@ dotnet add package CheapAvaloniaBlazor
 
 ### Minimal Example (3 Steps)
 
-**1. Update your `.csproj` to use Web SDK:**
+**1. Update your `.csproj` to use Razor SDK:**
 ```xml
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
   </ItemGroup>
 </Project>
