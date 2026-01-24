@@ -216,8 +216,6 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _logger.LogWarning("Could not find App component in entry assembly");
             }
 
-            // DesktopInteropService registration moved below after _options.ConfigureServices
-            
             // Navigation services are automatically registered by AddServerSideBlazor()
             // RemoteNavigationManager is internal to the framework and not directly accessible
             _logger.LogDebug("NavigationManager services automatically registered by AddServerSideBlazor");

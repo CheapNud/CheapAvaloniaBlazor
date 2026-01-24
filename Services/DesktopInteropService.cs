@@ -19,7 +19,6 @@ public class DesktopInteropService : IDesktopInteropService
         _jsRuntime = jsRuntime;
         _logger = loggerFactory.CreateLogger<DesktopInteropService>();
         _messageHandler = messageHandler;
-        _logger.LogInformation("DesktopInteropService created with PhotinoMessageHandler instance: {InstanceId}", messageHandler.GetHashCode());
     }
 
     // File System Operations
@@ -100,10 +99,8 @@ public class DesktopInteropService : IDesktopInteropService
     }
 
     // Window Operations - Use PhotinoMessageHandler to control the Photino window
-    // Operations are fire-and-forget on thread pool to avoid blocking
     public ValueTask MinimizeWindowAsync()
     {
-        _logger.LogInformation("MinimizeWindowAsync called on DesktopInteropService");
         _messageHandler.MinimizeWindow();
         return ValueTask.CompletedTask;
     }

@@ -28,7 +28,7 @@ public class PhotinoMessageHandler : IDisposable
     {
         _window = window;
         window.RegisterWebMessageReceivedHandler(OnWebMessageReceived);
-        _logger?.LogInformation("PhotinoMessageHandler attached to window (instance: {InstanceId})", GetHashCode());
+        _logger?.LogInformation("PhotinoMessageHandler attached to window");
     }
 
     /// <summary>
@@ -52,61 +52,24 @@ public class PhotinoMessageHandler : IDisposable
     }
 
     // Direct window control methods for C# callers (e.g., DesktopInteropService)
-    // These fire-and-forget on a thread pool thread to avoid blocking
 
     /// <summary>
     /// Minimize the Photino window
     /// </summary>
-    public void MinimizeWindow()
-    {
-        var window = _window;
-        if (window == null)
-        {
-            _logger?.LogWarning("MinimizeWindow called but _window is null - window not attached yet?");
-            return;
-        }
-        _logger?.LogInformation("MinimizeWindow: calling SetMinimized(true)");
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                window.SetMinimized(true);
-                _logger?.LogInformation("MinimizeWindow: SetMinimized completed");
-            }
-            catch (Exception ex) { _logger?.LogError(ex, "Error minimizing window"); }
-        });
-    }
+    public void MinimizeWindow() => _window?.SetMinimized(true);
 
     /// <summary>
     /// Maximize the Photino window
     /// </summary>
-    public void MaximizeWindow()
-    {
-        var window = _window;
-        if (window == null) return;
-        _ = Task.Run(() =>
-        {
-            try { window.SetMaximized(true); }
-            catch (Exception ex) { _logger?.LogError(ex, "Error maximizing window"); }
-        });
-    }
+    public void MaximizeWindow() => _window?.SetMaximized(true);
 
     /// <summary>
     /// Restore the Photino window to normal state
     /// </summary>
     public void RestoreWindow()
     {
-        var window = _window;
-        if (window == null) return;
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                window.SetMaximized(false);
-                window.SetMinimized(false);
-            }
-            catch (Exception ex) { _logger?.LogError(ex, "Error restoring window"); }
-        });
+        _window?.SetMaximized(false);
+        _window?.SetMinimized(false);
     }
 
     /// <summary>
@@ -114,31 +77,18 @@ public class PhotinoMessageHandler : IDisposable
     /// </summary>
     public void SetWindowTitle(string title)
     {
-        var window = _window;
-        if (window == null || string.IsNullOrEmpty(title)) return;
-        _ = Task.Run(() =>
-        {
-            try { window.SetTitle(title); }
-            catch (Exception ex) { _logger?.LogError(ex, "Error setting window title"); }
-        });
+        if (!string.IsNullOrEmpty(title))
+            _window?.SetTitle(title);
     }
 
     /// <summary>
-    /// Get the current window state (synchronous, non-blocking property access)
+    /// Get the current window state
     /// </summary>
     public string GetWindowState()
     {
-        var window = _window;
-        if (window == null) return Constants.WindowStates.Normal;
-        try
-        {
-            if (window.Maximized) return Constants.WindowStates.Maximized;
-            if (window.Minimized) return Constants.WindowStates.Minimized;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error getting window state");
-        }
+        if (_window == null) return Constants.WindowStates.Normal;
+        if (_window.Maximized) return Constants.WindowStates.Maximized;
+        if (_window.Minimized) return Constants.WindowStates.Minimized;
         return Constants.WindowStates.Normal;
     }
 
