@@ -24,27 +24,33 @@ internal static class ConsoleHelper
     /// <summary>
     /// Hides the console window on Windows. No-op on other platforms.
     /// </summary>
-    public static void HideConsoleWindow()
+    /// <returns>True if console was hidden, false if not Windows or no console attached.</returns>
+    public static bool HideConsoleWindow()
     {
         if (!OperatingSystem.IsWindows())
-            return;
+            return false;
 
         var handle = GetConsoleWindow();
-        if (handle != IntPtr.Zero)
-            ShowWindow(handle, SW_HIDE);
+        if (handle == IntPtr.Zero)
+            return false; // No console window attached (e.g., WinExe app)
+
+        return ShowWindow(handle, SW_HIDE);
     }
 
     /// <summary>
     /// Shows the console window on Windows. No-op on other platforms.
     /// Useful for debugging scenarios where console output is needed after initial hide.
     /// </summary>
-    public static void ShowConsoleWindow()
+    /// <returns>True if console was shown, false if not Windows or no console attached.</returns>
+    public static bool ShowConsoleWindow()
     {
         if (!OperatingSystem.IsWindows())
-            return;
+            return false;
 
         var handle = GetConsoleWindow();
-        if (handle != IntPtr.Zero)
-            ShowWindow(handle, SW_SHOW);
+        if (handle == IntPtr.Zero)
+            return false; // No console window attached
+
+        return ShowWindow(handle, SW_SHOW);
     }
 }

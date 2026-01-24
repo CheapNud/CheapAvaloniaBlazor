@@ -394,10 +394,11 @@ public class HostBuilder
             // FIXED: Use traditional Avalonia App structure for proper platform initialization
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
-        catch
+        catch (Exception ex)
         {
-            // Show console on error to help with debugging
+            // Show console and log error before re-throwing for debugging
             Utilities.ConsoleHelper.ShowConsoleWindow();
+            Console.Error.WriteLine($"Fatal error during application startup: {ex}");
             throw;
         }
     }
