@@ -179,6 +179,9 @@ The `_Host.cshtml` file is the HTML entry point - the actual HTML page that gets
 
     <!-- MudBlazor JavaScript - provides interactive component functionality -->
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+
+    <!-- CheapAvaloniaBlazor JavaScript bridge - provides clipboard and notification support -->
+    <script src="_content/CheapAvaloniaBlazor/cheap-blazor-interop.js"></script>
 </body>
 </html>
 ```
