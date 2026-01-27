@@ -378,6 +378,26 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Set the ASP.NET Core environment name for the embedded Blazor server.
+    /// By default, environment is determined automatically based on build configuration and debugger state.
+    /// Use this method to explicitly override the environment.
+    ///
+    /// Important: "Development" is required for static web assets (including blazor.server.js) to be served
+    /// dynamically. In "Production" mode, static assets must be physically present in wwwroot (via publishing).
+    /// </summary>
+    /// <param name="environmentName">Environment name (Development, Staging, Production)</param>
+    /// <returns>The builder for chaining</returns>
+    /// <exception cref="ArgumentException">Thrown when environmentName is null or whitespace</exception>
+    public HostBuilder UseEnvironment(string environmentName)
+    {
+        if (string.IsNullOrWhiteSpace(environmentName))
+            throw new ArgumentException("Environment name cannot be null or empty", nameof(environmentName));
+
+        _options.EnvironmentName = environmentName;
+        return this;
+    }
+
+    /// <summary>
     /// Build the window with default type
     /// </summary>
     /// <returns>A configured BlazorHostWindow</returns>

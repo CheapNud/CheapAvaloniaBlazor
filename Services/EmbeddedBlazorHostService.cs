@@ -53,12 +53,25 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.Port = availablePort;
             }
 
-            var builder = WebApplication.CreateBuilder();
+            // Create WebApplication with explicit environment configuration.
+            // Environment defaults at compile-time: DEBUG=Development, RELEASE=Production.
+            // Development mode is required for UseStaticWebAssets() which serves blazor.server.js dynamically.
+            // Production mode expects static assets to be physically present in wwwroot (via dotnet publish).
+            // Use .UseEnvironment("Development") in HostBuilder to override for RELEASE builds that need static web assets.
+            var webAppOptions = new WebApplicationOptions
+            {
+                EnvironmentName = _options.EnvironmentName,
+                ContentRootPath = !string.IsNullOrEmpty(_options.ContentRoot) ? _options.ContentRoot : null
+            };
 
-            // Configure content root if specified
+            var builder = WebApplication.CreateBuilder(webAppOptions);
+
+            _logger.LogInformation("Created WebApplication builder with environment: {Environment}", builder.Environment.EnvironmentName);
+
+            // Belt-and-suspenders: Also call UseContentRoot to ensure consistent behavior
+            // even though ContentRootPath is set in WebApplicationOptions
             if (!string.IsNullOrEmpty(_options.ContentRoot))
             {
-                builder.Environment.ContentRootPath = _options.ContentRoot;
                 builder.WebHost.UseContentRoot(_options.ContentRoot);
             }
 
