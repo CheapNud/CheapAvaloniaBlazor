@@ -68,6 +68,13 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
 
             _logger.LogInformation("Created WebApplication builder with environment: {Environment}", builder.Environment.EnvironmentName);
 
+            // Belt-and-suspenders: Also call UseContentRoot to ensure consistent behavior
+            // even though ContentRootPath is set in WebApplicationOptions
+            if (!string.IsNullOrEmpty(_options.ContentRoot))
+            {
+                builder.WebHost.UseContentRoot(_options.ContentRoot);
+            }
+
             // Extract JavaScript bridge from embedded resources to physical wwwroot
             // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)
             try
