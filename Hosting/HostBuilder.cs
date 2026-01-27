@@ -378,6 +378,19 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Set the ASP.NET Core environment name for the embedded Blazor server.
+    /// Defaults to "Development" which is required for static web assets (including blazor.server.js).
+    /// Only set to "Production" for published apps where static assets are bundled.
+    /// </summary>
+    /// <param name="environmentName">Environment name (Development, Staging, Production)</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder UseEnvironment(string environmentName)
+    {
+        _options.EnvironmentName = environmentName;
+        return this;
+    }
+
+    /// <summary>
     /// Build the window with default type
     /// </summary>
     /// <returns>A configured BlazorHostWindow</returns>

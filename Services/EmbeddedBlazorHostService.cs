@@ -53,12 +53,22 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.Port = availablePort;
             }
 
-            var builder = WebApplication.CreateBuilder();
+            // Create WebApplication with explicit environment to ensure static web assets work.
+            // Default is Development because UseStaticWebAssets() only works in Development mode.
+            // Without this, blazor.server.js returns 404 and Blazor components fail to initialize.
+            var webAppOptions = new WebApplicationOptions
+            {
+                EnvironmentName = _options.EnvironmentName,
+                ContentRootPath = !string.IsNullOrEmpty(_options.ContentRoot) ? _options.ContentRoot : null
+            };
 
-            // Configure content root if specified
+            var builder = WebApplication.CreateBuilder(webAppOptions);
+
+            _logger.LogInformation("Created WebApplication builder with environment: {Environment}", builder.Environment.EnvironmentName);
+
+            // Configure content root if specified (redundant with WebApplicationOptions but ensures UseContentRoot is called)
             if (!string.IsNullOrEmpty(_options.ContentRoot))
             {
-                builder.Environment.ContentRootPath = _options.ContentRoot;
                 builder.WebHost.UseContentRoot(_options.ContentRoot);
             }
 

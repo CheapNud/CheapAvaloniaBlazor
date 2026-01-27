@@ -45,6 +45,13 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public string? WebRoot { get; set; }
 
+    /// <summary>
+    /// ASP.NET Core environment name for the embedded Blazor server.
+    /// Defaults to "Development" to enable static web assets (required for blazor.server.js).
+    /// Set to "Production" only for published apps where static assets are bundled.
+    /// </summary>
+    public string EnvironmentName { get; set; } = Microsoft.Extensions.Hosting.Environments.Development;
+
     // Window Options
     /// <summary>
     /// Default window title
