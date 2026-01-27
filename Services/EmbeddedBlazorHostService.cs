@@ -53,9 +53,10 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.Port = availablePort;
             }
 
-            // Create WebApplication with explicit environment to ensure static web assets work.
-            // Default is Development because UseStaticWebAssets() only works in Development mode.
-            // Without this, blazor.server.js returns 404 and Blazor components fail to initialize.
+            // Create WebApplication with explicit environment configuration.
+            // Environment defaults based on build config: DEBUG=Development, RELEASE=Production (unless debugger attached).
+            // Development mode is required for UseStaticWebAssets() which serves blazor.server.js dynamically.
+            // Production mode expects static assets to be physically present in wwwroot (via dotnet publish).
             var webAppOptions = new WebApplicationOptions
             {
                 EnvironmentName = _options.EnvironmentName,
@@ -65,12 +66,6 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             var builder = WebApplication.CreateBuilder(webAppOptions);
 
             _logger.LogInformation("Created WebApplication builder with environment: {Environment}", builder.Environment.EnvironmentName);
-
-            // Configure content root if specified (redundant with WebApplicationOptions but ensures UseContentRoot is called)
-            if (!string.IsNullOrEmpty(_options.ContentRoot))
-            {
-                builder.WebHost.UseContentRoot(_options.ContentRoot);
-            }
 
             // Extract JavaScript bridge from embedded resources to physical wwwroot
             // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)

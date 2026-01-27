@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.2.1</Version>
+    <Version>1.2.2</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.2.1 - Fixed blazor.server.js 404 error that caused InvalidOperationException spam. Root cause: WebApplication.CreateBuilder() defaulted to Production environment where UseStaticWebAssets() is a no-op. Fix: Added EnvironmentName option (defaults to Development) and UseEnvironment() fluent method. Static web assets now load correctly for Blazor Server framework files.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.2.2 - Fixed blazor.server.js 404 error with production-safe defaults. Environment now auto-detects: DEBUG builds use Development, RELEASE builds use Production (unless debugger attached). Added UseEnvironment() fluent method with validation. Removed redundant ContentRoot configuration. Static web assets load correctly in development while maintaining proper production behavior.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>

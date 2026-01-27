@@ -47,10 +47,28 @@ public class CheapAvaloniaBlazorOptions
 
     /// <summary>
     /// ASP.NET Core environment name for the embedded Blazor server.
-    /// Defaults to "Development" to enable static web assets (required for blazor.server.js).
-    /// Set to "Production" only for published apps where static assets are bundled.
+    /// Defaults based on build configuration and debugger state:
+    /// - DEBUG builds or debugger attached: Development (enables static web assets for blazor.server.js)
+    /// - RELEASE builds without debugger: Production (expects static assets in published output)
+    ///
+    /// For desktop apps distributed without publishing, you may need to explicitly set to "Development"
+    /// using .UseEnvironment("Development") to ensure static web assets are served.
     /// </summary>
-    public string EnvironmentName { get; set; } = Microsoft.Extensions.Hosting.Environments.Development;
+    public string EnvironmentName { get; set; } = GetDefaultEnvironment();
+
+    private static string GetDefaultEnvironment()
+    {
+        // In DEBUG builds, always use Development for static web assets
+        #if DEBUG
+            return Microsoft.Extensions.Hosting.Environments.Development;
+        #else
+            // In RELEASE builds, check if debugger is attached (developer testing release build)
+            // If debugger attached, use Development; otherwise use Production
+            return System.Diagnostics.Debugger.IsAttached
+                ? Microsoft.Extensions.Hosting.Environments.Development
+                : Microsoft.Extensions.Hosting.Environments.Production;
+        #endif
+    }
 
     // Window Options
     /// <summary>
