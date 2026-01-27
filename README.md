@@ -68,7 +68,7 @@ dotnet add package CheapAvaloniaBlazor
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.4" />
   </ItemGroup>
 </Project>
 ```
@@ -305,6 +305,11 @@ dotnet build
 - Look for exceptions in console output
 - Try different port: `builder.UsePort(8080)`
 
+**blazor.server.js 404 Error / InvalidOperationException Spam**
+- Fixed in v1.2.4 - This should no longer happen
+- If you're on an older version, update to the latest: `dotnet add package CheapAvaloniaBlazor`
+- The framework now automatically uses the correct environment for desktop apps
+
 **MudBlazor Styles Missing**
 - Verify CSS reference in `_Layout.cshtml`:
   ```html
@@ -392,7 +397,7 @@ This application showcases how CheapAvaloniaBlazor can be used to build full-fea
 
 ## Project Status & Roadmap
 
-### Current Status: Working Alpha v1.2.0
+### Current Status: Working Alpha v1.2.4
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
 - Splash Screen: Enabled by default, fully customizable (v1.1.0)

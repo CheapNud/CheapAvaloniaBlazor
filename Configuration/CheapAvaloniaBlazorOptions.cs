@@ -45,22 +45,6 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public string? WebRoot { get; set; }
 
-    /// <summary>
-    /// ASP.NET Core environment name for the embedded Blazor server.
-    /// Defaults based on build configuration (compile-time only, no runtime checks):
-    /// - DEBUG builds: Development (enables static web assets for blazor.server.js)
-    /// - RELEASE builds: Production (expects static assets in published output)
-    ///
-    /// For RELEASE builds that need static web assets (e.g., testing locally without publishing),
-    /// explicitly call .UseEnvironment("Development") in your HostBuilder configuration.
-    /// </summary>
-    public string EnvironmentName { get; set; } =
-        #if DEBUG
-            Microsoft.Extensions.Hosting.Environments.Development;
-        #else
-            Microsoft.Extensions.Hosting.Environments.Production;
-        #endif
-
     // Window Options
     /// <summary>
     /// Default window title

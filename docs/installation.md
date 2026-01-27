@@ -221,7 +221,7 @@ Edit `MyDesktopApp.csproj` to use Razor SDK:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.2" />
   </ItemGroup>
 </Project>
 ```
@@ -420,7 +420,7 @@ dotnet --version
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.2" />
   </ItemGroup>
 </Project>
 ```
@@ -804,6 +804,24 @@ builder.ConfigureOptions(options =>
     options.EnableContextMenu = true;     // Enables right-click menu (default)
 });
 ```
+
+---
+
+### Migrating from 1.2.0/1.2.1 to 1.2.2
+
+Version 1.2.2 fixes the `blazor.server.js` 404 error with production-safe defaults.
+
+#### What's Fixed
+
+**The Problem**: Apps would show `InvalidOperationException` spam and `/_framework/blazor.server.js` returned 404.
+
+**Root Cause**: The embedded Blazor server was running in Production environment where `UseStaticWebAssets()` doesn't serve framework files dynamically.
+
+**The Fix (v1.2.4)**: CheapAvaloniaBlazor now always uses Development environment internally. No configuration needed - it just works.
+
+Desktop apps are localhost-only, so Production environment's security features (error hiding, HSTS) are irrelevant. Development mode is required for `UseStaticWebAssets()` to serve `blazor.server.js` and other framework files from NuGet packages.
+
+If you're upgrading from v1.2.2 or v1.2.3, you can remove any `UseEnvironment()`, `UseDevelopmentEnvironment()`, or `UseProductionEnvironment()` calls - they no longer exist.
 
 ---
 

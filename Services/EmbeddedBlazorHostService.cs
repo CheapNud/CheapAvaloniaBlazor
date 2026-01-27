@@ -53,14 +53,49 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.Port = availablePort;
             }
 
-            // Create WebApplication with explicit environment configuration.
-            // Environment defaults at compile-time: DEBUG=Development, RELEASE=Production.
-            // Development mode is required for UseStaticWebAssets() which serves blazor.server.js dynamically.
-            // Production mode expects static assets to be physically present in wwwroot (via dotnet publish).
-            // Use .UseEnvironment("Development") in HostBuilder to override for RELEASE builds that need static web assets.
+            // ===================================================================================
+            // WHY IS ENVIRONMENT HARDCODED TO DEVELOPMENT?
+            // ===================================================================================
+            //
+            // TL;DR: CheapAvaloniaBlazor is ALWAYS a desktop app, never a web server.
+            //        Development mode is required for UseStaticWebAssets() to serve framework JS files.
+            //        Production mode concerns (security, error exposure) don't apply to localhost desktop apps.
+            //
+            // TECHNICAL EXPLANATION:
+            // ----------------------
+            // Blazor Server requires these JavaScript files to function:
+            //   - /_framework/blazor.server.js (SignalR connection for Blazor Server)
+            //   - /_content/MudBlazor/MudBlazor.min.js (UI components)
+            //   - /_content/CheapAvaloniaBlazor/cheap-blazor-interop.js (desktop interop)
+            //
+            // These files live INSIDE NuGet packages, not in your wwwroot folder.
+            // ASP.NET Core's UseStaticWebAssets() serves them - but ONLY in Development mode.
+            // In Production mode, UseStaticWebAssets() is a no-op and expects files to exist
+            // physically in wwwroot (which only happens after 'dotnet publish').
+            //
+            // For desktop apps:
+            //   - We're running on localhost, not exposed to the internet
+            //   - Production's security benefits (error hiding, HSTS) are irrelevant
+            //   - Users never see ASP.NET error pages (they're in a WebView)
+            //   - We need the NuGet static assets to work without publishing
+            //
+            // HISTORY OF OVER-ENGINEERING (v1.2.2 - v1.2.3):
+            // ----------------------------------------------
+            // We tried to be "proper" and let users configure Development vs Production:
+            //   1. Added EnvironmentName property to options
+            //   2. Added UseEnvironment(), UseDevelopmentEnvironment(), UseProductionEnvironment() methods
+            //   3. Tried compile-time defaults with #if DEBUG in the library (failed: NuGet packages
+            //      are compiled once in Release mode, so DEBUG is always false)
+            //   4. Tried requiring consumers to add #if DEBUG in their own Program.cs
+            //   5. Added validation exceptions with helpful error messages
+            //
+            // All of this was solving a problem that doesn't exist for desktop apps.
+            // Production mode is for web servers exposed to the internet. We're localhost.
+            // Just use Development. It works. Ship it.
+            // ===================================================================================
             var webAppOptions = new WebApplicationOptions
             {
-                EnvironmentName = _options.EnvironmentName,
+                EnvironmentName = Environments.Development,  // Always. See wall of text above.
                 ContentRootPath = !string.IsNullOrEmpty(_options.ContentRoot) ? _options.ContentRoot : null
             };
 

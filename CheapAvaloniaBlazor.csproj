@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>1.2.2</Version>
+    <Version>1.2.4</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.2.2 - Fixed blazor.server.js 404 error with production-safe defaults. Environment determined at compile-time only (no runtime Debugger.IsAttached checks): DEBUG=Development, RELEASE=Production. Added UseEnvironment() fluent method with validation for explicit override. Removed redundant ContentRoot configuration.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.2.4 - Simplified! Removed all environment configuration complexity. Desktop apps always use Development environment internally (required for static web assets). Removed UseEnvironment(), UseDevelopmentEnvironment(), UseProductionEnvironment() methods - they were solving a problem that doesn't exist for desktop apps.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
