@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 1.2.2 - Fixed blazor.server.js 404 error with production-safe defaults. Environment now auto-detects: DEBUG builds use Development, RELEASE builds use Production (unless debugger attached). Added UseEnvironment() fluent method with validation. Removed redundant ContentRoot configuration. Static web assets load correctly in development while maintaining proper production behavior.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.2.2 - Fixed blazor.server.js 404 error with production-safe defaults. Environment determined at compile-time only (no runtime Debugger.IsAttached checks): DEBUG=Development, RELEASE=Production. Added UseEnvironment() fluent method with validation for explicit override. Removed redundant ContentRoot configuration.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>

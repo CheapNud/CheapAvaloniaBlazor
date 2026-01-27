@@ -54,9 +54,10 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             }
 
             // Create WebApplication with explicit environment configuration.
-            // Environment defaults based on build config: DEBUG=Development, RELEASE=Production (unless debugger attached).
+            // Environment defaults at compile-time: DEBUG=Development, RELEASE=Production.
             // Development mode is required for UseStaticWebAssets() which serves blazor.server.js dynamically.
             // Production mode expects static assets to be physically present in wwwroot (via dotnet publish).
+            // Use .UseEnvironment("Development") in HostBuilder to override for RELEASE builds that need static web assets.
             var webAppOptions = new WebApplicationOptions
             {
                 EnvironmentName = _options.EnvironmentName,
