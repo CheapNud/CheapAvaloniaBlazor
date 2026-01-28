@@ -64,7 +64,6 @@ dotnet add package CheapAvaloniaBlazor
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -93,7 +92,7 @@ class Program
 }
 ```
 
-**3. Add Blazor components** (App.razor, MainLayout.razor, Index.razor, etc.)
+**3. Add Blazor components** (App.razor as HTML root, Routes.razor for routing, MainLayout.razor, Index.razor, etc.)
 
 **Full tutorial:** See the **[Getting Started Guide](./docs/getting-started.md)** for complete step-by-step instructions with all files.
 
@@ -179,14 +178,13 @@ new HostBuilder()
 ```
 MyDesktopApp/
 ├── Program.cs                 # Application entry point
-├── App.razor                  # Blazor router configuration
 ├── Components/
-│   └── _Host.cshtml          # Blazor host page (contains full HTML)
+│   ├── App.razor             # HTML document root (loads scripts, CSS, renders Routes)
+│   ├── Routes.razor          # Blazor router configuration
+│   └── MainLayout.razor      # Main application layout
 ├── Pages/
 │   ├── Index.razor           # Home page
 │   └── Files.razor           # File management page
-├── Shared/
-│   └── MainLayout.razor      # Main application layout
 ├── wwwroot/                  # Static web assets
 │   └── css/
 └── Services/                 # Your business logic
@@ -214,7 +212,7 @@ MyDesktopApp/
 ```
 
 ### Technology Stack
-- **UI Layer**: Blazor Server + Razor Pages + MudBlazor components
+- **UI Layer**: Blazor Server + MudBlazor components
 - **Desktop Framework**: Avalonia (cross-platform window management)
 - **WebView Host**: Photino.NET (native webview embedding)
 - **Backend**: ASP.NET Core (dependency injection, services, middleware)
@@ -305,13 +303,13 @@ dotnet build
 - Look for exceptions in console output
 - Try different port: `builder.UsePort(8080)`
 
-**blazor.server.js 404 Error / InvalidOperationException Spam**
+**blazor.web.js 404 Error / InvalidOperationException Spam**
 - Fixed in v1.2.4 - This should no longer happen
 - If you're on an older version, update to the latest: `dotnet add package CheapAvaloniaBlazor`
 - The framework now automatically uses the correct environment for desktop apps
 
 **MudBlazor Styles Missing**
-- Verify CSS reference in `_Layout.cshtml`:
+- Verify CSS reference in `App.razor`:
   ```html
   <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
   ```

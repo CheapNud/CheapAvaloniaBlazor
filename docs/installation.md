@@ -216,12 +216,11 @@ Edit `MyDesktopApp.csproj` to use Razor SDK:
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.2" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.4" />
   </ItemGroup>
 </Project>
 ```
@@ -415,12 +414,11 @@ dotnet --version
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.2" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.4" />
   </ItemGroup>
 </Project>
 ```
@@ -548,13 +546,13 @@ builder.RunApp(args);
 
 | Cause | Solution |
 |---|---|
-| CSS not referenced | Verify `_Host.cshtml` includes: `<link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />` |
+| CSS not referenced | Verify `App.razor` includes: `<link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />` |
 | Wrong CSS link | Check link path is exactly: `_content/MudBlazor/MudBlazor.min.css` |
 | MudBlazor not added | Verify `AddMudBlazor()` called in HostBuilder |
 | Browser cache | Hard refresh: Ctrl+Shift+Delete (Windows) or Cmd+Shift+Delete (Mac) |
 
 **Quick Fix:**
-1. Open `Components/_Host.cshtml`
+1. Open `Components/App.razor`
 2. Verify CSS line exists in `<head>`:
    ```html
    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
@@ -775,7 +773,6 @@ To:
 <!-- NEW (1.2.0+) -->
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <!-- ... other properties ... -->
   </PropertyGroup>
 </Project>
@@ -784,7 +781,6 @@ To:
 **Why this change?**
 - `Microsoft.NET.Sdk.Web` caused a console window to flash briefly on startup
 - `Microsoft.NET.Sdk.Razor` provides the same Blazor functionality without the console issue
-- The `AddRazorSupportForMvc` property ensures Razor pages work correctly
 
 #### What's Fixed in 1.2.0
 
@@ -809,19 +805,67 @@ builder.ConfigureOptions(options =>
 
 ### Migrating from 1.2.0/1.2.1 to 1.2.2
 
-Version 1.2.2 fixes the `blazor.server.js` 404 error with production-safe defaults.
+Version 1.2.2 fixes framework JS 404 errors with production-safe defaults.
 
 #### What's Fixed
 
-**The Problem**: Apps would show `InvalidOperationException` spam and `/_framework/blazor.server.js` returned 404.
+**The Problem**: Apps would show `InvalidOperationException` spam and `/_framework/blazor.web.js` returned 404.
 
 **Root Cause**: The embedded Blazor server was running in Production environment where `UseStaticWebAssets()` doesn't serve framework files dynamically.
 
 **The Fix (v1.2.4)**: CheapAvaloniaBlazor now always uses Development environment internally. No configuration needed - it just works.
 
-Desktop apps are localhost-only, so Production environment's security features (error hiding, HSTS) are irrelevant. Development mode is required for `UseStaticWebAssets()` to serve `blazor.server.js` and other framework files from NuGet packages.
+Desktop apps are localhost-only, so Production environment's security features (error hiding, HSTS) are irrelevant. Development mode is required for `UseStaticWebAssets()` to serve `blazor.web.js` and other framework files from NuGet packages.
 
 If you're upgrading from v1.2.2 or v1.2.3, you can remove any `UseEnvironment()`, `UseDevelopmentEnvironment()`, or `UseProductionEnvironment()` calls - they no longer exist.
+
+### Migrating from 1.2.x to 2.0.0 (Modern Blazor Web App Pattern)
+
+Version 2.0.0 migrates from the legacy Blazor Server pattern to the modern Blazor Web App pattern. This is a **breaking change**.
+
+#### Required Changes
+
+1. **Remove `AddRazorSupportForMvc`** from your `.csproj`:
+   ```xml
+   <!-- REMOVE this line -->
+   <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+   ```
+
+2. **Delete `Components/_Host.cshtml`** - No longer needed.
+
+3. **Rename `App.razor` to `Routes.razor`** - The existing Router component becomes `Routes.razor`.
+
+4. **Create new `Components/App.razor`** as the HTML document root:
+   ```razor
+   @using Microsoft.AspNetCore.Components.Web
+
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="utf-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+       <title>My App</title>
+       <base href="/" />
+       <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+       <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+       <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+   </head>
+   <body>
+       <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+       <script src="_framework/blazor.web.js"></script>
+       <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+       <script src="_content/CheapAvaloniaBlazor/cheap-blazor-interop.js"></script>
+   </body>
+   </html>
+   ```
+
+#### What Changed Internally
+
+- `AddServerSideBlazor()` → `AddRazorComponents().AddInteractiveServerComponents()`
+- `MapBlazorHub()` + `MapFallbackToPage()` → `MapRazorComponents<App>().AddInteractiveServerRenderMode()`
+- `blazor.server.js` → `blazor.web.js`
+- `_Host.cshtml` (Razor Page) → `App.razor` (Razor component as HTML document root)
+- Razor Pages middleware removed entirely
 
 ---
 

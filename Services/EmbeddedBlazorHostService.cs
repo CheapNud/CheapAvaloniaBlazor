@@ -238,8 +238,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.RazorComponentsAdded);
 
             // Find and store the App component type for use in ConfigurePipeline (MapRazorComponents<App>)
-            var entryAssembly = Assembly.GetEntryAssembly();
-            _appType = entryAssembly?.GetType(Constants.ComponentNames.App) ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == Constants.ComponentNames.App);
+            _appType = Utilities.BlazorComponentMapper.DiscoverAppType();
 
             if (_appType != null)
             {
@@ -381,54 +380,19 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             });
 
             // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
-            // Since the library doesn't have a compile-time reference to the consumer's App type,
-            // we use reflection to call the generic MapRazorComponents<TApp> method
+            // Centralized in BlazorComponentMapper to avoid reflection duplication
             if (_appType != null)
             {
                 _logger.LogDebug("Setting up MapRazorComponents<{AppType}> via reflection...", _appType.FullName);
 
-                var mapMethod = typeof(Microsoft.AspNetCore.Builder.RazorComponentsEndpointRouteBuilderExtensions)
-                    .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                    .First(m => m.Name == "MapRazorComponents" && m.IsGenericMethod)
-                    .MakeGenericMethod(_appType);
+                var mapped = Utilities.BlazorComponentMapper.TryMapRazorComponents(
+                    app, _appType, typeof(EmbeddedBlazorHostService).Assembly, _logger);
 
-                var conventionBuilder = mapMethod.Invoke(null, [app]);
-
-                // Discover referenced assemblies that contain routable Razor components (@page directives)
-                // MapRazorComponents only scans the App type's assembly by default - additional assemblies
-                // with routable pages (like shared component libraries) must be registered explicitly
-                var entryAsm = Assembly.GetEntryAssembly();
-                var routeAttributeType = typeof(Microsoft.AspNetCore.Components.RouteAttribute);
-                var additionalAssemblies = entryAsm?.GetReferencedAssemblies()
-                    .Select(name =>
-                    {
-                        try { return Assembly.Load(name); }
-                        catch { return null; }
-                    })
-                    .Where(asm => asm != null && asm != entryAsm && asm != typeof(EmbeddedBlazorHostService).Assembly)
-                    .Where(asm => asm!.GetTypes().Any(t => t.GetCustomAttributes(routeAttributeType, false).Length > 0))
-                    .ToArray();
-
-                if (additionalAssemblies is { Length: > 0 })
+                if (!mapped)
                 {
-                    _logger.LogInformation("Discovered {Count} additional assemblies with routable components: {Assemblies}",
-                        additionalAssemblies.Length,
-                        string.Join(", ", additionalAssemblies.Select(a => a!.GetName().Name)));
-
-                    // Call .AddAdditionalAssemblies(params Assembly[] assemblies) via reflection
-                    var addAssembliesMethod = typeof(Microsoft.AspNetCore.Builder.RazorComponentsEndpointConventionBuilderExtensions)
-                        .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                        .First(m => m.Name == "AddAdditionalAssemblies");
-
-                    conventionBuilder = addAssembliesMethod.Invoke(null, [conventionBuilder, additionalAssemblies]);
+                    _logger.LogError("Failed to map Razor components via reflection. " +
+                        "The ASP.NET Core framework API may have changed.");
                 }
-
-                typeof(Microsoft.AspNetCore.Builder.ServerRazorComponentsEndpointConventionBuilderExtensions)
-                    .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                    .First(m => m.Name == "AddInteractiveServerRenderMode" && m.GetParameters().Length == 1)
-                    .Invoke(null, [conventionBuilder]);
-
-                _logger.LogInformation("MapRazorComponents<{AppType}> with InteractiveServerRenderMode configured successfully", _appType.FullName);
             }
             else
             {
