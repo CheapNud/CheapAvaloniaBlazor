@@ -31,7 +31,7 @@ public class CheapAvaloniaBlazorOptions
 
     /// <summary>
     /// Recommended render mode for components (Server vs ServerPrerendered)
-    /// This is informational only - actual render mode is set in _Host.cshtml
+    /// This is informational only - actual render mode is set in App.razor via @rendermode
     /// </summary>
     public string RecommendedRenderMode { get; set; } = Constants.Defaults.RenderModeServerPrerendered;
 

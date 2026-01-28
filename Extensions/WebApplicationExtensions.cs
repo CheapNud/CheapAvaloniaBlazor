@@ -56,19 +56,51 @@ public static class WebApplicationExtensions
 
         app.UseRouting();
 
-        // Map Blazor SignalR hub
-        app.MapBlazorHub(hubOptions =>
-        {
-            // Fix: HttpConnectionDispatcherOptions does not have MaximumReceiveMessageSize property.
-            // Instead, use ApplicationMaxBufferSize or TransportMaxBufferSize if applicable.
-            if (options.MaximumReceiveMessageSize.HasValue)
-            {
-                hubOptions.ApplicationMaxBufferSize = options.MaximumReceiveMessageSize.Value;
-            }
-        });
+        // Required by MapRazorComponents
+        app.UseAntiforgery();
 
-        // Map fallback to host page
-        app.MapFallbackToPage(Constants.Endpoints.HostPage);
+        // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
+        // Since the library doesn't have a compile-time reference to the consumer's App type,
+        // we use reflection to call the generic MapRazorComponents<TApp> method
+        var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
+        var appType = entryAssembly?.GetType(Constants.ComponentNames.App)
+            ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == Constants.ComponentNames.App);
+
+        if (appType != null)
+        {
+            var mapMethod = typeof(Microsoft.AspNetCore.Builder.RazorComponentsEndpointRouteBuilderExtensions)
+                .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .First(m => m.Name == "MapRazorComponents" && m.IsGenericMethod)
+                .MakeGenericMethod(appType);
+
+            var conventionBuilder = mapMethod.Invoke(null, [app]);
+
+            // Discover referenced assemblies that contain routable Razor components
+            var routeAttributeType = typeof(Microsoft.AspNetCore.Components.RouteAttribute);
+            var additionalAssemblies = entryAssembly?.GetReferencedAssemblies()
+                .Select(name =>
+                {
+                    try { return System.Reflection.Assembly.Load(name); }
+                    catch { return null; }
+                })
+                .Where(asm => asm != null && asm != entryAssembly && asm != typeof(WebApplicationExtensions).Assembly)
+                .Where(asm => asm!.GetTypes().Any(t => t.GetCustomAttributes(routeAttributeType, false).Length > 0))
+                .ToArray();
+
+            if (additionalAssemblies is { Length: > 0 })
+            {
+                var addAssembliesMethod = typeof(Microsoft.AspNetCore.Builder.RazorComponentsEndpointConventionBuilderExtensions)
+                    .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .First(m => m.Name == "AddAdditionalAssemblies");
+
+                conventionBuilder = addAssembliesMethod.Invoke(null, [conventionBuilder, additionalAssemblies]);
+            }
+
+            typeof(Microsoft.AspNetCore.Builder.ServerRazorComponentsEndpointConventionBuilderExtensions)
+                .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .First(m => m.Name == "AddInteractiveServerRenderMode" && m.GetParameters().Length == 1)
+                .Invoke(null, [conventionBuilder]);
+        }
 
         return app;
     }

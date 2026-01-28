@@ -25,11 +25,6 @@ public class BlazorHostConfiguration
     public List<Assembly> AdditionalAssemblies { get; set; } = new();
 
     /// <summary>
-    /// The host page path (default: /_Host)
-    /// </summary>
-    public string HostPage { get; set; } = Constants.Endpoints.HostPage;
-
-    /// <summary>
     /// Static file options
     /// </summary>
     public StaticFileOptions? StaticFileOptions { get; set; }

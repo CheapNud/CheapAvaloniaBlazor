@@ -12,7 +12,6 @@ public static class Constants
     {
         public const string ComponentsDirectory = "Components";
         public const string WwwRoot = "wwwroot";
-        public const string HostFile = "_Host.cshtml";
         public const string EmbeddedResourceNamespace = "CheapAvaloniaBlazor.wwwroot";
     }
 
@@ -21,8 +20,6 @@ public static class Constants
     /// </summary>
     public static class Endpoints
     {
-        public const string BlazorHub = "/_blazor";
-        public const string HostPage = "/_Host";
         public const string ContentPath = "/_content/CheapAvaloniaBlazor";
         public const string ErrorPage = "/Error";
         public const string TestEndpoint = "/_content/CheapAvaloniaBlazor/test";
@@ -46,10 +43,9 @@ public static class Constants
         public const string Prefix = "DIAGNOSTICS:";
         public const string ServiceProviderCreated = "DIAGNOSTICS: Service provider created for scope";
         public const string CompleteServiceRegistration = "DIAGNOSTICS: Complete service registration summary:";
-        public const string RazorPagesAdded = "DIAGNOSTICS: - RazorPages: Added";
-        public const string ServerSideBlazorAdded = "DIAGNOSTICS: - ServerSideBlazor: Added with DetailedErrors=true";
+        public const string RazorComponentsAdded = "DIAGNOSTICS: - RazorComponents: Added with InteractiveServerComponents";
         public const string DesktopInteropAdded = "DIAGNOSTICS: - DesktopInteropService: Added";
-        public const string NavigationManagerAutoRegistered = "DIAGNOSTICS: - NavigationManager: Auto-registered by ServerSideBlazor";
+        public const string NavigationManagerAutoRegistered = "DIAGNOSTICS: - NavigationManager: Auto-registered by AddRazorComponents";
     }
 
     /// <summary>
@@ -128,6 +124,7 @@ public static class Constants
     public static class ComponentNames
     {
         public const string App = "App";
+        public const string Routes = "Routes";
         public const string RootComponentSelector = "app";
     }
 
@@ -224,8 +221,6 @@ public static class Constants
     public static class SearchPatterns
     {
         public const string AllFiles = "*";
-        public const string HostFiles = "Host";
-        public const string CsHtmlFiles = ".cshtml";
     }
 
     /// <summary>
@@ -253,11 +248,4 @@ public static class Constants
         public const string ErrorPrefix = "ERROR: ";
     }
 
-    /// <summary>
-    /// Special folder names
-    /// </summary>
-    public static class SpecialFolders
-    {
-        public const string RootDirectory = "/Components";
-    }
 }

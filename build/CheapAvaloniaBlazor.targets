@@ -4,6 +4,47 @@
     <Message Text="CheapAvaloniaBlazor: Configuring Blazor desktop application..." Importance="high" />
   </Target>
 
+  <!--
+    .NET 10+: Copy Blazor framework file (blazor.web.js) to output wwwroot.
+    In .NET 10, these files are no longer embedded in assemblies - they're static web assets
+    that must be served from the file system. For embedded Blazor scenarios (desktop apps),
+    UseStaticFiles() serves them from wwwroot/_framework/.
+  -->
+  <Target Name="CopyBlazorFrameworkFilesFromLibrary" AfterTargets="Build" Condition="'$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))">
+    <PropertyGroup>
+      <!-- Try to find the internal assets package - match the major.minor version -->
+      <BlazorInternalAssetsPattern>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/$([System.Text.RegularExpressions.Regex]::Match('$(TargetFrameworkVersion)', '^\d+\.\d+').Value).*/_framework/</BlazorInternalAssetsPattern>
+      <DestinationFrameworkPath>$(OutputPath)wwwroot/_framework/</DestinationFrameworkPath>
+    </PropertyGroup>
+
+    <!-- Find the actual path using wildcard -->
+    <ItemGroup>
+      <BlazorInternalAssetsDirs Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/" />
+      <BlazorInternalAssetsDirsSorted Include="@(BlazorInternalAssetsDirs)" Condition="$([System.String]::new('%(Identity)').Contains('$([System.Text.RegularExpressions.Regex]::Match($(TargetFrameworkVersion), ^\d+\.\d+).Value)'))" />
+    </ItemGroup>
+
+    <!-- Use the latest matching version's files -->
+    <PropertyGroup>
+      <BlazorAssetsPath>@(BlazorInternalAssetsDirs->Reverse()->GetPathsOfAllDirectoriesAbove())</BlazorAssetsPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <BlazorFrameworkFiles Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/**/_framework/blazor.web.js" />
+    </ItemGroup>
+
+    <Message Text="CheapAvaloniaBlazor: Looking for Blazor framework files..." Importance="normal" Condition="'@(BlazorFrameworkFiles)' != ''" />
+    <MakeDir Directories="$(DestinationFrameworkPath)" Condition="'@(BlazorFrameworkFiles)' != ''" />
+
+    <!-- Copy only the first match (latest version) for each file -->
+    <Copy SourceFiles="@(BlazorFrameworkFiles)"
+          DestinationFolder="$(DestinationFrameworkPath)"
+          SkipUnchangedFiles="true"
+          Condition="'@(BlazorFrameworkFiles)' != ''" />
+
+    <Message Text="CheapAvaloniaBlazor: Copied Blazor framework files to $(DestinationFrameworkPath)" Importance="high" Condition="'@(BlazorFrameworkFiles)' != ''" />
+    <Warning Text="CheapAvaloniaBlazor: Could not find Blazor framework files in NuGet cache. blazor.web.js may not be available." Condition="'@(BlazorFrameworkFiles)' == ''" />
+  </Target>
+
   <!-- Only create wwwroot if it doesn't exist, no copying -->
   <Target Name="EnsureWwwrootExists" BeforeTargets="Build" Condition="!Exists('$(MSBuildProjectDirectory)\wwwroot')">
     <PropertyGroup>
