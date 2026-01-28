@@ -56,19 +56,18 @@ public static class WebApplicationExtensions
 
         app.UseRouting();
 
-        // Map Blazor SignalR hub
-        app.MapBlazorHub(hubOptions =>
-        {
-            // Fix: HttpConnectionDispatcherOptions does not have MaximumReceiveMessageSize property.
-            // Instead, use ApplicationMaxBufferSize or TransportMaxBufferSize if applicable.
-            if (options.MaximumReceiveMessageSize.HasValue)
-            {
-                hubOptions.ApplicationMaxBufferSize = options.MaximumReceiveMessageSize.Value;
-            }
-        });
+        // Required by MapRazorComponents
+        app.UseAntiforgery();
 
-        // Map fallback to host page
-        app.MapFallbackToPage(Constants.Endpoints.HostPage);
+        // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
+        // Centralized in BlazorComponentMapper to avoid reflection duplication
+        var appType = Utilities.BlazorComponentMapper.DiscoverAppType();
+
+        if (appType != null)
+        {
+            Utilities.BlazorComponentMapper.TryMapRazorComponents(
+                app, appType, typeof(WebApplicationExtensions).Assembly);
+        }
 
         return app;
     }

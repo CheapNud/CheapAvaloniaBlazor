@@ -30,12 +30,6 @@ public class CheapAvaloniaBlazorOptions
     public bool EnableDiagnostics { get; set; } = false;
 
     /// <summary>
-    /// Recommended render mode for components (Server vs ServerPrerendered)
-    /// This is informational only - actual render mode is set in _Host.cshtml
-    /// </summary>
-    public string RecommendedRenderMode { get; set; } = Constants.Defaults.RenderModeServerPrerendered;
-
-    /// <summary>
     /// Content root path for the Blazor server
     /// </summary>
     public string? ContentRoot { get; set; }

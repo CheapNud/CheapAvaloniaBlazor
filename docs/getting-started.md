@@ -54,12 +54,11 @@ Open your `.csproj` file and modify it:
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.1.5" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.4" />
   </ItemGroup>
 </Project>
 ```
@@ -68,7 +67,6 @@ Open your `.csproj` file and modify it:
 - `Sdk="Microsoft.NET.Sdk.Razor"` - Razor SDK for Blazor component compilation
 - `<OutputType>WinExe</OutputType>` - Windows executable without console window
 - `<FrameworkReference Include="Microsoft.AspNetCore.App" />` - ASP.NET Core for Blazor Server
-- `<AddRazorSupportForMvc>true</AddRazorSupportForMvc>` - Enables Razor page compilation
 
 ### Step 3: Create Program.cs
 
@@ -114,17 +112,16 @@ class Program
 - `.AddMudBlazor()` - Registers MudBlazor components and services
 - `.RunApp(args)` - Builds and runs the application (handles Avalonia setup automatically)
 
-### Step 4: Create Components/_Host.cshtml
+### Step 4: Create Components/App.razor (HTML Document Root)
 
-The `_Host.cshtml` file is the HTML entry point - the actual HTML page that gets rendered in your desktop window. It loads CSS, sets up the Blazor runtime, and creates the container where your Razor components render.
+The `App.razor` file is the HTML document root - the actual HTML page that gets rendered in your desktop window. It loads CSS, sets up the Blazor runtime, and renders the `Routes` component where your Razor components appear.
 
 **Creating the file:**
-- **Visual Studio Users:** Right-click project → Add → New Folder → "Components" → right-click Components → Add → New Item → "Razor Page" → Name it "_Host.cshtml"
-- **VS Code Users:** Create folder `Components` and file `_Host.cshtml` inside it
+- **Visual Studio Users:** Right-click project → Add → New Folder → "Components" → right-click Components → Add → New Item → "Razor Component" → Name it "App.razor"
+- **VS Code Users:** Create folder `Components` and file `App.razor` inside it
 
-```html
-@page "/"
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+```razor
+@using Microsoft.AspNetCore.Components.Web
 
 <!DOCTYPE html>
 <html lang="en">
@@ -132,7 +129,7 @@ The `_Host.cshtml` file is the HTML entry point - the actual HTML page that gets
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Desktop App</title>
-    <base href="~/" />
+    <base href="/" />
 
     <!-- Roboto font for MudBlazor Material Design -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
@@ -140,42 +137,15 @@ The `_Host.cshtml` file is the HTML entry point - the actual HTML page that gets
     <!-- MudBlazor CSS - provides styling for all Material Design components -->
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
 
-    <style>
-        /* Error UI that displays if something goes wrong with the Blazor connection */
-        #blazor-error-ui {
-            background: lightyellow;
-            bottom: 0;
-            box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-            display: none;
-            left: 0;
-            padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-        }
-
-        #blazor-error-ui .dismiss {
-            cursor: pointer;
-            position: absolute;
-            right: 0.75rem;
-            top: 0.5rem;
-        }
-    </style>
+    <!-- HeadOutlet renders <PageTitle> and <HeadContent> from components -->
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 <body>
-    <!-- This is where your Blazor app gets rendered -->
-    <!-- ServerPrerendered means the page is pre-rendered on the server for faster initial display -->
-    <component type="typeof(App)" render-mode="ServerPrerendered" />
+    <!-- This is where your Blazor app gets rendered via the Routes component -->
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 
-    <!-- Error UI container - shown only if connection fails -->
-    <div id="blazor-error-ui">
-        An error has occurred. This application may no longer respond until reloaded.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
-    </div>
-
-    <!-- Blazor Server JavaScript runtime - enables communication between C# and the browser -->
-    <script src="_framework/blazor.server.js"></script>
+    <!-- Blazor Web App JavaScript runtime - enables SignalR communication between C# and the browser -->
+    <script src="_framework/blazor.web.js"></script>
 
     <!-- MudBlazor JavaScript - provides interactive component functionality -->
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
@@ -188,26 +158,28 @@ The `_Host.cshtml` file is the HTML entry point - the actual HTML page that gets
 
 **What's Happening Here:**
 
-- `@page "/"` - Routes this page to the root URL
-- `@addTagHelper` - Enables ASP.NET tag helpers for Blazor components
-- `<base href="~/" />` - Sets the base URL for relative links
+- This is a full HTML document defined as a Razor component (not a Razor Page)
+- `<base href="/" />` - Sets the base URL for relative links
+- `<HeadOutlet>` - Renders `<PageTitle>` and `<HeadContent>` from child components
+- `<Routes>` - Renders the Blazor router component (created in Step 5)
+- `@rendermode="new InteractiveServerRenderMode(prerender: false)"` - Enables interactive server-side rendering
 - MudBlazor CSS/JS - Provides Material Design styling and component interactivity
-- `<component type="typeof(App)" />` - This is where your Blazor app renders
-- Blazor JavaScript files - Enable SignalR communication between C# and the browser
+- `blazor.web.js` - The Blazor Web App runtime that manages SignalR communication
 
-### Step 5: Create App.razor
+### Step 5: Create Components/Routes.razor
 
-The `App.razor` component is the root Blazor component. It sets up routing - determining which page/component should display based on the current URL.
+The `Routes.razor` component handles routing - determining which page/component should display based on the current URL. It is rendered inside the `App.razor` HTML document root.
 
 **Creating the file:**
-- **Visual Studio Users:** Right-click project → Add → New Item → "Razor Component" → Name it "App.razor"
-- **VS Code Users:** Create file `App.razor` in the project root
+- **Visual Studio Users:** Right-click Components folder → Add → New Item → "Razor Component" → Name it "Routes.razor"
+- **VS Code Users:** Create file `Routes.razor` inside the `Components` folder
 
 ```razor
-<Router AppAssembly="@typeof(App).Assembly">
+<Router AppAssembly="@typeof(Routes).Assembly">
     <Found Context="routeData">
         <!-- User navigated to a valid page - render it with the MainLayout -->
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
         <!-- User navigated to a URL that doesn't exist - show 404 message -->
@@ -222,10 +194,11 @@ The `App.razor` component is the root Blazor component. It sets up routing - det
 **Understanding Routing:**
 
 - `<Router>` - Blazor's routing component that watches URL changes
-- `AppAssembly="@typeof(App).Assembly"` - Tells Router to scan this assembly for `@page` directives
+- `AppAssembly="@typeof(Routes).Assembly"` - Tells Router to scan this assembly for `@page` directives
 - `<Found>` - Rendered when a matching page is found
 - `<NotFound>` - Rendered when no matching page exists (404 handling)
 - `DefaultLayout="@typeof(MainLayout)"` - Every page gets wrapped in the MainLayout component
+- `<FocusOnNavigate>` - Improves accessibility by setting focus after navigation
 
 ### Step 6: Create Shared/MainLayout.razor
 
@@ -595,7 +568,7 @@ Check the browser console (F12) for SignalR errors. Ensure:
 
 ### MudBlazor Styles Missing
 
-Ensure your `_Host.cshtml` includes:
+Ensure your `App.razor` includes:
 ```html
 <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
 <script src="_content/MudBlazor/MudBlazor.min.js"></script>

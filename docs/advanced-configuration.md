@@ -219,33 +219,26 @@ Static files in this directory are served as-is to the web view. Default: `wwwro
 
 ### Understanding Render Modes
 
-CheapAvaloniaBlazor supports two render modes, configured in your `_Host.cshtml`:
+CheapAvaloniaBlazor uses the modern Blazor Web App pattern with `@rendermode` attributes configured in your `App.razor` document root:
 
 | Mode | Pre-rendering | Interactivity | Use Case |
 |------|---|---|---|
-| **Server** | No | Immediate | Interactive from page load |
-| **ServerPrerendered** | Yes | After hydration | Fast first paint + smooth interactivity |
+| **InteractiveServer** | Optional | Immediate (when prerender: false) | Desktop apps (recommended) |
+| **InteractiveServer with prerender** | Yes | After hydration | Web apps with fast first paint |
 
-Note: The `WithRenderMode()` method is informational only. Actual render mode is set in `_Host.cshtml`:
+The render mode is set on the `<Routes>` and `<HeadOutlet>` components in `App.razor`:
 
-```html
-<component type="typeof(App)" render-mode="ServerPrerendered" />
-<!-- or -->
-<component type="typeof(App)" render-mode="Server" />
+```razor
+<!-- Recommended for desktop apps (no prerendering, immediate interactivity) -->
+<HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+<Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+
+<!-- With prerendering enabled (may cause JSInterop exceptions in desktop apps) -->
+<HeadOutlet @rendermode="RenderMode.InteractiveServer" />
+<Routes @rendermode="RenderMode.InteractiveServer" />
 ```
 
-### Configuring Render Mode
-
-```csharp
-// Set the recommended mode for documentation/reference
-builder.WithRenderMode("ServerPrerendered")
-builder.WithRenderMode("Server")
-```
-
-Access via:
-```csharp
-var renderMode = builder.Options.RecommendedRenderMode;
-```
+**Desktop app recommendation:** Use `prerender: false` to avoid `InvalidOperationException` spam from JSInterop calls during the static server-side rendering pass. Desktop apps don't benefit from prerendering since there's no initial HTML-only page load to optimize.
 
 ## SignalR Configuration
 
@@ -892,8 +885,7 @@ var builder = new HostBuilder()
         options.GrantBrowserPermissions = true;
         options.MaximumReceiveMessageSize = 64 * 1024;
     })
-    .WithSplashScreen("Business App", "Initializing...")
-    .WithRenderMode("ServerPrerendered");
+    .WithSplashScreen("Business App", "Initializing...");
 
 // Add custom services
 builder.Services.AddSingleton<IDataService, DataService>();
@@ -1011,7 +1003,6 @@ var builder = new HostBuilder()
     .UseContentRoot("./app-content")
     .UseWebRoot("./wwwroot")
     .EnableConsoleLogging(true)
-    .WithRenderMode("ServerPrerendered")
     .AddMudBlazor(config =>
     {
         config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopCenter;
@@ -1127,7 +1118,6 @@ Complete table of all `CheapAvaloniaBlazorOptions` properties:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `RecommendedRenderMode` | string | "ServerPrerendered" | Recommended render mode (informational) |
 | `RootComponentType` | Type | null | Custom root component type |
 | `AdditionalAssemblies` | List<Assembly> | [] | Additional assemblies for component discovery |
 

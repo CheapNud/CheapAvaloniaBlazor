@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+using System.Reflection;
 
 namespace CheapAvaloniaBlazor.Services;
 
@@ -20,6 +21,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
     private readonly ILogger<EmbeddedBlazorHostService> _logger;
     private readonly DiagnosticLogger _diagnosticLogger;
     private CancellationTokenSource? _hostCts;
+    private Type? _appType;
 
     public bool IsRunning { get; private set; }
     public string BaseUrl => $"{(_options.UseHttps ? Constants.Defaults.HttpsScheme : Constants.Defaults.HttpScheme)}://{Constants.Defaults.LocalhostAddress}:{_options.Port}";
@@ -63,8 +65,8 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             //
             // TECHNICAL EXPLANATION:
             // ----------------------
-            // Blazor Server requires these JavaScript files to function:
-            //   - /_framework/blazor.server.js (SignalR connection for Blazor Server)
+            // Blazor Web App requires these JavaScript files to function:
+            //   - /_framework/blazor.web.js (Blazor Web App runtime)
             //   - /_content/MudBlazor/MudBlazor.min.js (UI components)
             //   - /_content/CheapAvaloniaBlazor/cheap-blazor-interop.js (desktop interop)
             //
@@ -93,32 +95,40 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // Production mode is for web servers exposed to the internet. We're localhost.
             // Just use Development. It works. Ship it.
             // ===================================================================================
-            var webAppOptions = new WebApplicationOptions
-            {
-                EnvironmentName = Environments.Development,  // Always. See wall of text above.
-                ContentRootPath = !string.IsNullOrEmpty(_options.ContentRoot) ? _options.ContentRoot : null
-            };
 
-            var builder = WebApplication.CreateBuilder(webAppOptions);
+            // Use CreateBuilder() with NO WebApplicationOptions - this is how v1.1.5 worked.
+            // Passing WebApplicationOptions (even with correct values) breaks the internal
+            // Blazor script serving mechanism that MapRazorComponents() relies on.
+            var builder = WebApplication.CreateBuilder();
 
-            _logger.LogInformation("Created WebApplication builder with environment: {Environment}", builder.Environment.EnvironmentName);
+            // Set environment to Development for UseStaticWebAssets() to work
+            builder.Environment.EnvironmentName = Environments.Development;
 
-            // Belt-and-suspenders: Also call UseContentRoot to ensure consistent behavior
-            // even though ContentRootPath is set in WebApplicationOptions
-            if (!string.IsNullOrEmpty(_options.ContentRoot))
-            {
-                builder.WebHost.UseContentRoot(_options.ContentRoot);
-            }
+            // Set content root for static assets discovery
+            var effectiveContentRoot = !string.IsNullOrEmpty(_options.ContentRoot)
+                ? _options.ContentRoot
+                : AppContext.BaseDirectory;
+
+            builder.Environment.ContentRootPath = effectiveContentRoot;
+            builder.WebHost.UseContentRoot(effectiveContentRoot);
+
+            _logger.LogInformation("Created WebApplication builder with environment: {Environment}, ContentRoot: {ContentRoot}",
+                builder.Environment.EnvironmentName, effectiveContentRoot);
 
             // Extract JavaScript bridge from embedded resources to physical wwwroot
             // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)
             try
             {
-                var contentRoot = !string.IsNullOrEmpty(_options.ContentRoot)
-                    ? _options.ContentRoot
-                    : Directory.GetCurrentDirectory();
+                var wwwrootPath = Path.GetFullPath(Path.Combine(effectiveContentRoot, Constants.Paths.WwwRoot));
 
-                var wwwrootPath = Path.Combine(contentRoot, Constants.Paths.WwwRoot);
+                // Guard against path traversal if ContentRoot was set to something like "../../../../malicious/path"
+                var appBase = Path.GetFullPath(AppContext.BaseDirectory);
+                if (!wwwrootPath.StartsWith(appBase, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"ContentRoot resolved to '{wwwrootPath}' which is outside the application base directory '{appBase}'. " +
+                        "This may indicate a path traversal attempt.");
+                }
 
                 _diagnosticLogger.LogDiagnostic("Extracting JavaScript bridge to: {WwwrootPath}", wwwrootPath);
 
@@ -213,68 +223,50 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
         try
         {
             _logger.LogInformation("Configuring services for embedded Blazor host...");
-            
-            // Add Blazor services directly here since this is a new service collection
-            _logger.LogDebug("Adding RazorPages services...");
-            services.AddRazorPages();
-            
-            // Configure RazorPages to look in Components directory instead of Pages
-            services.Configure<Microsoft.AspNetCore.Mvc.RazorPages.RazorPagesOptions>(options =>
-            {
-                options.RootDirectory = Constants.SpecialFolders.RootDirectory;
-            });
-            
-            _logger.LogDebug("Adding ServerSideBlazor services...");
-            var blazorBuilder = services.AddServerSideBlazor(options =>
-            {
-                options.DetailedErrors = true;
-                options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(Constants.Defaults.DisconnectedCircuitRetentionMinutes);
-                options.DisconnectedCircuitMaxRetained = Constants.Defaults.DisconnectedCircuitMaxRetained;
-            });
-            
-            // Add comprehensive diagnostics
-            _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.ServerSideBlazorAdded);
 
-            // Log all registered services for NavigationManager debugging
-            services.AddScoped(serviceProvider =>
+            // Modern Blazor Web App pattern: AddRazorComponents + AddInteractiveServerComponents
+            // Replaces legacy AddRazorPages + AddServerSideBlazor pattern
+            _logger.LogDebug("Adding RazorComponents with InteractiveServerComponents...");
+            services.AddRazorComponents()
+                .AddInteractiveServerComponents(circuitOptions =>
+                {
+                    // Increase timeouts for embedded scenarios where the WebView might be slower
+                    circuitOptions.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10);
+                    circuitOptions.JSInteropDefaultCallTimeout = TimeSpan.FromMinutes(2);
+                    circuitOptions.DetailedErrors = true;
+                });
+
+            // Add circuit error handler to capture detailed exceptions
+            services.AddSingleton<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler>(sp =>
             {
-                var logger = serviceProvider.GetRequiredService<ILogger<EmbeddedBlazorHostService>>();
-                logger.LogInformation(Constants.Diagnostics.ServiceProviderCreated);
-                return serviceProvider;
+                var circuitLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("CircuitHandler");
+                return new DiagnosticCircuitHandler(circuitLogger);
             });
-            
-            // Configure hub options
-            blazorBuilder.AddHubOptions(options =>
+
+            // Add comprehensive diagnostics
+            _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.RazorComponentsAdded);
+
+            // Find and store the App component type for use in ConfigurePipeline (MapRazorComponents<App>)
+            _appType = Utilities.BlazorComponentMapper.DiscoverAppType();
+
+            if (_appType != null)
             {
-                options.ClientTimeoutInterval = TimeSpan.FromSeconds(Constants.Defaults.ClientTimeoutSeconds);
-                options.HandshakeTimeout = TimeSpan.FromSeconds(Constants.Defaults.HandshakeTimeoutSeconds);
-                options.MaximumReceiveMessageSize = Constants.Defaults.MaximumReceiveMessageSizeBytes;
-            });
-            
-            // Find and log the App component
-            var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
-            var appType = entryAssembly?.GetType(Constants.ComponentNames.App) ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == Constants.ComponentNames.App);
-            
-            if (appType != null)
-            {
-                _logger.LogInformation("Found App component: {AppType}", appType.FullName);
+                _logger.LogInformation("Found App component: {AppType}", _appType.FullName);
             }
             else
             {
-                _logger.LogWarning("Could not find App component in entry assembly");
+                _logger.LogWarning("Could not find App component in entry assembly. MapRazorComponents will fail.");
             }
 
-            // Navigation services are automatically registered by AddServerSideBlazor()
-            // RemoteNavigationManager is internal to the framework and not directly accessible
-            _logger.LogDebug("NavigationManager services automatically registered by AddServerSideBlazor");
-            
+            // Navigation services are automatically registered by AddRazorComponents()
+            _logger.LogDebug("NavigationManager services automatically registered by AddRazorComponents");
+
             // DIAGNOSTICS: Log the complete service registration
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.CompleteServiceRegistration);
-            _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.RazorPagesAdded);
-            _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.ServerSideBlazorAdded);
+            _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.RazorComponentsAdded);
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.DesktopInteropAdded);
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.NavigationManagerAutoRegistered);
-            _diagnosticLogger.LogDiagnosticVerbose("- RecommendedRenderMode: {RenderMode}", _options.RecommendedRenderMode);
+
 
             // Log all NavigationManager-related services
             if (_diagnosticLogger.DiagnosticsEnabled)
@@ -348,9 +340,17 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 app.UseHttpsRedirection();
             }
 
-            _logger.LogDebug("Adding static files and routing...");
+            // UseStaticFiles MUST be before UseRouting to serve _framework files
+            // that are copied to wwwroot/_framework/ during build
+            _logger.LogDebug("Adding static files middleware...");
             app.UseStaticFiles();
+
+            _logger.LogDebug("Adding routing...");
             app.UseRouting();
+
+            // Required by MapRazorComponents
+            _logger.LogDebug("Adding antiforgery middleware...");
+            app.UseAntiforgery();
 
             // Custom middleware
             if (_options.ConfigurePipeline != null)
@@ -359,44 +359,6 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.ConfigurePipeline.Invoke(app);
             }
 
-            _logger.LogDebug("Mapping Blazor hub...");
-            app.MapBlazorHub();
-
-            _diagnosticLogger.LogDiagnosticVerbose("Blazor SignalR hub mapped at {BlazorHub}", Constants.Endpoints.BlazorHub);
-            
-            _logger.LogDebug("Setting up Blazor Server...");
-            
-            // Find the App component type from the entry assembly
-            var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
-
-            _diagnosticLogger.LogDiagnosticVerbose("Entry assembly: {AssemblyName}", entryAssembly?.FullName ?? "NULL");
-
-            var appType = entryAssembly?.GetType(Constants.ComponentNames.App) ?? entryAssembly?.GetTypes().FirstOrDefault(t => t.Name == Constants.ComponentNames.App);
-            if (appType != null)
-            {
-                _diagnosticLogger.LogDiagnosticVerbose("Found App component: {AppType}", appType.FullName);
-                _diagnosticLogger.LogDiagnosticVerbose("App component assembly: {Assembly}", appType.Assembly.FullName);
-                _diagnosticLogger.LogDiagnosticVerbose("App component base type: {BaseType}", appType.BaseType?.FullName ?? "NULL");
-            }
-            else
-            {
-                _diagnosticLogger.LogWarning($"{Constants.Diagnostics.Prefix} App component NOT FOUND in entry assembly");
-                if (_diagnosticLogger.DiagnosticsEnabled)
-                {
-                    var allTypes = entryAssembly?.GetTypes().Where(t => t.Name.Contains(Constants.ComponentNames.App)).ToList();
-                    _diagnosticLogger.LogDiagnosticVerbose("Found {Count} types containing 'App':", allTypes?.Count ?? 0);
-                    if (allTypes != null)
-                    {
-                        foreach (var type in allTypes)
-                        {
-                            _diagnosticLogger.LogDiagnosticVerbose("- {TypeName} ({FullName})", type.Name, type.FullName);
-                        }
-                    }
-                }
-            }
-            
-            _logger.LogDebug("Setting up standard Blazor Server routing...");
-            
             // Add diagnostic middleware to log all requests
             app.Use(async (context, next) =>
             {
@@ -425,83 +387,27 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                     throw;
                 }
             });
-            
-            // Use standard Blazor Server approach - user should create Components/_Host.cshtml
-            app.MapRazorPages();
-            
-            // Add diagnostics to check if _Host.cshtml exists
-            if (_diagnosticLogger.DiagnosticsEnabled)
-            {
-                var contentRoot = !string.IsNullOrEmpty(_options.ContentRoot) ? _options.ContentRoot : Directory.GetCurrentDirectory();
-                var hostPath = Path.Combine(contentRoot, Constants.Paths.ComponentsDirectory, Constants.Paths.HostFile);
-                var hostExists = File.Exists(hostPath);
-                _diagnosticLogger.LogDiagnosticVerbose("Content root: {ContentRoot}", contentRoot);
-                _diagnosticLogger.LogDiagnosticVerbose("Looking for _Host.cshtml at: {HostPath}", hostPath);
-                _diagnosticLogger.LogDiagnosticVerbose("_Host.cshtml exists: {HostExists}", hostExists);
 
-                if (!hostExists)
+            // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
+            // Centralized in BlazorComponentMapper to avoid reflection duplication
+            if (_appType != null)
+            {
+                _logger.LogDebug("Setting up MapRazorComponents<{AppType}> via reflection...", _appType.FullName);
+
+                var mapped = Utilities.BlazorComponentMapper.TryMapRazorComponents(
+                    app, _appType, typeof(EmbeddedBlazorHostService).Assembly, _logger);
+
+                if (!mapped)
                 {
-                    _diagnosticLogger.LogWarning($"{Constants.Diagnostics.Prefix} _Host.cshtml NOT FOUND! This will cause 'Cannot find the fallback endpoint' error");
-                    _diagnosticLogger.LogDiagnosticVerbose("Content root directory contents:");
-                    try
-                    {
-                        var files = Directory.GetFileSystemEntries(contentRoot, Constants.SearchPatterns.AllFiles, SearchOption.AllDirectories)
-                            .Where(f => f.Contains(Constants.SearchPatterns.HostFiles) || f.Contains(Constants.SearchPatterns.CsHtmlFiles))
-                            .Take(10);
-                        foreach (var file in files)
-                        {
-                            _diagnosticLogger.LogDiagnosticVerbose("- {File}", Path.GetRelativePath(contentRoot, file));
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _diagnosticLogger.LogWarning($"{Constants.Diagnostics.Prefix} Could not enumerate directory: {{Error}}", ex.Message);
-                    }
+                    _logger.LogError("Failed to map Razor components via reflection. " +
+                        "The ASP.NET Core framework API may have changed.");
                 }
             }
-
-            app.MapFallbackToPage(Constants.Endpoints.HostPage);
-            _diagnosticLogger.LogDiagnosticVerbose("Razor pages mapped, fallback to {HostPage} configured", Constants.Endpoints.HostPage);
-            
-            // Add a more informative error page if _Host.cshtml is missing
-            app.Use(async (context, next) =>
+            else
             {
-                await next();
-                if (context.Response.StatusCode == Constants.Http.StatusCodeNotFound && context.Request.Path == "/")
-                {
-                    context.Response.StatusCode = Constants.Http.StatusCodeInternalServerError;
-                    context.Response.ContentType = Constants.Http.ContentTypeHtml;
-                    var errorHtml = $@"
-<html>
-<head><title>Configuration Error</title></head>
-<body>
-<h1>CheapAvaloniaBlazor Configuration Error</h1>
-<p><strong>Missing Components/_Host.cshtml file</strong></p>
-<p>Please create Components/_Host.cshtml as documented in the README:</p>
-<pre>
-@page ""/"" 
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-@{{
-    Layout = ""_Layout"";
-    ViewData[""Title""] = ""Home"";
-}}
-
-&lt;component type=""typeof(App)"" render-mode=""{_options.RecommendedRenderMode}"" /&gt;
-</pre>
-<p><strong>Render Mode Options:</strong></p>
-<ul>
-<li><code>ServerPrerendered</code> - Faster initial load, but requires NavigationManager initialization</li>
-<li><code>Server</code> - Slower initial load, but more reliable with complex components</li>
-</ul>
-<p>If you get 'RemoteNavigationManager has not been initialized' errors, try changing render-mode to ""Server"".</p>
-<p>See the full setup guide at: <a href=""https://github.com/CheapNud/CheapAvaloniaBlazor"">https://github.com/CheapNud/CheapAvaloniaBlazor</a></p>
-</body>
-</html>";
-                    await context.Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(errorHtml));
-                }
-            });
-            
-            _logger.LogInformation("Blazor Server routing configured - expecting user to create Components/_Host.cshtml as per README");
+                _logger.LogError("Cannot configure MapRazorComponents - App component type was not found in entry assembly. " +
+                    "Ensure your project has a Components/App.razor file that serves as the HTML document root.");
+            }
 
             // Map additional endpoints
             if (_options.ConfigureEndpoints != null)
