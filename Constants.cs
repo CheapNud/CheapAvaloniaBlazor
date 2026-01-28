@@ -68,10 +68,6 @@ public static class Constants
         public const int MinimumResizableWidth = 640;
         public const int MinimumResizableHeight = 480;
 
-        // Render Mode
-        public const string RenderModeServerPrerendered = "ServerPrerendered";
-        public const string RenderModeServer = "Server";
-
         // Timeouts and Intervals
         public const int StartupTimeoutSeconds = 30;
         public const int StartupCheckIntervalMilliseconds = 100;
@@ -126,15 +122,6 @@ public static class Constants
         public const string App = "App";
         public const string Routes = "Routes";
         public const string RootComponentSelector = "app";
-    }
-
-    /// <summary>
-    /// Render mode constants
-    /// </summary>
-    public static class RenderModes
-    {
-        public const string ServerPrerendered = "ServerPrerendered";
-        public const string Server = "Server";
     }
 
     /// <summary>

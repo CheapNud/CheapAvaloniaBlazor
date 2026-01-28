@@ -119,10 +119,16 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)
             try
             {
-                // Path.Combine is safe here: effectiveContentRoot comes from trusted app configuration
-                // (_options.ContentRoot) or the runtime (AppContext.BaseDirectory), not from user/network input.
-                // This is a localhost-only desktop app, not a web server processing external URLs.
-                var wwwrootPath = Path.Combine(effectiveContentRoot, Constants.Paths.WwwRoot);
+                var wwwrootPath = Path.GetFullPath(Path.Combine(effectiveContentRoot, Constants.Paths.WwwRoot));
+
+                // Guard against path traversal if ContentRoot was set to something like "../../../../malicious/path"
+                var appBase = Path.GetFullPath(AppContext.BaseDirectory);
+                if (!wwwrootPath.StartsWith(appBase, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"ContentRoot resolved to '{wwwrootPath}' which is outside the application base directory '{appBase}'. " +
+                        "This may indicate a path traversal attempt.");
+                }
 
                 _diagnosticLogger.LogDiagnostic("Extracting JavaScript bridge to: {WwwrootPath}", wwwrootPath);
 
@@ -260,7 +266,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.RazorComponentsAdded);
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.DesktopInteropAdded);
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.NavigationManagerAutoRegistered);
-            _diagnosticLogger.LogDiagnosticVerbose("- RecommendedRenderMode: {RenderMode}", _options.RecommendedRenderMode);
+
 
             // Log all NavigationManager-related services
             if (_diagnosticLogger.DiagnosticsEnabled)

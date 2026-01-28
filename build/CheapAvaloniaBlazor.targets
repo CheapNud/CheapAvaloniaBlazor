@@ -42,7 +42,7 @@
           Condition="'@(BlazorFrameworkFiles)' != ''" />
 
     <Message Text="CheapAvaloniaBlazor: Copied Blazor framework files to $(DestinationFrameworkPath)" Importance="high" Condition="'@(BlazorFrameworkFiles)' != ''" />
-    <Warning Text="CheapAvaloniaBlazor: Could not find Blazor framework files in NuGet cache. blazor.web.js may not be available." Condition="'@(BlazorFrameworkFiles)' == ''" />
+    <Error Text="CheapAvaloniaBlazor: CRITICAL - blazor.web.js not found in NuGet cache. Ensure Microsoft.AspNetCore.App.Internal.Assets package is restored. The app will not function without this file." Condition="'@(BlazorFrameworkFiles)' == ''" />
   </Target>
 
   <!-- Only create wwwroot if it doesn't exist, no copying -->

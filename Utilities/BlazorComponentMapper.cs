@@ -46,63 +46,75 @@ public static class BlazorComponentMapper
         Assembly libraryAssembly,
         ILogger? logger = null)
     {
-        // Step 1: Find MapRazorComponents generic method
-        var mapMethod = typeof(RazorComponentsEndpointRouteBuilderExtensions)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .FirstOrDefault(m => m.Name == "MapRazorComponents" && m.IsGenericMethod);
-
-        if (mapMethod == null)
+        try
         {
-            logger?.LogError("MapRazorComponents method not found on RazorComponentsEndpointRouteBuilderExtensions. " +
-                "The ASP.NET Core framework API may have changed.");
-            return false;
-        }
-
-        var genericMapMethod = mapMethod.MakeGenericMethod(appType);
-        var conventionBuilder = genericMapMethod.Invoke(null, [app]);
-
-        if (conventionBuilder == null)
-        {
-            logger?.LogError("MapRazorComponents<{AppType}> returned null.", appType.FullName);
-            return false;
-        }
-
-        // Step 2: Discover additional assemblies with routable Razor components
-        var additionalAssemblies = DiscoverRoutableAssemblies(appType, libraryAssembly, logger);
-
-        if (additionalAssemblies is { Length: > 0 })
-        {
-            var addAssembliesMethod = typeof(RazorComponentsEndpointConventionBuilderExtensions)
+            // Step 1: Find MapRazorComponents<TApp>(IEndpointRouteBuilder) generic method
+            var mapMethod = typeof(RazorComponentsEndpointRouteBuilderExtensions)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .FirstOrDefault(m => m.Name == "AddAdditionalAssemblies");
+                .FirstOrDefault(m =>
+                    m.Name == "MapRazorComponents" &&
+                    m.IsGenericMethod &&
+                    m.GetParameters().Length == 1);
 
-            if (addAssembliesMethod == null)
+            if (mapMethod == null)
             {
-                logger?.LogWarning("AddAdditionalAssemblies method not found. " +
-                    "Routable components in referenced assemblies will not be discovered.");
+                logger?.LogError("MapRazorComponents method not found on RazorComponentsEndpointRouteBuilderExtensions. " +
+                    "The ASP.NET Core framework API may have changed.");
+                return false;
             }
-            else
+
+            var genericMapMethod = mapMethod.MakeGenericMethod(appType);
+            var conventionBuilder = genericMapMethod.Invoke(null, [app]);
+
+            if (conventionBuilder == null)
             {
-                conventionBuilder = addAssembliesMethod.Invoke(null, [conventionBuilder, additionalAssemblies]);
+                logger?.LogError("MapRazorComponents<{AppType}> returned null.", appType.FullName);
+                return false;
             }
+
+            // Step 2: Discover additional assemblies with routable Razor components
+            var additionalAssemblies = DiscoverRoutableAssemblies(appType, libraryAssembly, logger);
+
+            if (additionalAssemblies is { Length: > 0 })
+            {
+                var addAssembliesMethod = typeof(RazorComponentsEndpointConventionBuilderExtensions)
+                    .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                    .FirstOrDefault(m => m.Name == "AddAdditionalAssemblies");
+
+                if (addAssembliesMethod == null)
+                {
+                    logger?.LogWarning("AddAdditionalAssemblies method not found. " +
+                        "Routable components in referenced assemblies will not be discovered.");
+                }
+                else
+                {
+                    conventionBuilder = addAssembliesMethod.Invoke(null, [conventionBuilder, additionalAssemblies]);
+                }
+            }
+
+            // Step 3: Add InteractiveServerRenderMode (single-parameter overload)
+            var addServerModeMethod = typeof(ServerRazorComponentsEndpointConventionBuilderExtensions)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(m => m.Name == "AddInteractiveServerRenderMode" && m.GetParameters().Length == 1);
+
+            if (addServerModeMethod == null)
+            {
+                logger?.LogError("AddInteractiveServerRenderMode method not found on ServerRazorComponentsEndpointConventionBuilderExtensions. " +
+                    "The ASP.NET Core framework API may have changed.");
+                return false;
+            }
+
+            addServerModeMethod.Invoke(null, [conventionBuilder]);
+
+            logger?.LogInformation("MapRazorComponents<{AppType}> with InteractiveServerRenderMode configured successfully.", appType.FullName);
+            return true;
         }
-
-        // Step 3: Add InteractiveServerRenderMode
-        var addServerModeMethod = typeof(ServerRazorComponentsEndpointConventionBuilderExtensions)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .FirstOrDefault(m => m.Name == "AddInteractiveServerRenderMode" && m.GetParameters().Length == 1);
-
-        if (addServerModeMethod == null)
+        catch (Exception ex)
         {
-            logger?.LogError("AddInteractiveServerRenderMode method not found on ServerRazorComponentsEndpointConventionBuilderExtensions. " +
-                "The ASP.NET Core framework API may have changed.");
+            logger?.LogError(ex, "Failed to map Razor components via reflection. " +
+                "This may indicate an incompatible ASP.NET Core version.");
             return false;
         }
-
-        addServerModeMethod.Invoke(null, [conventionBuilder]);
-
-        logger?.LogInformation("MapRazorComponents<{AppType}> with InteractiveServerRenderMode configured successfully.", appType.FullName);
-        return true;
     }
 
     /// <summary>

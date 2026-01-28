@@ -240,18 +240,6 @@ The render mode is set on the `<Routes>` and `<HeadOutlet>` components in `App.r
 
 **Desktop app recommendation:** Use `prerender: false` to avoid `InvalidOperationException` spam from JSInterop calls during the static server-side rendering pass. Desktop apps don't benefit from prerendering since there's no initial HTML-only page load to optimize.
 
-### Configuring Render Mode
-
-```csharp
-// Set the recommended mode for documentation/reference
-builder.WithRenderMode("InteractiveServer")
-```
-
-Access via:
-```csharp
-var renderMode = builder.Options.RecommendedRenderMode;
-```
-
 ## SignalR Configuration
 
 SignalR handles real-time communication between Blazor components and the server.
@@ -897,8 +885,7 @@ var builder = new HostBuilder()
         options.GrantBrowserPermissions = true;
         options.MaximumReceiveMessageSize = 64 * 1024;
     })
-    .WithSplashScreen("Business App", "Initializing...")
-    .WithRenderMode("ServerPrerendered");
+    .WithSplashScreen("Business App", "Initializing...");
 
 // Add custom services
 builder.Services.AddSingleton<IDataService, DataService>();
@@ -1016,7 +1003,6 @@ var builder = new HostBuilder()
     .UseContentRoot("./app-content")
     .UseWebRoot("./wwwroot")
     .EnableConsoleLogging(true)
-    .WithRenderMode("ServerPrerendered")
     .AddMudBlazor(config =>
     {
         config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopCenter;
@@ -1132,7 +1118,6 @@ Complete table of all `CheapAvaloniaBlazorOptions` properties:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `RecommendedRenderMode` | string | "ServerPrerendered" | Recommended render mode (informational) |
 | `RootComponentType` | Type | null | Custom root component type |
 | `AdditionalAssemblies` | List<Assembly> | [] | Additional assemblies for component discovery |
 

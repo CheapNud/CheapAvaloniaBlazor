@@ -123,17 +123,6 @@ public class HostBuilder
     }
 
     /// <summary>
-    /// Sets the recommended render mode for components (informational only)
-    /// </summary>
-    /// <param name="renderMode">Server or ServerPrerendered</param>
-    /// <returns>The builder for chaining</returns>
-    public HostBuilder WithRenderMode(string renderMode)
-    {
-        _options.RecommendedRenderMode = renderMode;
-        return this;
-    }
-
-    /// <summary>
     /// Set the window size
     /// </summary>
     /// <param name="width">Window width</param>
