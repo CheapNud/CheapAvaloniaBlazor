@@ -17,6 +17,11 @@ namespace CheapAvaloniaBlazor.Utilities;
 /// </summary>
 public static class BlazorComponentMapper
 {
+    // Reflection target method names - these match the ASP.NET Core extension method APIs
+    private const string MapRazorComponentsMethod = "MapRazorComponents";
+    private const string AddAdditionalAssembliesMethod = "AddAdditionalAssemblies";
+    private const string AddInteractiveServerRenderModeMethod = "AddInteractiveServerRenderMode";
+
     /// <summary>
     /// Discovers the consumer's App component type from the entry assembly.
     /// Returns null if not found.
@@ -52,7 +57,7 @@ public static class BlazorComponentMapper
             var mapMethod = typeof(RazorComponentsEndpointRouteBuilderExtensions)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .FirstOrDefault(m =>
-                    m.Name == "MapRazorComponents" &&
+                    m.Name == MapRazorComponentsMethod &&
                     m.IsGenericMethod &&
                     m.GetParameters().Length == 1);
 
@@ -79,7 +84,7 @@ public static class BlazorComponentMapper
             {
                 var addAssembliesMethod = typeof(RazorComponentsEndpointConventionBuilderExtensions)
                     .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                    .FirstOrDefault(m => m.Name == "AddAdditionalAssemblies");
+                    .FirstOrDefault(m => m.Name == AddAdditionalAssembliesMethod);
 
                 if (addAssembliesMethod == null)
                 {
@@ -95,7 +100,7 @@ public static class BlazorComponentMapper
             // Step 3: Add InteractiveServerRenderMode (single-parameter overload)
             var addServerModeMethod = typeof(ServerRazorComponentsEndpointConventionBuilderExtensions)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .FirstOrDefault(m => m.Name == "AddInteractiveServerRenderMode" && m.GetParameters().Length == 1);
+                .FirstOrDefault(m => m.Name == AddInteractiveServerRenderModeMethod && m.GetParameters().Length == 1);
 
             if (addServerModeMethod == null)
             {
