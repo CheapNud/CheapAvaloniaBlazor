@@ -220,7 +220,7 @@ Edit `MyDesktopApp.csproj` to use Razor SDK:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.4" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -418,7 +418,7 @@ dotnet --version
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="1.2.4" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.0" />
   </ItemGroup>
 </Project>
 ```
