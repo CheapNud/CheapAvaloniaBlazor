@@ -11,6 +11,9 @@ namespace CheapAvaloniaBlazor.Utilities;
 ///
 /// The library doesn't have a compile-time reference to the consumer's App type,
 /// so we use reflection to call the generic MapRazorComponents&lt;TApp&gt; method.
+///
+/// Note: DynamicDependency/AOT attributes are not used here. This library targets Blazor Server
+/// which inherently requires runtime reflection for SignalR circuits. AOT is not a target.
 /// </summary>
 public static class BlazorComponentMapper
 {

@@ -119,6 +119,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)
             try
             {
+                // Path.Combine is safe here: effectiveContentRoot comes from trusted app configuration
+                // (_options.ContentRoot) or the runtime (AppContext.BaseDirectory), not from user/network input.
+                // This is a localhost-only desktop app, not a web server processing external URLs.
                 var wwwrootPath = Path.Combine(effectiveContentRoot, Constants.Paths.WwwRoot);
 
                 _diagnosticLogger.LogDiagnostic("Extracting JavaScript bridge to: {WwwrootPath}", wwwrootPath);
