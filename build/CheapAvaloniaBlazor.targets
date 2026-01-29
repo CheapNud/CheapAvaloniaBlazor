@@ -42,7 +42,11 @@
           Condition="'@(BlazorFrameworkFiles)' != ''" />
 
     <Message Text="CheapAvaloniaBlazor: Copied Blazor framework files to $(DestinationFrameworkPath)" Importance="high" Condition="'@(BlazorFrameworkFiles)' != ''" />
-    <Error Text="CheapAvaloniaBlazor: CRITICAL - blazor.web.js not found in NuGet cache. Ensure Microsoft.AspNetCore.App.Internal.Assets package is restored. The app will not function without this file." Condition="'@(BlazorFrameworkFiles)' == ''" />
+    <!-- Not a hard failure: UseStaticWebAssets() in EmbeddedBlazorHostService serves blazor.web.js
+         from the NuGet cache at runtime (Development environment). dotnet publish handles it for deployments.
+         This copy is a convenience for running from build output directly. Common cause: dotnet build --no-restore
+         on a fresh CI runner where Microsoft.AspNetCore.App.Internal.Assets hasn't been restored yet. -->
+    <Warning Text="CheapAvaloniaBlazor: blazor.web.js not found in NuGet cache (Microsoft.AspNetCore.App.Internal.Assets). Run 'dotnet restore' first, or the app will rely on UseStaticWebAssets() to serve it at runtime." Condition="'@(BlazorFrameworkFiles)' == ''" />
   </Target>
 
   <!-- Only create wwwroot if it doesn't exist, no copying -->

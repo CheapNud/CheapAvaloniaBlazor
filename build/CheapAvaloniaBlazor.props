@@ -1,8 +1,10 @@
 <!-- build/CheapAvaloniaBlazor.props -->
 <Project>
   <PropertyGroup>
-    <!-- Enable Razor compilation in consuming projects -->
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <!-- Enable Razor component discovery in consuming projects -->
+    <!-- AddRazorSupportForMvc removed in 2.0.0: no longer needed with modern Blazor Web App pattern
+         (App.razor replaces _Host.cshtml, no Razor Pages required). Consumers using Microsoft.NET.Sdk.Razor
+         get full Razor support from the SDK itself. -->
     <EnableDefaultRazorComponentItems>true</EnableDefaultRazorComponentItems>
     
     <!-- Enable _Imports.razor processing for Console App projects -->
