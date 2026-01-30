@@ -235,4 +235,16 @@ public static class Constants
         public const string ErrorPrefix = "ERROR: ";
     }
 
+    /// <summary>
+    /// System tray related constants
+    /// </summary>
+    public static class SystemTray
+    {
+        public const string DefaultTooltip = "Blazor Desktop App";
+        public const string ShowMenuText = "Show";
+        public const string ExitMenuText = "Exit";
+        public const string DefaultShowMenuId = "tray_show";
+        public const string DefaultExitMenuId = "tray_exit";
+    }
+
 }

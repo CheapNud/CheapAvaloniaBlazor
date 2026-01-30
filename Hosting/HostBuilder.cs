@@ -274,6 +274,72 @@ public class HostBuilder
         return this;
     }
 
+    // System Tray Methods
+
+    /// <summary>
+    /// Enable or disable system tray support
+    /// </summary>
+    /// <param name="enable">Whether to enable system tray</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder EnableSystemTray(bool enable = true)
+    {
+        _options.EnableSystemTray = enable;
+        return this;
+    }
+
+    /// <summary>
+    /// Enable minimize to system tray (automatically enables system tray)
+    /// </summary>
+    /// <param name="enable">Whether to minimize to tray instead of taskbar</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder MinimizeToTray(bool enable = true)
+    {
+        _options.MinimizeToTray = enable;
+        if (enable)
+        {
+            _options.EnableSystemTray = true;
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Enable close to system tray (automatically enables system tray)
+    /// </summary>
+    /// <param name="enable">Whether to minimize to tray when closing instead of exiting</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder CloseToTray(bool enable = true)
+    {
+        _options.CloseToTray = enable;
+        if (enable)
+        {
+            _options.EnableSystemTray = true;
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Set the system tray icon (automatically enables system tray)
+    /// </summary>
+    /// <param name="iconPath">Path to the tray icon file</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithTrayIcon(string iconPath)
+    {
+        _options.TrayIconPath = iconPath;
+        _options.EnableSystemTray = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Set the system tray tooltip text
+    /// </summary>
+    /// <param name="tooltip">Tooltip text to display on hover</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithTrayTooltip(string tooltip)
+    {
+        _options.TrayTooltip = tooltip;
+        return this;
+    }
+
     /// <summary>
     /// Configure the splash screen
     /// </summary>
