@@ -410,7 +410,7 @@ This application showcases how CheapAvaloniaBlazor can be used to build full-fea
 - Testing Framework: Unit and integration test support
 - Cross-Platform Testing: Full compatibility validation on Linux and macOS
 - Alternative WebView Hosts: Additional options beyond Photino.NET
-- Alternative UI Frameworks: Support for Radzen, Telerik, Bootstrap, and other Blazor component libraries
+- Alternative UI Frameworks: Support for Tailwind CSS, Radzen, Telerik, Bootstrap, and other Blazor component libraries
 - Enhanced Documentation: More examples and tutorials
 - Performance Optimization: Startup time and memory usage
 - Plugin System: Extensible architecture
