@@ -2,6 +2,7 @@
 @inject IDesktopInteropService DesktopInterop
 @inject ISystemTrayService TrayService
 @inject INotificationService NotificationService
+@inject IJSRuntime JSRuntime
 @inject SettingsService SettingsService
 @inject ISnackbar Snackbar
 
@@ -425,7 +426,7 @@
             return;
         }
 
-        await NotificationService.ShowSystemNotificationAsync(_systemNotificationTitle, _systemNotificationMessage);
+        await NotificationService.ShowSystemNotificationAsync(JSRuntime, _systemNotificationTitle, _systemNotificationMessage);
         Snackbar.Add("System notification sent", Severity.Success);
     }
 

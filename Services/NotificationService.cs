@@ -26,9 +26,6 @@ public class NotificationService : INotificationService
     private WindowNotificationManager? _notificationManager;
     private bool _overlayInitialized;
 
-    // JS runtime accessor - set via SetJSRuntime when a Blazor circuit connects
-    private IJSRuntime? _jsRuntime;
-
     public bool SystemNotificationsEnabled => _options.EnableSystemNotifications;
 
     public NotificationService(
@@ -37,14 +34,6 @@ public class NotificationService : INotificationService
     {
         _options = options;
         _logger = logger;
-    }
-
-    /// <summary>
-    /// Called by Blazor components to provide the scoped IJSRuntime for system notifications
-    /// </summary>
-    internal void SetJSRuntime(IJSRuntime jsRuntime)
-    {
-        _jsRuntime = jsRuntime;
     }
 
     public void ShowDesktopNotification(string title, string? message = null,
@@ -70,7 +59,7 @@ public class NotificationService : INotificationService
         });
     }
 
-    public async Task ShowSystemNotificationAsync(string title, string message)
+    public async Task ShowSystemNotificationAsync(IJSRuntime jsRuntime, string title, string message)
     {
         if (!_options.EnableSystemNotifications)
         {
@@ -78,13 +67,7 @@ public class NotificationService : INotificationService
             return;
         }
 
-        if (_jsRuntime is null)
-        {
-            _logger?.LogWarning("IJSRuntime not available, cannot show system notification");
-            return;
-        }
-
-        await _jsRuntime.InvokeVoidAsync(Constants.JavaScript.ShowNotificationMethod, title, message);
+        await jsRuntime.InvokeVoidAsync(Constants.JavaScript.ShowNotificationMethod, title, message);
         _logger?.LogDebug("System notification sent via JS: {Title}", title);
     }
 

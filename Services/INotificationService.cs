@@ -1,4 +1,5 @@
 using CheapAvaloniaBlazor.Models;
+using Microsoft.JSInterop;
 
 namespace CheapAvaloniaBlazor.Services;
 
@@ -21,10 +22,12 @@ public interface INotificationService
     /// <summary>
     /// Show a system notification via JavaScript Web Notification API (OS notification center).
     /// Requires EnableSystemNotifications to be true in options. May request browser permission on first use.
+    /// The IJSRuntime must be provided because this service is singleton while IJSRuntime is scoped per circuit.
     /// </summary>
+    /// <param name="jsRuntime">The scoped IJSRuntime from the calling Blazor component</param>
     /// <param name="title">Notification title</param>
     /// <param name="message">Notification message body</param>
-    Task ShowSystemNotificationAsync(string title, string message);
+    Task ShowSystemNotificationAsync(IJSRuntime jsRuntime, string title, string message);
 
     /// <summary>
     /// Whether system (JS Web Notification API) notifications are enabled in options
