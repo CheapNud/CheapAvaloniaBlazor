@@ -1,4 +1,5 @@
 using CheapAvaloniaBlazor.Models;
+using CheapAvaloniaBlazor.Utilities;
 using Microsoft.Extensions.Logging;
 using Photino.NET;
 using System.Text.Json;
@@ -70,6 +71,32 @@ public class PhotinoMessageHandler : IDisposable
     {
         _window?.SetMaximized(false);
         _window?.SetMinimized(false);
+    }
+
+    /// <summary>
+    /// Hide the Photino window completely (not just minimize to taskbar)
+    /// Used for minimize-to-tray functionality
+    /// </summary>
+    /// <returns>True if the window was hidden successfully</returns>
+    public bool HideWindow()
+    {
+        if (_window == null) return false;
+
+        var handle = _window.WindowHandle;
+        return WindowHelper.HideWindow(handle);
+    }
+
+    /// <summary>
+    /// Show a previously hidden window and bring it to foreground
+    /// Used to restore from tray
+    /// </summary>
+    /// <returns>True if the window was shown successfully</returns>
+    public bool ShowWindowFromHidden()
+    {
+        if (_window == null) return false;
+
+        var handle = _window.WindowHandle;
+        return WindowHelper.ShowAndActivateWindow(handle);
     }
 
     /// <summary>

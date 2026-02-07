@@ -1,5 +1,6 @@
 @page "/"
 @inject IDesktopInteropService DesktopInterop
+@inject ISystemTrayService TrayService
 @inject SettingsService SettingsService
 @inject ISnackbar Snackbar
 
@@ -128,6 +129,53 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">System Tray</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.NotificationsActive"
+                           OnClick="MinimizeToTray">
+                    Minimize to Tray
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@(_trayVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                           OnClick="ToggleTrayIcon">
+                    @(_trayVisible ? "Hide Tray Icon" : "Show Tray Icon")
+                </MudButton>
+
+                <MudTextField @bind-Value="_trayTooltip"
+                              Label="Tray Tooltip"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Edit"
+                              OnAdornmentClick="SetTrayTooltip" />
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddCustomTrayMenuItem">
+                    Add Custom Menu Item
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Clear"
+                           OnClick="ClearCustomTrayMenuItems">
+                    Clear Custom Items
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Close button minimizes to tray. Right-click tray icon for menu.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -165,6 +213,9 @@
     private string? _selectedPath;
     private string _windowTitle = "Desktop Features Demo";
     private string _clipboardText = "";
+    private string _trayTooltip = "Desktop Features Demo";
+    private bool _trayVisible = true;
+    private int _customMenuItemCount = 0;
 
     private async Task OpenFile()
     {
@@ -265,5 +316,57 @@
     {
         await SettingsService.UpdateAsync(s => s.RecentFiles.Clear());
         Snackbar.Add("Recent files cleared", Severity.Warning);
+    }
+
+    private void MinimizeToTray()
+    {
+        TrayService.MinimizeToTray();
+        Snackbar.Add("Minimized to tray - click tray icon to restore", Severity.Info);
+    }
+
+    private void ToggleTrayIcon()
+    {
+        if (_trayVisible)
+        {
+            TrayService.HideTrayIcon();
+            _trayVisible = false;
+            Snackbar.Add("Tray icon hidden", Severity.Warning);
+        }
+        else
+        {
+            TrayService.ShowTrayIcon();
+            _trayVisible = true;
+            Snackbar.Add("Tray icon shown", Severity.Success);
+        }
+    }
+
+    private void SetTrayTooltip()
+    {
+        if (!string.IsNullOrWhiteSpace(_trayTooltip))
+        {
+            TrayService.SetTrayTooltip(_trayTooltip);
+            Snackbar.Add("Tray tooltip updated", Severity.Info);
+        }
+    }
+
+    private void AddCustomTrayMenuItem()
+    {
+        _customMenuItemCount++;
+        var itemNumber = _customMenuItemCount;
+
+        TrayService.AddTrayMenuItem(
+            CheapAvaloniaBlazor.Models.TrayMenuItemDefinition.Create(
+                $"Custom Item {itemNumber}",
+                () => Snackbar.Add($"Custom menu item {itemNumber} clicked!", Severity.Success),
+                $"custom_{itemNumber}"));
+
+        Snackbar.Add($"Added 'Custom Item {itemNumber}' to tray menu", Severity.Info);
+    }
+
+    private void ClearCustomTrayMenuItems()
+    {
+        TrayService.ClearTrayMenu();
+        _customMenuItemCount = 0;
+        Snackbar.Add("Custom tray menu items cleared", Severity.Warning);
     }
 }

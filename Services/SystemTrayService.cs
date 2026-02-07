@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Models;
@@ -131,8 +132,13 @@ public class SystemTrayService : ISystemTrayService
     {
         _logger?.LogDebug("Minimizing to tray");
 
-        // Hide the Photino window
-        _messageHandler.MinimizeWindow();
+        // Hide the Photino window completely (not just minimize to taskbar)
+        if (!_messageHandler.HideWindow())
+        {
+            // Fallback to minimize if hide not supported on this platform
+            _logger?.LogWarning("Window hiding not supported, falling back to minimize");
+            _messageHandler.MinimizeWindow();
+        }
 
         // Show tray icon if not already visible
         ShowTrayIcon();
@@ -142,8 +148,13 @@ public class SystemTrayService : ISystemTrayService
     {
         _logger?.LogDebug("Restoring from tray");
 
-        // Restore the Photino window
-        _messageHandler.RestoreWindow();
+        // Show the hidden Photino window and bring to foreground
+        if (!_messageHandler.ShowWindowFromHidden())
+        {
+            // Fallback to restore if show not supported
+            _logger?.LogWarning("Window show not supported, falling back to restore");
+            _messageHandler.RestoreWindow();
+        }
     }
 
     private void EnsureTrayIconCreated()
@@ -162,15 +173,37 @@ public class SystemTrayService : ISystemTrayService
 
         // Set initial icon
         var iconPath = _options.TrayIconPath ?? _options.IconPath;
+        var iconSet = false;
+
         if (!string.IsNullOrEmpty(iconPath) && System.IO.File.Exists(iconPath))
         {
             try
             {
                 _trayIcon.Icon = new WindowIcon(iconPath);
+                iconSet = true;
+                _logger?.LogDebug("Tray icon loaded from: {IconPath}", iconPath);
             }
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "Failed to load tray icon from: {IconPath}", iconPath);
+            }
+        }
+
+        // Create fallback icon if no icon was set
+        if (!iconSet)
+        {
+            try
+            {
+                var fallbackIcon = CreateFallbackIcon();
+                if (fallbackIcon != null)
+                {
+                    _trayIcon.Icon = fallbackIcon;
+                    _logger?.LogDebug("Using fallback tray icon");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to create fallback tray icon");
             }
         }
 
@@ -193,6 +226,43 @@ public class SystemTrayService : ISystemTrayService
         }
 
         _logger?.LogDebug("System tray icon created successfully");
+    }
+
+    private static WindowIcon? CreateFallbackIcon()
+    {
+        // Create a simple 16x16 colored square as fallback icon
+        const int size = 16;
+
+        var bitmap = new WriteableBitmap(
+            new Avalonia.PixelSize(size, size),
+            new Avalonia.Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888,
+            Avalonia.Platform.AlphaFormat.Premul);
+
+        using (var frameBuffer = bitmap.Lock())
+        {
+            // Create pixel data array (BGRA format)
+            // Blue color: B=0xFF, G=0x66, R=0x33, A=0xFF => #3366FF
+            var pixelData = new byte[size * size * 4];
+            for (int i = 0; i < size * size; i++)
+            {
+                int offset = i * 4;
+                pixelData[offset + 0] = 0xFF; // Blue
+                pixelData[offset + 1] = 0x66; // Green
+                pixelData[offset + 2] = 0x33; // Red
+                pixelData[offset + 3] = 0xFF; // Alpha
+            }
+
+            // Copy to the bitmap buffer
+            System.Runtime.InteropServices.Marshal.Copy(pixelData, 0, frameBuffer.Address, pixelData.Length);
+        }
+
+        // Convert bitmap to WindowIcon via stream
+        using var stream = new MemoryStream();
+        bitmap.Save(stream);
+        stream.Position = 0;
+
+        return new WindowIcon(stream);
     }
 
     private void RebuildContextMenu()

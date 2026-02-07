@@ -18,6 +18,10 @@ class Program
                 options.EnableContextMenu = true;
                 options.EnableConsoleLogging = true;
             })
+            // System tray configuration
+            .EnableSystemTray()
+            .CloseToTray()
+            .WithTrayTooltip("Desktop Features Demo - Click to restore")
             .AddMudBlazor();
 
         // Register custom services
