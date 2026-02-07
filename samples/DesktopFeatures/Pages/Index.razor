@@ -1,8 +1,10 @@
 @page "/"
+@implements IDisposable
 @inject IDesktopInteropService DesktopInterop
 @inject ISystemTrayService TrayService
 @inject INotificationService NotificationService
 @inject ISettingsService SettingsService
+@inject IAppLifecycleService LifecycleService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -294,6 +296,67 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">App Lifecycle</MudText>
+
+            <MudStack Spacing="2">
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>State</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>IsMinimized</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(LifecycleService.IsMinimized ? Color.Warning : Color.Default)">@LifecycleService.IsMinimized</MudChip></td>
+                        </tr>
+                        <tr>
+                            <td>IsMaximized</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(LifecycleService.IsMaximized ? Color.Info : Color.Default)">@LifecycleService.IsMaximized</MudChip></td>
+                        </tr>
+                        <tr>
+                            <td>IsFocused</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(LifecycleService.IsFocused ? Color.Success : Color.Default)">@LifecycleService.IsFocused</MudChip></td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_lifecycleEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No events yet. Try minimizing, maximizing, or switching focus.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _lifecycleEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="ClearLifecycleLog">
+                    Clear Log
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Photino native window events. Minimize, maximize, restore, or switch focus to see events fire.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -345,9 +408,19 @@
     private string _settingsValue = "";
     private DesktopFeatures.Models.AppSettings _appSettings = new();
 
+    // Lifecycle events demo
+    private readonly List<string> _lifecycleEvents = [];
+
     protected override async Task OnInitializedAsync()
     {
         _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
+
+        // Subscribe to lifecycle events
+        LifecycleService.Minimized += OnLifecycleMinimized;
+        LifecycleService.Maximized += OnLifecycleMaximized;
+        LifecycleService.Restored += OnLifecycleRestored;
+        LifecycleService.Activated += OnLifecycleActivated;
+        LifecycleService.Deactivated += OnLifecycleDeactivated;
     }
 
     private async Task OpenFile()
@@ -552,5 +625,37 @@
         TrayService.ClearTrayMenu();
         _customMenuItemCount = 0;
         Snackbar.Add("Custom tray menu items cleared", Severity.Warning);
+    }
+
+    private void AddLifecycleEntry(string eventName)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _lifecycleEvents.Insert(0, $"[{timestamp}] {eventName}");
+
+        // Keep last 50 entries
+        if (_lifecycleEvents.Count > 50)
+            _lifecycleEvents.RemoveAt(_lifecycleEvents.Count - 1);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLifecycleMinimized() => AddLifecycleEntry("Minimized");
+    private void OnLifecycleMaximized() => AddLifecycleEntry("Maximized");
+    private void OnLifecycleRestored() => AddLifecycleEntry("Restored");
+    private void OnLifecycleActivated() => AddLifecycleEntry("Activated");
+    private void OnLifecycleDeactivated() => AddLifecycleEntry("Deactivated");
+
+    private void ClearLifecycleLog()
+    {
+        _lifecycleEvents.Clear();
+    }
+
+    public void Dispose()
+    {
+        LifecycleService.Minimized -= OnLifecycleMinimized;
+        LifecycleService.Maximized -= OnLifecycleMaximized;
+        LifecycleService.Restored -= OnLifecycleRestored;
+        LifecycleService.Activated -= OnLifecycleActivated;
+        LifecycleService.Deactivated -= OnLifecycleDeactivated;
     }
 }

@@ -195,9 +195,26 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
         messageHandler.AttachToWindow(photinoWindow);
 
+        // Wire up lifecycle service to Photino window events
+        var lifecycleService = CheapAvaloniaBlazorRuntime.GetRequiredService<IAppLifecycleService>()
+            as AppLifecycleService;
+
+        photinoWindow.WindowMinimized += (s, e) => lifecycleService?.OnMinimized();
+        photinoWindow.WindowMaximized += (s, e) => lifecycleService?.OnMaximized();
+        photinoWindow.WindowRestored += (s, e) => lifecycleService?.OnRestored();
+        photinoWindow.WindowFocusIn += (s, e) => lifecycleService?.OnActivated();
+        photinoWindow.WindowFocusOut += (s, e) => lifecycleService?.OnDeactivated();
+
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {
+            // Let lifecycle subscribers cancel the close first
+            if (lifecycleService?.OnClosing() == true)
+            {
+                _logger?.LogVerbose("Photino window close cancelled by lifecycle subscriber");
+                return true; // A subscriber cancelled the close
+            }
+
             // Check if close-to-tray is enabled
             if (_options.CloseToTray)
             {
