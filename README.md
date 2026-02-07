@@ -169,6 +169,55 @@ new HostBuilder()
     .RunApp(args);
 ```
 
+### Settings Persistence (v2.1.0)
+JSON-based settings service with key-value and typed section APIs. Thread-safe, lazy-loaded, auto-save.
+
+```csharp
+new HostBuilder()
+    .WithTitle("My App")
+    .WithSettingsAppName("MyApp")       // Folder under %LocalAppData%
+    .AutoSaveSettings()                 // Auto-save on every change (default: true)
+    .AddMudBlazor()
+    .RunApp(args);
+```
+
+**Key-value API** - Store and retrieve individual values:
+```csharp
+@inject ISettingsService Settings
+
+// Set a value (auto-saves)
+await Settings.SetAsync("theme", "dark");
+await Settings.SetAsync("fontSize", 14);
+
+// Get a value with default fallback
+var theme = await Settings.GetAsync<string>("theme", "light");
+
+// Check existence and delete
+if (await Settings.ExistsAsync("oldKey"))
+    await Settings.DeleteAsync("oldKey");
+```
+
+**Typed section API** - Work with strongly-typed settings classes:
+```csharp
+// Define your settings class
+public class AppSettings
+{
+    public bool IsDarkMode { get; set; } = true;
+    public List<string> RecentFiles { get; set; } = [];
+}
+
+// Read a section (key = class name)
+var appSettings = await Settings.GetSectionAsync<AppSettings>();
+
+// Update a section (read-modify-write, auto-saves)
+await Settings.UpdateSectionAsync<AppSettings>(s => s.IsDarkMode = false);
+
+// Replace a section entirely
+await Settings.SetSectionAsync(new AppSettings { IsDarkMode = true });
+```
+
+Settings are stored at `%LocalAppData%/{appName}/settings.json`. Configure the location with `WithSettingsFolder()` or `WithSettingsFileName()`.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -252,6 +301,10 @@ new HostBuilder()
     .WithNotificationPosition(NotificationPosition.BottomRight)
     .WithMaxNotifications(3)
 
+    // Settings Persistence
+    .WithSettingsAppName("MyApp")
+    .AutoSaveSettings()
+
     // Server
     .UsePort(5001).UseHttps(true)
 
@@ -330,6 +383,7 @@ MyDesktopApp/
 | System Tray | Tested | Varies by DE | Untested |
 | Minimize to Tray (hide window) | Tested | Fallback to minimize | Fallback to minimize |
 | System Notifications (JS) | Tested | Untested | Untested |
+| Settings Persistence | Tested | Untested | Untested |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -340,6 +394,7 @@ MyDesktopApp/
 | `IDesktopInteropService` | Scoped | File dialogs, window control, clipboard, system paths |
 | `INotificationService` | Singleton | Desktop toasts + OS system notifications |
 | `ISystemTrayService` | Singleton | Tray icon, context menu, minimize/restore to tray |
+| `ISettingsService` | Singleton | JSON settings persistence (key-value + typed sections) |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 
@@ -358,6 +413,7 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - System tray (minimize to tray, custom menu items, tooltip)
 - Desktop toast notifications (all severity types)
 - System notifications (OS notification center)
+- Settings persistence (key-value and typed section APIs)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -483,6 +539,7 @@ var builder = new HostBuilder()
 - Splash Screen: Enabled by default, fully customizable
 - System Tray: Full icon, menu, minimize/close-to-tray support
 - Dual Notifications: Desktop toasts (Avalonia) + system notifications (JS Web Notification API)
+- Settings Persistence: JSON-based key-value + typed section APIs with auto-save
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
 - Window Management: Minimize, maximize, resize, title changes, hide/show
 - Clipboard: Read/write text via clipboard API
