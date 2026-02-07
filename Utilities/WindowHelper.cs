@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace CheapAvaloniaBlazor.Utilities;
 
@@ -14,10 +15,12 @@ public static class WindowHelper
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    [SupportedOSPlatform("windows")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    [SupportedOSPlatform("windows")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     /// <summary>

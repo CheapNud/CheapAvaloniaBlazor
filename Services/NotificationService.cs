@@ -25,6 +25,7 @@ public class NotificationService : INotificationService
     private Window? _overlayWindow;
     private WindowNotificationManager? _notificationManager;
     private bool _overlayInitialized;
+    private bool _isDisposed;
 
     public bool SystemNotificationsEnabled => _options.EnableSystemNotifications;
 
@@ -142,6 +143,25 @@ public class NotificationService : INotificationService
             NotificationType.Error => AvaloniaNotificationType.Error,
             _ => AvaloniaNotificationType.Information
         };
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_overlayWindow != null)
+            {
+                _overlayWindow.Close();
+                _overlayWindow = null;
+            }
+
+            _notificationManager = null;
+        });
+
+        _isDisposed = true;
+        _logger?.LogDebug("NotificationService disposed");
+    }
 
     private static AvaloniaNotificationPosition MapNotificationPosition(NotificationPosition position) =>
         position switch

@@ -7,7 +7,7 @@ namespace CheapAvaloniaBlazor.Services;
 /// Dual-channel notification service providing both Avalonia desktop toasts
 /// and OS-level system notifications via JavaScript Web Notification API
 /// </summary>
-public interface INotificationService
+public interface INotificationService : IDisposable
 {
     /// <summary>
     /// Show an Avalonia-rendered desktop toast notification (cross-platform, always works)
