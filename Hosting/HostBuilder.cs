@@ -6,6 +6,7 @@ using Avalonia.Win32;
 using Avalonia.Skia;
 using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Extensions;
+using CheapAvaloniaBlazor.Models;
 using CheapAvaloniaBlazor.Services;
 using CheapAvaloniaBlazor.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -337,6 +338,41 @@ public class HostBuilder
     public HostBuilder WithTrayTooltip(string tooltip)
     {
         _options.TrayTooltip = tooltip;
+        return this;
+    }
+
+    // Notification Methods
+
+    /// <summary>
+    /// Enable system notifications via JavaScript Web Notification API (OS notification center)
+    /// </summary>
+    /// <param name="enable">Whether to enable system notifications</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder EnableSystemNotifications(bool enable = true)
+    {
+        _options.EnableSystemNotifications = enable;
+        return this;
+    }
+
+    /// <summary>
+    /// Set the position for desktop notification toasts
+    /// </summary>
+    /// <param name="position">Notification position on screen</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithNotificationPosition(NotificationPosition position)
+    {
+        _options.DesktopNotificationPosition = position;
+        return this;
+    }
+
+    /// <summary>
+    /// Set the maximum number of desktop notifications visible simultaneously
+    /// </summary>
+    /// <param name="maxNotifications">Maximum number of visible toasts</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithMaxNotifications(int maxNotifications)
+    {
+        _options.MaxDesktopNotifications = maxNotifications;
         return this;
     }
 

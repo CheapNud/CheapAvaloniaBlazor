@@ -22,6 +22,8 @@ class Program
             .EnableSystemTray()
             .CloseToTray()
             .WithTrayTooltip("Desktop Features Demo - Click to restore")
+            // Notification configuration
+            .EnableSystemNotifications()
             .AddMudBlazor();
 
         // Register custom services

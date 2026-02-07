@@ -1,6 +1,7 @@
 @page "/"
 @inject IDesktopInteropService DesktopInterop
 @inject ISystemTrayService TrayService
+@inject INotificationService NotificationService
 @inject SettingsService SettingsService
 @inject ISnackbar Snackbar
 
@@ -176,6 +177,84 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Desktop Notifications</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_desktopNotificationTitle"
+                              Label="Title"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_desktopNotificationMessage"
+                              Label="Message"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+
+                <MudSelect T="CheapAvaloniaBlazor.Models.NotificationType"
+                           @bind-Value="_desktopNotificationType"
+                           Label="Type"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Information">Information</MudSelectItem>
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Success">Success</MudSelectItem>
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Warning">Warning</MudSelectItem>
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Error">Error</MudSelectItem>
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.DesktopWindows"
+                           OnClick="SendDesktopNotification">
+                    Send Desktop Toast
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Avalonia-rendered toast overlay. Cross-platform, always works, styled by notification type.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">System Notifications</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_systemNotificationTitle"
+                              Label="Title"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_systemNotificationMessage"
+                              Label="Message"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Notifications"
+                           OnClick="SendSystemNotification"
+                           Disabled="@(!NotificationService.SystemNotificationsEnabled)">
+                    Send System Notification
+                </MudButton>
+
+                <MudAlert Severity="@(NotificationService.SystemNotificationsEnabled ? Severity.Info : Severity.Warning)" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        @if (NotificationService.SystemNotificationsEnabled)
+                        {
+                            @:JS Web Notification API (OS notification center). Browser permission may be requested on first use.
+                        }
+                        else
+                        {
+                            @:System notifications are disabled. Enable via .EnableSystemNotifications() in Program.cs.
+                        }
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -216,6 +295,11 @@
     private string _trayTooltip = "Desktop Features Demo";
     private bool _trayVisible = true;
     private int _customMenuItemCount = 0;
+    private string _desktopNotificationTitle = "Hello!";
+    private string _desktopNotificationMessage = "This is a desktop toast from CheapAvaloniaBlazor.";
+    private CheapAvaloniaBlazor.Models.NotificationType _desktopNotificationType = CheapAvaloniaBlazor.Models.NotificationType.Information;
+    private string _systemNotificationTitle = "Hello!";
+    private string _systemNotificationMessage = "This is a system notification from CheapAvaloniaBlazor.";
 
     private async Task OpenFile()
     {
@@ -316,6 +400,33 @@
     {
         await SettingsService.UpdateAsync(s => s.RecentFiles.Clear());
         Snackbar.Add("Recent files cleared", Severity.Warning);
+    }
+
+    private void SendDesktopNotification()
+    {
+        if (string.IsNullOrWhiteSpace(_desktopNotificationTitle))
+        {
+            Snackbar.Add("Notification title is required", Severity.Warning);
+            return;
+        }
+
+        NotificationService.ShowDesktopNotification(
+            _desktopNotificationTitle,
+            _desktopNotificationMessage,
+            _desktopNotificationType);
+        Snackbar.Add("Desktop toast sent", Severity.Success);
+    }
+
+    private async Task SendSystemNotification()
+    {
+        if (string.IsNullOrWhiteSpace(_systemNotificationTitle))
+        {
+            Snackbar.Add("Notification title is required", Severity.Warning);
+            return;
+        }
+
+        await NotificationService.ShowSystemNotificationAsync(_systemNotificationTitle, _systemNotificationMessage);
+        Snackbar.Add("System notification sent", Severity.Success);
     }
 
     private void MinimizeToTray()

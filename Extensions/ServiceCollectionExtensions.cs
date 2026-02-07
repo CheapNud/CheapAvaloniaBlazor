@@ -25,6 +25,9 @@ public static class ServiceCollectionExtensions
         // Add system tray service
         services.AddSingleton<ISystemTrayService, SystemTrayService>();
 
+        // Add notification service
+        services.AddSingleton<INotificationService, NotificationService>();
+
         // Note: Blazor services (RazorPages, ServerSideBlazor) are registered
         // in EmbeddedBlazorHostService.ConfigureServices() to avoid duplication issues
         // Projects should use Microsoft.NET.Sdk.Razor with FrameworkReference to Microsoft.AspNetCore.App

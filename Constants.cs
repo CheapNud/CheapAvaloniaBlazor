@@ -236,6 +236,17 @@ public static class Constants
     }
 
     /// <summary>
+    /// Desktop notification related constants
+    /// </summary>
+    public static class Notifications
+    {
+        public const int DefaultExpirationSeconds = 5;
+        public const int OverlayWidth = 400;
+        public const int OverlayHeight = 600;
+        public const int DefaultMaxItems = 3;
+    }
+
+    /// <summary>
     /// System tray related constants
     /// </summary>
     public static class SystemTray
