@@ -177,7 +177,7 @@ public class DesktopInteropService : IDesktopInteropService
 
     public async Task ShowNotificationAsync(string title, string message)
     {
-        // Use Photino's notification API if available, otherwise use JS
+        // Uses JavaScript Web Notification API via the embedded JS bridge
         await _jsRuntime.InvokeVoidAsync(Constants.JavaScript.ShowNotificationMethod, title, message);
     }
 

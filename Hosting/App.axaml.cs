@@ -54,6 +54,14 @@ public partial class AvaloniaApp : Application
             // (Window is invisible and off-screen, but StorageProvider will be initialized)
             window.Show();
             _logger?.LogVerbose("window.Show() called - window is hidden but functional");
+
+            // Initialize system tray if enabled
+            if (_options?.EnableSystemTray == true && _options.ShowTrayIconOnStart)
+            {
+                _logger?.LogVerbose("Initializing system tray icon");
+                var trayService = _serviceProvider?.GetService<ISystemTrayService>();
+                trayService?.ShowTrayIcon();
+            }
         }
 
         _logger?.LogVerbose("Calling base.OnFrameworkInitializationCompleted()");

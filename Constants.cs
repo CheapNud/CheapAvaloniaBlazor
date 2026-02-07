@@ -235,4 +235,27 @@ public static class Constants
         public const string ErrorPrefix = "ERROR: ";
     }
 
+    /// <summary>
+    /// Desktop notification related constants
+    /// </summary>
+    public static class Notifications
+    {
+        public const int DefaultExpirationSeconds = 5;
+        public const int OverlayWidth = 400;
+        public const int OverlayHeight = 600;
+        public const int DefaultMaxItems = 3;
+    }
+
+    /// <summary>
+    /// System tray related constants
+    /// </summary>
+    public static class SystemTray
+    {
+        public const string DefaultTooltip = "Blazor Desktop App";
+        public const string ShowMenuText = "Show";
+        public const string ExitMenuText = "Exit";
+        public const string DefaultShowMenuId = "tray_show";
+        public const string DefaultExitMenuId = "tray_exit";
+    }
+
 }

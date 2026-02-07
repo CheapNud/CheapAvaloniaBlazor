@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using CheapAvaloniaBlazor.Models;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CheapAvaloniaBlazor.Configuration;
@@ -89,6 +90,60 @@ public class CheapAvaloniaBlazorOptions
     /// Default zoom level (percentage)
     /// </summary>
     public int DefaultZoom { get; set; } = Constants.Defaults.DefaultZoomLevel;
+
+    // System Tray Options
+
+    /// <summary>
+    /// Enable system tray icon support
+    /// </summary>
+    public bool EnableSystemTray { get; set; } = false;
+
+    /// <summary>
+    /// Minimize to system tray instead of taskbar
+    /// </summary>
+    public bool MinimizeToTray { get; set; } = false;
+
+    /// <summary>
+    /// Close to system tray instead of exiting application
+    /// </summary>
+    public bool CloseToTray { get; set; } = false;
+
+    /// <summary>
+    /// Path to the system tray icon (defaults to window icon if not specified)
+    /// </summary>
+    public string? TrayIconPath { get; set; }
+
+    /// <summary>
+    /// Tooltip text for the system tray icon
+    /// </summary>
+    public string? TrayTooltip { get; set; }
+
+    /// <summary>
+    /// Show tray icon on application start (when EnableSystemTray is true)
+    /// </summary>
+    public bool ShowTrayIconOnStart { get; set; } = true;
+
+    /// <summary>
+    /// Show default context menu items (Show/Exit) in the tray menu
+    /// </summary>
+    public bool ShowDefaultTrayMenuItems { get; set; } = true;
+
+    // Notification Options
+
+    /// <summary>
+    /// Enable system notifications via JavaScript Web Notification API (opt-in, OS notification center)
+    /// </summary>
+    public bool EnableSystemNotifications { get; set; } = false;
+
+    /// <summary>
+    /// Position for Avalonia desktop notification toasts
+    /// </summary>
+    public NotificationPosition DesktopNotificationPosition { get; set; } = NotificationPosition.BottomRight;
+
+    /// <summary>
+    /// Maximum number of desktop notification toasts visible simultaneously
+    /// </summary>
+    public int MaxDesktopNotifications { get; set; } = Constants.Notifications.DefaultMaxItems;
 
     /// <summary>
     /// Splash screen configuration

@@ -198,6 +198,18 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {
+            // Check if close-to-tray is enabled
+            if (_options.CloseToTray)
+            {
+                _logger?.LogVerbose("Photino window closing - minimizing to tray instead");
+                var trayService = CheapAvaloniaBlazorRuntime.GetService<ISystemTrayService>();
+                if (trayService != null)
+                {
+                    trayService.MinimizeToTray();
+                    return true; // Cancel the close, minimize to tray instead
+                }
+            }
+
             _logger?.LogVerbose("Photino window closing - shutting down application");
             Dispatcher.UIThread.Post(() =>
             {

@@ -67,7 +67,7 @@ dotnet add package CheapAvaloniaBlazor
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.2" />
   </ItemGroup>
 </Project>
 ```
@@ -100,6 +100,75 @@ class Program
 
 ## Features
 
+### System Tray (v2.0.0)
+Full system tray integration with icon management, context menus, and minimize/close-to-tray behavior.
+
+```csharp
+new HostBuilder()
+    .WithTitle("My App")
+    .EnableSystemTray()
+    .CloseToTray()
+    .WithTrayTooltip("My App - Click to restore")
+    .AddMudBlazor()
+    .RunApp(args);
+```
+
+Control the tray from Blazor components:
+```csharp
+@inject ISystemTrayService SystemTray
+
+// Minimize to tray (hides window, shows tray icon)
+SystemTray.MinimizeToTray();
+
+// Custom context menu items
+SystemTray.AddTrayMenuItem(
+    TrayMenuItemDefinition.Create("Settings", () => NavigateToSettings()));
+
+// Checkable menu items, submenus, separators, async handlers
+SystemTray.SetTrayMenu([
+    TrayMenuItemDefinition.CreateCheckable("Dark Mode", isChecked: true, onToggle: ToggleTheme),
+    TrayMenuItemDefinition.Separator(),
+    TrayMenuItemDefinition.CreateAsync("Sync", async () => await SyncDataAsync())
+]);
+```
+
+> **Note:** When `EnableDevTools` is true, the taskbar icon will remain visible after minimizing to tray. This is a Photino/WebView2 limitation - the DevTools window maintains taskbar presence. Disable `EnableDevTools` for clean tray-only behavior.
+
+### Dual-Channel Notifications (v2.0.2)
+Two independent notification channels for different use cases:
+
+**Desktop Toasts** - Avalonia-rendered overlay notifications. Cross-platform, always works, styled by type:
+```csharp
+@inject INotificationService Notifications
+
+// Show a desktop toast (Information, Success, Warning, Error)
+Notifications.ShowDesktopNotification("Build Complete", "All tests passed",
+    NotificationType.Success);
+
+// Custom expiration
+Notifications.ShowDesktopNotification("Warning", "Disk space low",
+    NotificationType.Warning, TimeSpan.FromSeconds(10));
+```
+
+**System Notifications** - OS notification center via JavaScript Web Notification API (opt-in):
+```csharp
+@inject INotificationService Notifications
+@inject IJSRuntime JSRuntime
+
+// Requires .EnableSystemNotifications() in HostBuilder
+await Notifications.ShowSystemNotificationAsync(JSRuntime, "Alert", "New message received");
+```
+
+Configure notification behavior:
+```csharp
+new HostBuilder()
+    .EnableSystemNotifications()                           // Opt-in to OS notifications
+    .WithNotificationPosition(NotificationPosition.TopRight)  // Toast position
+    .WithMaxNotifications(5)                               // Max visible toasts
+    .AddMudBlazor()
+    .RunApp(args);
+```
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -120,9 +189,28 @@ Full native desktop capabilities with **ValueTask optimization** for zero-alloca
 ```csharp
 @inject IDesktopInteropService Desktop
 
-// File dialogs, window management, clipboard, notifications, and more
-var file = await Desktop.OpenFileDialogAsync();
-await Desktop.ShowNotificationAsync("Title", "Message");
+// File dialogs
+var file = await Desktop.OpenFileDialogAsync(new FileDialogOptions
+{
+    Title = "Select a file",
+    Filters = [new FileFilter { Name = "Images", Extensions = ["png", "jpg"] }]
+});
+var savePath = await Desktop.SaveFileDialogAsync();
+var folder = await Desktop.OpenFolderDialogAsync();
+
+// Window management
+await Desktop.MinimizeWindowAsync();
+await Desktop.MaximizeWindowAsync();
+await Desktop.SetWindowTitleAsync("New Title");
+var state = await Desktop.GetWindowStateAsync();
+
+// Clipboard
+await Desktop.SetClipboardTextAsync("Copied!");
+var text = await Desktop.GetClipboardTextAsync();
+
+// System integration
+await Desktop.OpenUrlInBrowserAsync("https://github.com");
+var appData = await Desktop.GetAppDataPathAsync();
 ```
 
 **Full API reference:** See **[Desktop Interop API](./docs/desktop-interop.md)** for all available methods and examples.
@@ -149,10 +237,20 @@ Configure your application with an intuitive fluent interface:
 ```csharp
 new HostBuilder()
     // Window
-    .WithTitle("My App").WithSize(1400, 900).Chromeless(false)
+    .WithTitle("My App").WithSize(1400, 900).WithIcon("icon.ico")
+    .Chromeless(false).CenterWindow()
 
     // Splash Screen
     .WithSplashScreen("My App", "Loading...")
+
+    // System Tray
+    .EnableSystemTray().CloseToTray()
+    .WithTrayTooltip("My App").WithTrayIcon("tray.ico")
+
+    // Notifications
+    .EnableSystemNotifications()
+    .WithNotificationPosition(NotificationPosition.BottomRight)
+    .WithMaxNotifications(3)
 
     // Server
     .UsePort(5001).UseHttps(true)
@@ -212,11 +310,60 @@ MyDesktopApp/
 ```
 
 ### Technology Stack
-- **UI Layer**: Blazor Server + MudBlazor components
-- **Desktop Framework**: Avalonia (cross-platform window management)
-- **WebView Host**: Photino.NET (native webview embedding)
-- **Backend**: ASP.NET Core (dependency injection, services, middleware)
-- **Interop**: Custom desktop services (file dialogs, notifications, etc.)
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| UI Layer | Blazor Server + MudBlazor | 8.15.0 |
+| Desktop Framework | Avalonia | 11.3.11 |
+| WebView Host | Photino.NET | 4.0.16 |
+| Backend | ASP.NET Core | .NET 10.0 |
+| Interop | Custom desktop services | Built-in |
+
+### Cross-Platform Compatibility
+
+| Feature | Windows | Linux | macOS |
+|---------|---------|-------|-------|
+| Blazor UI / MudBlazor | Tested | Untested | Untested |
+| File Dialogs | Tested | Untested | Untested |
+| Window Management | Tested | Untested | Untested |
+| Clipboard | Tested | Untested | Untested |
+| Desktop Toasts | Tested | Untested | Untested |
+| System Tray | Tested | Varies by DE | Untested |
+| Minimize to Tray (hide window) | Tested | Fallback to minimize | Fallback to minimize |
+| System Notifications (JS) | Tested | Untested | Untested |
+
+> **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
+
+### Services Overview
+
+| Service | Lifetime | Purpose |
+|---------|----------|---------|
+| `IDesktopInteropService` | Scoped | File dialogs, window control, clipboard, system paths |
+| `INotificationService` | Singleton | Desktop toasts + OS system notifications |
+| `ISystemTrayService` | Singleton | Tray icon, context menu, minimize/restore to tray |
+| `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
+| `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
+
+---
+
+## Sample Applications
+
+### MinimalApp
+Location: `samples/MinimalApp/` - Absolute minimum code to run a Blazor desktop app.
+
+### DesktopFeatures
+Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features:
+- File dialogs (open, save, folder)
+- Window controls (minimize, maximize, restore, title)
+- Clipboard operations (copy, paste)
+- System tray (minimize to tray, custom menu items, tooltip)
+- Desktop toast notifications (all severity types)
+- System notifications (OS notification center)
+- System paths and browser integration
+
+### CheapShotcutRandomizer (External)
+A video editing workflow tool built with CheapAvaloniaBlazor that demonstrates the framework's capabilities for building desktop applications with complex features.
+
+**Repository:** [https://github.com/CheapNud/CheapShotcutRandomizer](https://github.com/CheapNud/CheapShotcutRandomizer)
 
 ---
 
@@ -228,7 +375,7 @@ MyDesktopApp/
 dotnet run
 
 # Visual Studio Users
-Press F5 or Debug → Start Debugging
+Press F5 or Debug > Start Debugging
 
 # Hot reload enabled automatically in both environments
 # Make changes to .razor files and see instant updates
@@ -247,18 +394,6 @@ dotnet publish -c Release -r linux-x64 --self-contained -p:PublishSingleFile=tru
 dotnet publish -c Release -r osx-x64 --self-contained -p:PublishSingleFile=true
 ```
 
-### Distribution
-```bash
-# Windows
-MyDesktopApp.exe
-
-# Linux
-./MyDesktopApp
-
-# macOS
-./MyDesktopApp
-```
-
 ---
 
 ## System Requirements
@@ -272,13 +407,13 @@ MyDesktopApp.exe
 ### Development Requirements
 - **Visual Studio 2022** (17.8+) or **VS Code**
 - **.NET 10.0 SDK**
-- **C# 13** language features
+- **C# 14** language features
 
 ### Package Dependencies
-- `Avalonia 11.3.7+` - Desktop framework
-- `MudBlazor 8.13.0+` - Material Design components
-- `Photino.NET 4.0.16+` - WebView hosting
-- `Microsoft.AspNetCore.Components.Web 10.0+` - Blazor components
+- `Avalonia 11.3.11` - Desktop framework
+- `MudBlazor 8.15.0` - Material Design components
+- `Photino.NET 4.0.16` - WebView hosting
+- `Microsoft.AspNetCore.App` - ASP.NET Core framework reference
 
 ---
 
@@ -303,11 +438,6 @@ dotnet build
 - Look for exceptions in console output
 - Try different port: `builder.UsePort(8080)`
 
-**blazor.web.js 404 Error / InvalidOperationException Spam**
-- Fixed in v1.2.4 - This should no longer happen
-- If you're on an older version, update to the latest: `dotnet add package CheapAvaloniaBlazor`
-- The framework now automatically uses the correct environment for desktop apps
-
 **MudBlazor Styles Missing**
 - Verify CSS reference in `App.razor`:
   ```html
@@ -321,113 +451,61 @@ dotnet build
 - **Windows**: Fully tested and supported
 - Dependencies (Avalonia, Photino) should work cross-platform, but integration not verified
 
-**Visual Studio Specific Issues**
-- **IntelliSense not working**: Rebuild solution (Build → Rebuild Solution)
-- **Razor syntax errors**: Install latest "ASP.NET and web development" workload
-- **Package restore issues**: Tools → NuGet Package Manager → "Clear All NuGet Cache(s)"
-- **Hot reload not working**: Enable "Hot Reload on File Save" in Debug settings
-
 **File Dialog Not Working**
-- Fixed in v1.0.67+ - File dialogs now work via Avalonia StorageProvider
+- File dialogs use Avalonia StorageProvider (working since v1.0.67)
 - Ensure you're using latest version: `dotnet add package CheapAvaloniaBlazor`
 - Check `IDesktopInteropService` injection
-- If still having issues, please report - architecture was completely rebuilt for file dialog support
 
-**Hot Reload Not Working**
-- Restart application
-- Check VS/VS Code Blazor extensions
-- Verify project targets .NET 10.0
+**Taskbar Icon Stays Visible When Minimized to Tray**
+- This happens when `EnableDevTools` is true - the DevTools window keeps the taskbar icon alive
+- This is a Photino/WebView2 limitation, not a CheapAvaloniaBlazor bug
+- Disable `EnableDevTools` for production or when testing tray behavior
 
 ### Debug Mode
-
-Three options control debugging features:
 
 ```csharp
 var builder = new HostBuilder()
     .WithTitle("My App")
-    .ConfigureOptions(options =>
-    {
-        // Console window for logging output
-        // When true: Shows console window (allocates one if launched from Explorer)
-        // When false: Hides console for native desktop feel (default)
-        options.EnableConsoleLogging = true;
-
-        // Browser developer tools (F12)
-        // When true: F12 opens DevTools for JS debugging, DOM inspection, network monitoring
-        // When false: F12 does nothing (default)
-        options.EnableDevTools = true;
-
-        // Right-click context menu
-        // When true: Right-click shows browser menu with copy, paste, inspect (default)
-        // When false: Right-click disabled for cleaner native app feel
-        options.EnableContextMenu = true;
-    })
+    .EnableConsoleLogging()    // Show console window for logging
+    .EnableDevTools()          // Enable F12 developer tools
+    .EnableContextMenu()       // Enable right-click menu (default: true)
+    .EnableDiagnostics()       // Comprehensive diagnostic logging
     .AddMudBlazor();
 ```
-
-**Fluent API equivalents:**
-```csharp
-builder.EnableConsoleLogging(true)  // Show console window
-       .EnableDevTools(true)        // Enable F12 DevTools
-       .EnableContextMenu(true);    // Enable right-click menu
-```
-
----
-
-## Example Application
-
-### CheapShotcutRandomizer
-A video editing workflow tool built with CheapAvaloniaBlazor that demonstrates the framework's capabilities for building desktop applications with complex features.
-
-**Repository:** [https://github.com/CheapNud/CheapShotcutRandomizer](https://github.com/CheapNud/CheapShotcutRandomizer)
-
-**Features implemented:**
-- Multi-stage video processing pipeline with background job queue
-- File dialogs for opening Shotcut projects and selecting output directories
-- SQLite database integration for persistent job storage
-- Real-time progress monitoring and crash recovery
-- Blazor Server UI with MudBlazor components for complex workflows
-- Window management and system integration via desktop interop services
-
-This application showcases how CheapAvaloniaBlazor can be used to build full-featured desktop applications that combine web UI technology with native desktop capabilities.
 
 ---
 
 ## Project Status & Roadmap
 
-### Current Status: Working Alpha v1.2.4
+### Current Status: v2.0.2
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
-- Splash Screen: Enabled by default, fully customizable (v1.1.0)
+- Splash Screen: Enabled by default, fully customizable
+- System Tray: Full icon, menu, minimize/close-to-tray support
+- Dual Notifications: Desktop toasts (Avalonia) + system notifications (JS Web Notification API)
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
-- Window Management: Minimize, maximize, resize, title changes
-- JavaScript ↔ C# Bridge: Full bidirectional communication with ExecuteScriptAsync
+- Window Management: Minimize, maximize, resize, title changes, hide/show
+- Clipboard: Read/write text via clipboard API
+- JavaScript Bridge: Full bidirectional communication
 - MudBlazor Integration: Full component library support
-- Clean Architecture: Constants extraction (121+ magic strings), DiagnosticLogger abstraction
-- Performance Optimizations: ValueTask for zero-allocation synchronous operations
+- Diagnostics: Comprehensive logging and troubleshooting system
+- Performance: ValueTask for zero-allocation synchronous operations
 
 ### Planned Features
 - Testing Framework: Unit and integration test support
 - Cross-Platform Testing: Full compatibility validation on Linux and macOS
-- Alternative WebView Hosts: Additional options beyond Photino.NET
-- Alternative UI Frameworks: Support for Tailwind CSS, Radzen, Telerik, Bootstrap, and other Blazor component libraries
-- Enhanced Documentation: More examples and tutorials
-- Performance Optimization: Startup time and memory usage
-- Plugin System: Extensible architecture
+- Alternative UI Frameworks: Support for Tailwind CSS, Radzen, and other Blazor component libraries
 - Package Templates: `dotnet new` project templates
+- Plugin System: Extensible architecture
 
 ### Known Limitations
 - Alpha stage project - some breaking changes possible but architecture now stable
 - Currently tested on Windows only - Linux and macOS compatibility validation in progress
 - MudBlazor-focused currently - other UI framework integrations planned
-- Testing infrastructure in development
 
 ---
 
 ## Contributing & Support
-
-### Project Status
-This is a personal hobby project in alpha stage. The core architecture is now stable (v1.0.67+ with working file dialogs), though some features are still evolving. Limited pull requests accepted for bug fixes and documentation improvements.
 
 ### How to Help
 - Report Issues: Found a bug? [Create an issue](https://github.com/CheapNud/CheapAvaloniaBlazor/issues)
@@ -435,10 +513,7 @@ This is a personal hobby project in alpha stage. The core architecture is now st
 - Testing: Try it in your projects and report compatibility issues
 - Documentation: Suggest improvements to examples and guides
 
-### Getting Support
-- GitHub Issues: Technical problems and bug reports
-- Documentation: Check this README and inline code comments
-- This is a hobby project - support is provided on a best-effort basis
+This is a hobby project - support is provided on a best-effort basis.
 
 ---
 

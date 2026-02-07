@@ -10,21 +10,38 @@ public static class ServiceCollectionExtensions
     {
         options ??= new CheapAvaloniaBlazorOptions();
 
+        // ============================================================================
+        // WARNING: DUAL DI CONTAINER ARCHITECTURE
+        // ============================================================================
+        // These services are registered here for the Avalonia-side container (HostBuilder).
+        // A SECOND container exists in EmbeddedBlazorHostService.ConfigureServices() for
+        // the Blazor WebApplication. All service descriptors from this container are copied
+        // into the Blazor container via _options.ConfigureServices, which creates NEW
+        // singleton instances (not the same objects).
+        //
+        // Any singleton that is used by BOTH Avalonia (tray, overlay windows, message
+        // handler) AND Blazor (@inject in .razor components) MUST be re-registered as
+        // the SAME INSTANCE in EmbeddedBlazorHostService.ConfigureServices() using:
+        //     var svc = CheapAvaloniaBlazorRuntime.GetRequiredService<IMyService>();
+        //     services.AddSingleton(svc);
+        //
+        // If you add a new singleton here that Blazor components will inject, you MUST
+        // also add a runtime instance override in EmbeddedBlazorHostService.ConfigureServices().
+        // Failure to do so will create two separate instances (e.g. two tray icons).
+        //
+        // See: EmbeddedBlazorHostService.cs → ConfigureServices() → "Runtime instance overrides"
+        // ============================================================================
+
         services.AddSingleton(options);
         services.AddSingleton<IBlazorHostService, EmbeddedBlazorHostService>();
 
-        // Add diagnostic logger factory
         services.AddSingleton<IDiagnosticLoggerFactory, DiagnosticLoggerFactory>();
-
-        // Add DesktopInteropService using Avalonia's StorageProvider
-        services.AddScoped<IDesktopInteropService, DesktopInteropService>();
-
-        // Add lightweight message handler for JavaScript ↔ C# communication
         services.AddSingleton<PhotinoMessageHandler>();
+        services.AddSingleton<ISystemTrayService, SystemTrayService>();
+        services.AddSingleton<INotificationService, NotificationService>();
 
-        // Note: Blazor services (RazorPages, ServerSideBlazor) are registered
-        // in EmbeddedBlazorHostService.ConfigureServices() to avoid duplication issues
-        // Projects should use Microsoft.NET.Sdk.Razor with FrameworkReference to Microsoft.AspNetCore.App
+        // Scoped services are fine - each Blazor circuit gets its own instance anyway
+        services.AddScoped<IDesktopInteropService, DesktopInteropService>();
 
         return services;
     }
