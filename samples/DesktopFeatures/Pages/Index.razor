@@ -2,8 +2,8 @@
 @inject IDesktopInteropService DesktopInterop
 @inject ISystemTrayService TrayService
 @inject INotificationService NotificationService
+@inject ISettingsService SettingsService
 @inject IJSRuntime JSRuntime
-@inject SettingsService SettingsService
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.h4" Class="mb-4">Desktop Features Demo</MudText>
@@ -256,11 +256,49 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Settings Persistence</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_settingsKey"
+                              Label="Key"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_settingsValue"
+                              Label="Value"
+                              Variant="Variant.Outlined" />
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SetSettingsValue">
+                        Set
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="GetSettingsValue">
+                        Get
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Delete"
+                               Color="Color.Error"
+                               OnClick="DeleteSettingsValue">
+                        Delete
+                    </MudButton>
+                </MudButtonGroup>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Key-value API demo. Values persist to %LocalAppData%\DesktopFeatures\settings.json
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
 
-            @if (SettingsService.Settings.RecentFiles.Count == 0)
+            @if (_appSettings.RecentFiles.Count == 0)
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
                     No recent files. Use "Open File" to add some.
@@ -269,7 +307,7 @@
             else
             {
                 <MudList T="string" Dense="true">
-                    @foreach (var file in SettingsService.Settings.RecentFiles)
+                    @foreach (var file in _appSettings.RecentFiles)
                     {
                         <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
                             @file
@@ -302,6 +340,16 @@
     private string _systemNotificationTitle = "Hello!";
     private string _systemNotificationMessage = "This is a system notification from CheapAvaloniaBlazor.";
 
+    // Settings persistence demo
+    private string _settingsKey = "myKey";
+    private string _settingsValue = "";
+    private DesktopFeatures.Models.AppSettings _appSettings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
+    }
+
     private async Task OpenFile()
     {
         var options = new CheapAvaloniaBlazor.Models.FileDialogOptions
@@ -319,7 +367,8 @@
 
         if (!string.IsNullOrEmpty(_selectedPath))
         {
-            await SettingsService.UpdateAsync(s => s.AddRecentFile(_selectedPath));
+            await SettingsService.UpdateSectionAsync<DesktopFeatures.Models.AppSettings>(s => s.AddRecentFile(_selectedPath));
+            _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
             Snackbar.Add($"Opened: {Path.GetFileName(_selectedPath)}", Severity.Success);
         }
     }
@@ -341,7 +390,7 @@
 
         if (!string.IsNullOrEmpty(_selectedPath))
         {
-            await SettingsService.UpdateAsync(s => s.LastSavedFile = _selectedPath);
+            await SettingsService.UpdateSectionAsync<DesktopFeatures.Models.AppSettings>(s => s.LastSavedFile = _selectedPath);
             Snackbar.Add($"Save location: {Path.GetFileName(_selectedPath)}", Severity.Success);
         }
     }
@@ -352,7 +401,7 @@
 
         if (!string.IsNullOrEmpty(_selectedPath))
         {
-            await SettingsService.UpdateAsync(s => s.LastOpenedFolder = _selectedPath);
+            await SettingsService.UpdateSectionAsync<DesktopFeatures.Models.AppSettings>(s => s.LastOpenedFolder = _selectedPath);
             Snackbar.Add($"Selected folder: {_selectedPath}", Severity.Success);
         }
     }
@@ -399,8 +448,31 @@
 
     private async Task ClearRecentFiles()
     {
-        await SettingsService.UpdateAsync(s => s.RecentFiles.Clear());
+        await SettingsService.UpdateSectionAsync<DesktopFeatures.Models.AppSettings>(s => s.RecentFiles.Clear());
+        _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
         Snackbar.Add("Recent files cleared", Severity.Warning);
+    }
+
+    private async Task SetSettingsValue()
+    {
+        if (string.IsNullOrWhiteSpace(_settingsKey)) return;
+        await SettingsService.SetAsync(_settingsKey, _settingsValue);
+        Snackbar.Add($"Set '{_settingsKey}' = '{_settingsValue}'", Severity.Success);
+    }
+
+    private async Task GetSettingsValue()
+    {
+        if (string.IsNullOrWhiteSpace(_settingsKey)) return;
+        var fetchedValue = await SettingsService.GetAsync<string>(_settingsKey);
+        _settingsValue = fetchedValue ?? "(not found)";
+        Snackbar.Add($"Get '{_settingsKey}' = '{_settingsValue}'", Severity.Info);
+    }
+
+    private async Task DeleteSettingsValue()
+    {
+        if (string.IsNullOrWhiteSpace(_settingsKey)) return;
+        var deleted = await SettingsService.DeleteAsync(_settingsKey);
+        Snackbar.Add(deleted ? $"Deleted '{_settingsKey}'" : $"Key '{_settingsKey}' not found", deleted ? Severity.Warning : Severity.Info);
     }
 
     private void SendDesktopNotification()

@@ -376,6 +376,52 @@ public class HostBuilder
         return this;
     }
 
+    // Settings Persistence Methods
+
+    /// <summary>
+    /// Set the application name used as the settings folder name under AppData
+    /// </summary>
+    /// <param name="appName">Folder name (sanitized for filesystem)</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithSettingsAppName(string appName)
+    {
+        _options.SettingsAppName = appName;
+        return this;
+    }
+
+    /// <summary>
+    /// Set a full path override for the settings folder
+    /// </summary>
+    /// <param name="folderPath">Absolute path to the settings folder</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithSettingsFolder(string folderPath)
+    {
+        _options.SettingsFolder = folderPath;
+        return this;
+    }
+
+    /// <summary>
+    /// Set the settings file name (default: "settings.json")
+    /// </summary>
+    /// <param name="fileName">File name for the settings JSON file</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithSettingsFileName(string fileName)
+    {
+        _options.SettingsFileName = fileName;
+        return this;
+    }
+
+    /// <summary>
+    /// Enable or disable auto-save after every settings mutation
+    /// </summary>
+    /// <param name="autoSave">Whether to auto-save (default: true)</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder AutoSaveSettings(bool autoSave = true)
+    {
+        _options.AutoSaveSettings = autoSave;
+        return this;
+    }
+
     /// <summary>
     /// Configure the splash screen
     /// </summary>
