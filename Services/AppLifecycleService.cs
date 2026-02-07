@@ -18,9 +18,14 @@ public class AppLifecycleService : IAppLifecycleService
     public event Action? Activated;
     public event Action? Deactivated;
 
-    public bool IsMinimized { get; private set; }
-    public bool IsMaximized { get; private set; }
-    public bool IsFocused { get; private set; }
+    // volatile: state is written on Photino thread, read on Blazor render thread
+    private volatile bool _isMinimized;
+    private volatile bool _isMaximized;
+    private volatile bool _isFocused;
+
+    public bool IsMinimized => _isMinimized;
+    public bool IsMaximized => _isMaximized;
+    public bool IsFocused => _isFocused;
 
     public AppLifecycleService(ILogger<AppLifecycleService>? logger = null)
     {
@@ -49,7 +54,7 @@ public class AppLifecycleService : IAppLifecycleService
     /// </summary>
     internal void OnMinimized()
     {
-        IsMinimized = true;
+        _isMinimized = true;
         _logger?.LogDebug("AppLifecycleService: Window minimized");
         Minimized?.Invoke();
     }
@@ -59,8 +64,8 @@ public class AppLifecycleService : IAppLifecycleService
     /// </summary>
     internal void OnMaximized()
     {
-        IsMaximized = true;
-        IsMinimized = false;
+        _isMaximized = true;
+        _isMinimized = false;
         _logger?.LogDebug("AppLifecycleService: Window maximized");
         Maximized?.Invoke();
     }
@@ -70,8 +75,8 @@ public class AppLifecycleService : IAppLifecycleService
     /// </summary>
     internal void OnRestored()
     {
-        IsMinimized = false;
-        IsMaximized = false;
+        _isMinimized = false;
+        _isMaximized = false;
         _logger?.LogDebug("AppLifecycleService: Window restored");
         Restored?.Invoke();
     }
@@ -81,7 +86,7 @@ public class AppLifecycleService : IAppLifecycleService
     /// </summary>
     internal void OnActivated()
     {
-        IsFocused = true;
+        _isFocused = true;
         _logger?.LogDebug("AppLifecycleService: Window activated");
         Activated?.Invoke();
     }
@@ -91,7 +96,7 @@ public class AppLifecycleService : IAppLifecycleService
     /// </summary>
     internal void OnDeactivated()
     {
-        IsFocused = false;
+        _isFocused = false;
         _logger?.LogDebug("AppLifecycleService: Window deactivated");
         Deactivated?.Invoke();
     }

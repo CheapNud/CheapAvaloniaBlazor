@@ -199,11 +199,18 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         var lifecycleService = CheapAvaloniaBlazorRuntime.GetRequiredService<IAppLifecycleService>()
             as AppLifecycleService;
 
-        photinoWindow.WindowMinimized += (s, e) => lifecycleService?.OnMinimized();
-        photinoWindow.WindowMaximized += (s, e) => lifecycleService?.OnMaximized();
-        photinoWindow.WindowRestored += (s, e) => lifecycleService?.OnRestored();
-        photinoWindow.WindowFocusIn += (s, e) => lifecycleService?.OnActivated();
-        photinoWindow.WindowFocusOut += (s, e) => lifecycleService?.OnDeactivated();
+        if (lifecycleService is null)
+        {
+            _logger?.LogWarning("IAppLifecycleService is not AppLifecycleService - lifecycle events will not fire");
+        }
+        else
+        {
+            photinoWindow.WindowMinimized += (s, e) => lifecycleService.OnMinimized();
+            photinoWindow.WindowMaximized += (s, e) => lifecycleService.OnMaximized();
+            photinoWindow.WindowRestored += (s, e) => lifecycleService.OnRestored();
+            photinoWindow.WindowFocusIn += (s, e) => lifecycleService.OnActivated();
+            photinoWindow.WindowFocusOut += (s, e) => lifecycleService.OnDeactivated();
+        }
 
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
