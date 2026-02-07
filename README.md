@@ -218,6 +218,34 @@ await Settings.SetSectionAsync(new AppSettings { IsDarkMode = true });
 
 Settings are stored at `%LocalAppData%/{appName}/settings.json`. Configure the location with `WithSettingsFolder()` or `WithSettingsFileName()`.
 
+### App Lifecycle Events (v2.2.0)
+Subscribe to native window lifecycle events from Blazor components. Track window state and react to minimize, maximize, restore, and focus changes.
+
+```csharp
+@inject IAppLifecycleService Lifecycle
+
+// Read-only state properties
+var minimized = Lifecycle.IsMinimized;
+var maximized = Lifecycle.IsMaximized;
+var focused = Lifecycle.IsFocused;
+
+// Subscribe to events
+Lifecycle.Minimized += () => Console.WriteLine("Window minimized");
+Lifecycle.Maximized += () => Console.WriteLine("Window maximized");
+Lifecycle.Restored += () => Console.WriteLine("Window restored");
+Lifecycle.Activated += () => Console.WriteLine("Window focused");
+Lifecycle.Deactivated += () => Console.WriteLine("Window lost focus");
+
+// Prevent close with cancellation support
+Lifecycle.Closing += (sender, args) =>
+{
+    if (HasUnsavedChanges)
+        args.Cancel = true; // Prevent window from closing
+};
+```
+
+No builder configuration required - `IAppLifecycleService` is always available.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -384,6 +412,7 @@ MyDesktopApp/
 | Minimize to Tray (hide window) | Tested | Fallback to minimize | Fallback to minimize |
 | System Notifications (JS) | Tested | Untested | Untested |
 | Settings Persistence | Tested | Untested | Untested |
+| App Lifecycle Events | Tested | Untested | Untested |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -395,6 +424,7 @@ MyDesktopApp/
 | `INotificationService` | Singleton | Desktop toasts + OS system notifications |
 | `ISystemTrayService` | Singleton | Tray icon, context menu, minimize/restore to tray |
 | `ISettingsService` | Singleton | JSON settings persistence (key-value + typed sections) |
+| `IAppLifecycleService` | Singleton | Window lifecycle events (minimize, maximize, focus, close) |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 
@@ -414,6 +444,7 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - Desktop toast notifications (all severity types)
 - System notifications (OS notification center)
 - Settings persistence (key-value and typed section APIs)
+- App lifecycle events (window state tracking and event log)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -533,13 +564,14 @@ var builder = new HostBuilder()
 
 ## Project Status & Roadmap
 
-### Current Status: v2.0.2
+### Current Status: v2.2.0
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
 - Splash Screen: Enabled by default, fully customizable
 - System Tray: Full icon, menu, minimize/close-to-tray support
 - Dual Notifications: Desktop toasts (Avalonia) + system notifications (JS Web Notification API)
 - Settings Persistence: JSON-based key-value + typed section APIs with auto-save
+- App Lifecycle Events: Window state tracking, close cancellation, focus/minimize/maximize events
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
 - Window Management: Minimize, maximize, resize, title changes, hide/show
 - Clipboard: Read/write text via clipboard API

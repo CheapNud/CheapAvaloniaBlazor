@@ -328,6 +328,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             var settingsService = CheapAvaloniaBlazorRuntime.GetRequiredService<ISettingsService>();
             services.AddSingleton(settingsService);
 
+            var lifecycleService = CheapAvaloniaBlazorRuntime.GetRequiredService<IAppLifecycleService>();
+            services.AddSingleton(lifecycleService);
+
             // Add the DesktopInteropService
             _logger.LogDebug("Adding DesktopInteropService...");
             services.AddScoped<IDesktopInteropService, DesktopInteropService>();

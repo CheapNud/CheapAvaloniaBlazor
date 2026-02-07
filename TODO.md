@@ -58,13 +58,16 @@
 - [x] Fluent builder: `WithSettingsAppName()`, `WithSettingsFolder()`, `WithSettingsFileName()`, `AutoSaveSettings()`
 - [x] Proper `IDisposable` cleanup, `SettingsChanged` event
 
-### App Lifecycle Events
-- [ ] `OnClosing` event with cancellation support (prevent close, confirm dialogs)
-- [ ] `OnMinimized` event
-- [ ] `OnMaximized` event
-- [ ] `OnRestored` event
-- [ ] `OnActivated` / `OnDeactivated` (window focus)
-- [ ] Expose via `IDesktopInteropService` or dedicated `IAppLifecycleService`
+### App Lifecycle Events - DONE (v2.2.0)
+- [x] `OnClosing` event with cancellation support (prevent close, confirm dialogs)
+- [x] `OnMinimized` event
+- [x] `OnMaximized` event
+- [x] `OnRestored` event
+- [x] `OnActivated` / `OnDeactivated` (window focus)
+- [x] Expose via dedicated `IAppLifecycleService` singleton
+- [x] Read-only state properties: `IsMinimized`, `IsMaximized`, `IsFocused`
+- [x] Wired to Photino native window events in `BlazorHostWindow`
+- [x] Demo panel in DesktopFeatures sample with event log
 
 ### Theme Detection
 - [ ] Detect OS dark/light mode preference
