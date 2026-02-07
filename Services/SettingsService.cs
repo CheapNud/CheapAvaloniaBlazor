@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CheapAvaloniaBlazor.Configuration;
@@ -33,7 +32,7 @@ public class SettingsService : ISettingsService
         _options = options;
         _logger = logger;
         _settingsFilePath = ResolveSettingsPath();
-        Debug.WriteLine($"SettingsService: file path = {_settingsFilePath}");
+        _logger?.LogDebug("SettingsService initialized, file path: {Path}", _settingsFilePath);
     }
 
     // ───────────────────────────── Key-value API ─────────────────────────────
@@ -48,7 +47,15 @@ public class SettingsService : ISettingsService
         {
             if (_root!.TryGetPropertyValue(key, out var node) && node is not null)
             {
-                return node.Deserialize<T>(SerializerOptions);
+                try
+                {
+                    return node.Deserialize<T>(SerializerOptions);
+                }
+                catch (JsonException ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to deserialize setting '{Key}', returning default", key);
+                    return defaultValue;
+                }
             }
             return defaultValue;
         }
@@ -68,14 +75,14 @@ public class SettingsService : ISettingsService
         try
         {
             _root![key] = JsonSerializer.SerializeToNode(settingValue, SerializerOptions);
+
+            if (_options.AutoSaveSettings)
+                await SaveToDiskAsync();
         }
         finally
         {
             _semaphore.Release();
         }
-
-        if (_options.AutoSaveSettings)
-            await SaveAsync();
     }
 
     public async Task<bool> DeleteAsync(string key)
@@ -88,14 +95,14 @@ public class SettingsService : ISettingsService
         try
         {
             removed = _root!.Remove(key);
+
+            if (removed && _options.AutoSaveSettings)
+                await SaveToDiskAsync();
         }
         finally
         {
             _semaphore.Release();
         }
-
-        if (removed && _options.AutoSaveSettings)
-            await SaveAsync();
 
         return removed;
     }
@@ -128,9 +135,16 @@ public class SettingsService : ISettingsService
         {
             if (_root!.TryGetPropertyValue(sectionKey, out var node) && node is not null)
             {
-                var section = node.Deserialize<T>(SerializerOptions);
-                if (section is not null)
-                    return section;
+                try
+                {
+                    var section = node.Deserialize<T>(SerializerOptions);
+                    if (section is not null)
+                        return section;
+                }
+                catch (JsonException ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to deserialize section '{Section}', returning default", sectionKey);
+                }
             }
             return defaultValue ?? new T();
         }
@@ -150,14 +164,14 @@ public class SettingsService : ISettingsService
         try
         {
             _root![sectionKey] = JsonSerializer.SerializeToNode(settingValue, SerializerOptions);
+
+            if (_options.AutoSaveSettings)
+                await SaveToDiskAsync();
         }
         finally
         {
             _semaphore.Release();
         }
-
-        if (_options.AutoSaveSettings)
-            await SaveAsync();
     }
 
     public async Task UpdateSectionAsync<T>(Action<T> updateAction) where T : class, new()
@@ -176,27 +190,12 @@ public class SettingsService : ISettingsService
         await _semaphore.WaitAsync();
         try
         {
-            if (_root is null) return;
-
-            var directory = Path.GetDirectoryName(_settingsFilePath)!;
-            Directory.CreateDirectory(directory);
-
-            var json = _root.ToJsonString(SerializerOptions);
-            await File.WriteAllTextAsync(_settingsFilePath, json);
-
-            Debug.WriteLine($"SettingsService: saved to {_settingsFilePath}");
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to save settings to {Path}", _settingsFilePath);
-            Debug.WriteLine($"SettingsService: save failed - {ex.Message}");
+            await SaveToDiskAsync();
         }
         finally
         {
             _semaphore.Release();
         }
-
-        SettingsChanged?.Invoke();
     }
 
     public async Task ReloadAsync()
@@ -213,6 +212,31 @@ public class SettingsService : ISettingsService
     }
 
     // ───────────────────────────── Internal ───────────────────────────────────
+
+    /// <summary>
+    /// Write current state to disk. Caller MUST hold _semaphore.
+    /// </summary>
+    private async Task SaveToDiskAsync()
+    {
+        try
+        {
+            if (_root is null) return;
+
+            var directory = Path.GetDirectoryName(_settingsFilePath)!;
+            Directory.CreateDirectory(directory);
+
+            var json = _root.ToJsonString(SerializerOptions);
+            await File.WriteAllTextAsync(_settingsFilePath, json);
+
+            _logger?.LogDebug("Settings saved to {Path}", _settingsFilePath);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to save settings to {Path}", _settingsFilePath);
+        }
+
+        SettingsChanged?.Invoke();
+    }
 
     private async Task EnsureLoadedAsync()
     {
@@ -240,7 +264,7 @@ public class SettingsService : ISettingsService
                 var parsed = JsonNode.Parse(json);
                 if (parsed is JsonObject jsonObject)
                 {
-                    Debug.WriteLine($"SettingsService: loaded from {_settingsFilePath}");
+                    _logger?.LogDebug("Settings loaded from {Path}", _settingsFilePath);
                     return jsonObject;
                 }
             }
@@ -248,10 +272,9 @@ public class SettingsService : ISettingsService
         catch (Exception ex)
         {
             _logger?.LogWarning(ex, "Failed to load settings from {Path}, starting fresh", _settingsFilePath);
-            Debug.WriteLine($"SettingsService: load failed - {ex.Message}");
         }
 
-        Debug.WriteLine("SettingsService: using empty settings");
+        _logger?.LogDebug("Using empty settings");
         return [];
     }
 

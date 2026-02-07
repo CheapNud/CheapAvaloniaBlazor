@@ -407,6 +407,10 @@ public class HostBuilder
     /// <returns>The builder for chaining</returns>
     public HostBuilder WithSettingsFileName(string fileName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || fileName.Contains(".."))
+            throw new ArgumentException("File name contains invalid characters", nameof(fileName));
+
         _options.SettingsFileName = fileName;
         return this;
     }
