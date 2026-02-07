@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PhotinoMessageHandler>();
         services.AddSingleton<ISystemTrayService, SystemTrayService>();
         services.AddSingleton<INotificationService, NotificationService>();
+        services.AddSingleton<ISettingsService, SettingsService>();
 
         // Scoped services are fine - each Blazor circuit gets its own instance anyway
         services.AddScoped<IDesktopInteropService, DesktopInteropService>();

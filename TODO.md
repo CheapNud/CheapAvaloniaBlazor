@@ -29,21 +29,34 @@
 
 ## Priority 1 - Essential Desktop Features
 
-### System Tray Support
-- [ ] Integrate Avalonia's `TrayIcon` / `NativeMenu` APIs
-- [ ] Add `ISystemTrayService` interface
-- [ ] Methods: `ShowTrayIcon()`, `HideTrayIcon()`, `SetTrayIcon()`, `SetTrayTooltip()`
-- [ ] Support for context menu on tray icon
-- [ ] "Minimize to tray" option in `CheapAvaloniaBlazorOptions`
-- [ ] Tray icon click events (single click, double click)
+### System Tray Support - DONE (v2.0.0)
+- [x] Integrate Avalonia's `TrayIcon` / `NativeMenu` APIs
+- [x] Add `ISystemTrayService` interface
+- [x] Methods: `ShowTrayIcon()`, `HideTrayIcon()`, `SetTrayIcon()`, `SetTrayTooltip()`
+- [x] Support for context menu on tray icon (submenus, checkable items, separators, async handlers)
+- [x] "Minimize to tray" / "Close to tray" options in `CheapAvaloniaBlazorOptions`
+- [x] Tray icon click events (single click, double click)
+- [x] Fluent builder: `EnableSystemTray()`, `CloseToTray()`, `WithTrayTooltip()`, `WithTrayIcon()`
+- [x] Window hide/show via user32.dll P/Invoke (Windows), minimize fallback (Linux/macOS)
+- [x] Fallback icon generation (16x16 WriteableBitmap) when no icon path provided
 
-### Settings Persistence Helper
-- [ ] Add `ISettingsService` interface
-- [ ] JSON-based storage in app data folder
-- [ ] Methods: `GetAsync<T>()`, `SetAsync<T>()`, `DeleteAsync()`, `ExistsAsync()`
-- [ ] Auto-save on change option
-- [ ] Type-safe settings with generics
-- [ ] Default values support
+### Dual-Channel Notifications - DONE (v2.0.2)
+- [x] `INotificationService` interface with desktop toasts + system notifications
+- [x] Desktop toasts via Avalonia `WindowNotificationManager` on transparent overlay window
+- [x] System notifications via JS Web Notification API (opt-in)
+- [x] Configurable position (`NotificationPosition` enum) and max visible toasts
+- [x] Fluent builder: `EnableSystemNotifications()`, `WithNotificationPosition()`, `WithMaxNotifications()`
+- [x] Proper `IDisposable` cleanup of overlay window
+
+### Settings Persistence Helper - DONE (v2.1.0)
+- [x] `ISettingsService` interface with key-value and typed section APIs
+- [x] JSON-based storage in app data folder (`%LocalAppData%/{appName}/settings.json`)
+- [x] Key-value API: `GetAsync<T>()`, `SetAsync<T>()`, `DeleteAsync()`, `ExistsAsync()`
+- [x] Typed section API: `GetSectionAsync<T>()`, `SetSectionAsync<T>()`, `UpdateSectionAsync<T>()`
+- [x] Auto-save on change (configurable via `AutoSaveSettings`)
+- [x] Thread-safe via `SemaphoreSlim`, lazy-loaded on first access
+- [x] Fluent builder: `WithSettingsAppName()`, `WithSettingsFolder()`, `WithSettingsFileName()`, `AutoSaveSettings()`
+- [x] Proper `IDisposable` cleanup, `SettingsChanged` event
 
 ### App Lifecycle Events
 - [ ] `OnClosing` event with cancellation support (prevent close, confirm dialogs)
@@ -176,7 +189,7 @@ Each UI framework integration should:
 ### Cross-Platform Validation
 - [ ] Linux testing (Ubuntu, Fedora)
 - [ ] macOS testing (Intel, Apple Silicon)
-- [ ] Document platform-specific quirks
+- [x] Document platform-specific quirks (cross-platform compatibility matrix in README)
 - [ ] CI/CD for multi-platform builds
 
 ---
@@ -184,16 +197,16 @@ Each UI framework integration should:
 ## Documentation
 
 - [ ] API reference documentation
-- [ ] More code examples
+- [x] Code examples (README updated with all features, usage snippets, and sample app descriptions)
 - [ ] Video tutorial
 - [ ] Migration guide for version upgrades
-- [ ] Troubleshooting FAQ expansion
+- [x] Troubleshooting FAQ expansion (DevTools/taskbar issue, platform compatibility, common issues)
 
 ---
 
 ## Notes
 
-**Last Updated**: 2026-01-30
+**Last Updated**: 2026-02-07
 
 **Versioning**: This TODO applies to v2.x and beyond. Core architecture is stable.
 

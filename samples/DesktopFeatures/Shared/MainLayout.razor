@@ -1,5 +1,5 @@
 @inherits LayoutComponentBase
-@inject SettingsService SettingsService
+@inject ISettingsService SettingsService
 
 <MudThemeProvider @ref="_themeProvider" @bind-IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -25,16 +25,18 @@
     private MudThemeProvider? _themeProvider;
     private bool _isDarkMode;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _isDarkMode = SettingsService.Settings.IsDarkMode;
+        var appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
+        _isDarkMode = appSettings.IsDarkMode;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _themeProvider is not null)
         {
-            _isDarkMode = SettingsService.Settings.IsDarkMode;
+            var appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
+            _isDarkMode = appSettings.IsDarkMode;
             StateHasChanged();
         }
     }
@@ -42,6 +44,6 @@
     private async Task ToggleDarkMode()
     {
         _isDarkMode = !_isDarkMode;
-        await SettingsService.UpdateAsync(s => s.IsDarkMode = _isDarkMode);
+        await SettingsService.UpdateSectionAsync<DesktopFeatures.Models.AppSettings>(s => s.IsDarkMode = _isDarkMode);
     }
 }

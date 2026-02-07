@@ -145,6 +145,29 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public int MaxDesktopNotifications { get; set; } = Constants.Notifications.DefaultMaxItems;
 
+    // Settings Persistence Options
+
+    /// <summary>
+    /// Application name used as the settings folder name under AppData.
+    /// Defaults to DefaultWindowTitle (sanitized for filesystem).
+    /// </summary>
+    public string? SettingsAppName { get; set; }
+
+    /// <summary>
+    /// Full path override for the settings folder. When set, SettingsAppName is ignored.
+    /// </summary>
+    public string? SettingsFolder { get; set; }
+
+    /// <summary>
+    /// File name for the settings JSON file (default: "settings.json")
+    /// </summary>
+    public string SettingsFileName { get; set; } = Constants.Settings.DefaultFileName;
+
+    /// <summary>
+    /// Automatically save settings after every Set/Delete/SetSection/UpdateSection call
+    /// </summary>
+    public bool AutoSaveSettings { get; set; } = true;
+
     /// <summary>
     /// Splash screen configuration
     /// </summary>

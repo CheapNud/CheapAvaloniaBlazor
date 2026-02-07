@@ -1,6 +1,4 @@
 using CheapAvaloniaBlazor.Extensions;
-using DesktopFeatures.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DesktopFeatures;
 
@@ -24,10 +22,9 @@ class Program
             .WithTrayTooltip("Desktop Features Demo - Click to restore")
             // Notification configuration
             .EnableSystemNotifications()
+            // Settings persistence
+            .WithSettingsAppName("DesktopFeatures")
             .AddMudBlazor();
-
-        // Register custom services
-        builder.Services.AddSingleton<SettingsService>();
 
         builder.RunApp(args);
     }
