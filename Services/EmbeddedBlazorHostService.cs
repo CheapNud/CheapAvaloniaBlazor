@@ -293,17 +293,37 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.ConfigureServices.Invoke(services);
             }
 
-            // Register services from the runtime to ensure same instances are used
-            // IMPORTANT: This must be AFTER _options.ConfigureServices to override any type registrations
-            // PhotinoMessageHandler is attached to the Photino window in BlazorHostWindow
-            _logger.LogDebug("Registering PhotinoMessageHandler from runtime (overriding any previous registration)...");
+            // ============================================================================
+            // RUNTIME INSTANCE OVERRIDES - DUAL DI CONTAINER FIX
+            // ============================================================================
+            // The _options.ConfigureServices call above copied all service DESCRIPTORS from
+            // the Avalonia-side container (ServiceCollectionExtensions.AddCheapAvaloniaBlazor).
+            // Descriptor-based singletons create NEW instances in this Blazor container,
+            // which is wrong for services that manage shared state (tray icons, overlay
+            // windows, Photino message bridge, etc.).
+            //
+            // These overrides re-register the SAME INSTANCE from the Avalonia-side container,
+            // ensuring both containers resolve to the same object. This MUST come AFTER
+            // _options.ConfigureServices to override the descriptor-based registrations.
+            //
+            // If you add a new singleton in ServiceCollectionExtensions that Blazor components
+            // will @inject, you MUST also add a runtime instance override here.
+            //
+            // See: ServiceCollectionExtensions.cs → AddCheapAvaloniaBlazor()
+            // ============================================================================
+            _logger.LogDebug("Applying runtime instance overrides for shared singletons...");
+
             var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
             services.AddSingleton(messageHandler);
 
-            // Register the diagnostic logger factory from runtime
-            _logger.LogDebug("Registering IDiagnosticLoggerFactory from runtime...");
             var loggerFactory = CheapAvaloniaBlazorRuntime.GetRequiredService<IDiagnosticLoggerFactory>();
             services.AddSingleton(loggerFactory);
+
+            var trayService = CheapAvaloniaBlazorRuntime.GetRequiredService<ISystemTrayService>();
+            services.AddSingleton(trayService);
+
+            var notificationService = CheapAvaloniaBlazorRuntime.GetRequiredService<INotificationService>();
+            services.AddSingleton(notificationService);
 
             // Add the DesktopInteropService
             _logger.LogDebug("Adding DesktopInteropService...");

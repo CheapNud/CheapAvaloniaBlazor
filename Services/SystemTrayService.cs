@@ -132,6 +132,10 @@ public class SystemTrayService : ISystemTrayService
     {
         _logger?.LogDebug("Minimizing to tray");
 
+        // KNOWN ISSUE: When EnableDevTools is true, Photino keeps the taskbar icon visible
+        // even after the window is hidden. This is a Photino/WebView2 limitation - the DevTools
+        // window maintains the taskbar presence. Disable EnableDevTools for clean tray-only behavior.
+
         // Hide the Photino window completely (not just minimize to taskbar)
         if (!_messageHandler.HideWindow())
         {

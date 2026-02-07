@@ -132,6 +132,8 @@ SystemTray.SetTrayMenu([
 ]);
 ```
 
+> **Note:** When `EnableDevTools` is true, the taskbar icon will remain visible after minimizing to tray. This is a Photino/WebView2 limitation - the DevTools window maintains taskbar presence. Disable `EnableDevTools` for clean tray-only behavior.
+
 ### Dual-Channel Notifications (v2.0.2)
 Two independent notification channels for different use cases:
 
@@ -438,6 +440,11 @@ dotnet build
 - File dialogs use Avalonia StorageProvider (working since v1.0.67)
 - Ensure you're using latest version: `dotnet add package CheapAvaloniaBlazor`
 - Check `IDesktopInteropService` injection
+
+**Taskbar Icon Stays Visible When Minimized to Tray**
+- This happens when `EnableDevTools` is true - the DevTools window keeps the taskbar icon alive
+- This is a Photino/WebView2 limitation, not a CheapAvaloniaBlazor bug
+- Disable `EnableDevTools` for production or when testing tray behavior
 
 ### Debug Mode
 
