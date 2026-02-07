@@ -27,7 +27,8 @@ public interface INotificationService : IDisposable
     /// <param name="jsRuntime">The scoped IJSRuntime from the calling Blazor component</param>
     /// <param name="title">Notification title</param>
     /// <param name="message">Notification message body</param>
-    Task ShowSystemNotificationAsync(IJSRuntime jsRuntime, string title, string message);
+    /// <param name="cancellationToken">Optional cancellation token</param>
+    Task ShowSystemNotificationAsync(IJSRuntime jsRuntime, string title, string message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Whether system (JS Web Notification API) notifications are enabled in options

@@ -60,7 +60,7 @@ public class NotificationService : INotificationService
         });
     }
 
-    public async Task ShowSystemNotificationAsync(IJSRuntime jsRuntime, string title, string message)
+    public async Task ShowSystemNotificationAsync(IJSRuntime jsRuntime, string title, string message, CancellationToken cancellationToken = default)
     {
         if (!_options.EnableSystemNotifications)
         {
@@ -68,7 +68,7 @@ public class NotificationService : INotificationService
             return;
         }
 
-        await jsRuntime.InvokeVoidAsync(Constants.JavaScript.ShowNotificationMethod, title, message);
+        await jsRuntime.InvokeVoidAsync(Constants.JavaScript.ShowNotificationMethod, cancellationToken, title, message);
         _logger?.LogDebug("System notification sent via JS: {Title}", title);
     }
 

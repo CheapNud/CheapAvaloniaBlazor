@@ -318,6 +318,21 @@ MyDesktopApp/
 | Backend | ASP.NET Core | .NET 10.0 |
 | Interop | Custom desktop services | Built-in |
 
+### Cross-Platform Compatibility
+
+| Feature | Windows | Linux | macOS |
+|---------|---------|-------|-------|
+| Blazor UI / MudBlazor | Tested | Untested | Untested |
+| File Dialogs | Tested | Untested | Untested |
+| Window Management | Tested | Untested | Untested |
+| Clipboard | Tested | Untested | Untested |
+| Desktop Toasts | Tested | Untested | Untested |
+| System Tray | Tested | Varies by DE | Untested |
+| Minimize to Tray (hide window) | Tested | Fallback to minimize | Fallback to minimize |
+| System Notifications (JS) | Tested | Untested | Untested |
+
+> **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
+
 ### Services Overview
 
 | Service | Lifetime | Purpose |
