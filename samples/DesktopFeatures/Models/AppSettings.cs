@@ -7,6 +7,7 @@ namespace DesktopFeatures.Models;
 public class AppSettings
 {
     public bool IsDarkMode { get; set; } = true;
+    public bool FollowSystemTheme { get; set; }
     public string LastOpenedFolder { get; set; } = "";
     public string LastSavedFile { get; set; } = "";
     public int WindowWidth { get; set; } = 1024;

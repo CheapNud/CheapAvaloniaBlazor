@@ -5,6 +5,7 @@
 @inject INotificationService NotificationService
 @inject ISettingsService SettingsService
 @inject IAppLifecycleService LifecycleService
+@inject IThemeService ThemeService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -357,6 +358,56 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Theme Detection</MudText>
+
+            <MudStack Spacing="2">
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>OS Theme</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(ThemeService.IsDarkMode ? Color.Dark : Color.Default)">@ThemeService.CurrentTheme</MudChip></td>
+                        </tr>
+                        <tr>
+                            <td>IsDarkMode</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(ThemeService.IsDarkMode ? Color.Dark : Color.Default)">@ThemeService.IsDarkMode</MudChip></td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Theme Change Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_themeEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No theme changes detected yet. Try switching dark/light mode in Windows Settings.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _themeEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Detects OS dark/light mode via Avalonia. Use the contrast icon in the app bar to follow system theme.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -411,6 +462,9 @@
     // Lifecycle events demo
     private readonly List<string> _lifecycleEvents = [];
 
+    // Theme detection demo
+    private readonly List<string> _themeEvents = [];
+
     protected override async Task OnInitializedAsync()
     {
         _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
@@ -421,6 +475,9 @@
         LifecycleService.Restored += OnLifecycleRestored;
         LifecycleService.Activated += OnLifecycleActivated;
         LifecycleService.Deactivated += OnLifecycleDeactivated;
+
+        // Subscribe to theme changes
+        ThemeService.ThemeChanged += OnThemeChanged;
     }
 
     private async Task OpenFile()
@@ -650,6 +707,17 @@
         _lifecycleEvents.Clear();
     }
 
+    private void OnThemeChanged(CheapAvaloniaBlazor.Models.SystemTheme newTheme)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _themeEvents.Insert(0, $"[{timestamp}] OS theme → {newTheme}");
+
+        if (_themeEvents.Count > 20)
+            _themeEvents.RemoveAt(_themeEvents.Count - 1);
+
+        InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         LifecycleService.Minimized -= OnLifecycleMinimized;
@@ -657,5 +725,7 @@
         LifecycleService.Restored -= OnLifecycleRestored;
         LifecycleService.Activated -= OnLifecycleActivated;
         LifecycleService.Deactivated -= OnLifecycleDeactivated;
+
+        ThemeService.ThemeChanged -= OnThemeChanged;
     }
 }

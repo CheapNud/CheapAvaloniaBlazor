@@ -69,12 +69,13 @@
 - [x] Wired to Photino native window events in `BlazorHostWindow`
 - [x] Demo panel in DesktopFeatures sample with event log
 
-### Theme Detection
-- [ ] Detect OS dark/light mode preference
-- [ ] `IThemeService` interface
-- [ ] `GetSystemTheme()` method returning `Light`, `Dark`, or `System`
-- [ ] `OnThemeChanged` event for runtime theme switches
-- [ ] Auto-apply to MudBlazor theme provider
+### Theme Detection - DONE (v2.2.0)
+- [x] Detect OS dark/light mode preference via Avalonia's `ActualThemeVariant`
+- [x] `IThemeService` interface with `CurrentTheme`, `IsDarkMode`, `ThemeChanged` event
+- [x] `SystemTheme` enum (`Light`, `Dark`)
+- [x] Runtime theme change tracking via `ActualThemeVariantChanged`
+- [x] Auto-apply to MudBlazor: "Follow System Theme" toggle in DesktopFeatures sample
+- [x] Demo panel with theme state display and change log
 
 ---
 
