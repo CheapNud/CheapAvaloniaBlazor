@@ -212,6 +212,10 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             photinoWindow.WindowFocusOut += (s, e) => lifecycleService.OnDeactivated();
         }
 
+        // Initialize native menu bar (Windows only)
+        var menuBarService = CheapAvaloniaBlazorRuntime.GetRequiredService<IMenuBarService>() as MenuBarService;
+        menuBarService?.Initialize(photinoWindow.WindowHandle, _options?.MenuBarItems);
+
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {

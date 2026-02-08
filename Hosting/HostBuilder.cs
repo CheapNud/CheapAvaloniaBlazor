@@ -475,6 +475,19 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Set the native menu bar items (Windows only).
+    /// Top-level items should be submenus created via MenuItemDefinition.CreateSubMenu().
+    /// Accelerator text is display-only — use IHotkeyService for actual keyboard bindings.
+    /// </summary>
+    /// <param name="menus">Top-level menu definitions (e.g. File, Edit, Help)</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithMenuBar(IEnumerable<MenuItemDefinition> menus)
+    {
+        _options.MenuBarItems = menus.ToList();
+        return this;
+    }
+
+    /// <summary>
     /// Configure the Blazor server pipeline
     /// </summary>
     /// <param name="configure">Action to configure the pipeline</param>

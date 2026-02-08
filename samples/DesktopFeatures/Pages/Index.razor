@@ -7,6 +7,7 @@
 @inject IAppLifecycleService LifecycleService
 @inject IThemeService ThemeService
 @inject IHotkeyService HotkeyService
+@inject IMenuBarService MenuBarService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -497,6 +498,61 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Native Menu Bar</MudText>
+
+            <MudStack Spacing="2">
+                <MudChip T="string" Size="Size.Small" Color="@(MenuBarService.IsSupported ? Color.Success : Color.Error)">
+                    @(MenuBarService.IsSupported ? "Supported" : "Not Supported")
+                </MudChip>
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.ToggleOn"
+                               OnClick="ToggleMenuDarkMode"
+                               Disabled="@(!MenuBarService.IsSupported)">
+                        Toggle Dark Mode Check
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Block"
+                               OnClick="ToggleFileNew"
+                               Disabled="@(!MenuBarService.IsSupported)">
+                        @(_fileNewEnabled ? "Disable" : "Enable") File > New
+                    </MudButton>
+                </MudButtonGroup>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Menu Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_menuBarEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No menu clicks yet. Use the native menu bar at the top of the window.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _menuBarEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="ClearMenuBarLog">
+                    Clear Log
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Win32 native menu bar. Mnemonics (Alt+F), accelerator text, checkable items, enable/disable. Windows only.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -561,6 +617,11 @@
     private readonly List<int> _registeredHotkeyIds = [];
     private readonly List<string> _hotkeyEvents = [];
 
+    // Menu bar demo
+    private readonly List<string> _menuBarEvents = [];
+    private bool _menuDarkModeChecked;
+    private bool _fileNewEnabled = true;
+
     protected override async Task OnInitializedAsync()
     {
         _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
@@ -577,6 +638,9 @@
 
         // Subscribe to hotkey presses
         HotkeyService.HotkeyPressed += OnHotkeyPressed;
+
+        // Subscribe to menu bar clicks
+        MenuBarService.MenuItemClicked += OnMenuItemClicked;
     }
 
     private async Task OpenFile()
@@ -861,6 +925,36 @@
         // Already handled by per-hotkey callbacks, but demonstrates the global event
     }
 
+    private void OnMenuItemClicked(string menuItemId)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _menuBarEvents.Insert(0, $"[{timestamp}] Menu: {menuItemId}");
+
+        if (_menuBarEvents.Count > 50)
+            _menuBarEvents.RemoveAt(_menuBarEvents.Count - 1);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleMenuDarkMode()
+    {
+        _menuDarkModeChecked = !_menuDarkModeChecked;
+        MenuBarService.CheckMenuItem("view_darkmode", _menuDarkModeChecked);
+        Snackbar.Add($"Dark Mode check: {_menuDarkModeChecked}", Severity.Info);
+    }
+
+    private void ToggleFileNew()
+    {
+        _fileNewEnabled = !_fileNewEnabled;
+        MenuBarService.EnableMenuItem("file_new", _fileNewEnabled);
+        Snackbar.Add($"File > New {(_fileNewEnabled ? "enabled" : "disabled")}", Severity.Info);
+    }
+
+    private void ClearMenuBarLog()
+    {
+        _menuBarEvents.Clear();
+    }
+
     private void OnThemeChanged(CheapAvaloniaBlazor.Models.SystemTheme newTheme)
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
@@ -883,6 +977,8 @@
         ThemeService.ThemeChanged -= OnThemeChanged;
 
         HotkeyService.HotkeyPressed -= OnHotkeyPressed;
+
+        MenuBarService.MenuItemClicked -= OnMenuItemClicked;
 
         // Unregister hotkeys registered by this component
         foreach (var hotkeyId in _registeredHotkeyIds)

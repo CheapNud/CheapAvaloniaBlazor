@@ -102,13 +102,23 @@
 - [ ] Linux testing: verify X11 backend on X11 sessions
 - [ ] Linux testing: verify D-Bus → X11 fallback chain on X11-only systems
 
-### Native Menu Bar
-- [ ] File, Edit, View, Help standard menus
-- [ ] Custom menu items via fluent API
-- [ ] Keyboard accelerators (Ctrl+S, Ctrl+O, etc.)
-- [ ] Menu item enable/disable states
-- [ ] Separator support
-- [ ] Submenu support
+### Native Menu Bar - DONE (v2.4.0)
+- [x] File, Edit, View, Help standard menus
+- [x] Custom menu items via fluent API (`.WithMenuBar()` builder + `MenuItemDefinition` factory methods)
+- [x] Keyboard accelerators display text (e.g. "Ctrl+S" — display-only, actual binding via `IHotkeyService`)
+- [x] Menu item enable/disable states (`EnableMenuItem()`)
+- [x] Checkable menu items with toggle (`CheckMenuItem()`, `CreateCheckable()`)
+- [x] Separator support
+- [x] Submenu support (nested `CreateSubMenu()`)
+- [x] Win32 mnemonic characters (`&` prefix, Alt+F opens File menu)
+- [x] `IMenuBarService` interface with `IsSupported` for cross-platform detection
+- [x] `MenuItemClicked` event with string ID
+- [x] Platform backend architecture (`IMenuBarBackend` → Windows/Null)
+- [x] WndProc subclassing on Photino HWND for WM_COMMAND handling
+- [x] Proper dispose order (restore WndProc first, then destroy menu)
+- [x] Demo panel in DesktopFeatures sample with toggle/enable controls and event log
+- [ ] Linux GTK menu bar integration (requires Photino widget hierarchy access)
+- [ ] macOS native menu bar integration
 
 ### Multi-Window Support
 - [ ] `IWindowService` for creating additional windows
@@ -224,7 +234,7 @@ Each UI framework integration should:
 
 ## Notes
 
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-02-08
 
 **Versioning**: This TODO applies to v2.x and beyond. Core architecture is stable.
 

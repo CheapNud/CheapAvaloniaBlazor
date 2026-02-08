@@ -314,6 +314,53 @@ Hotkeys.HotkeyPressed += (hotkeyId) =>
 
 No builder configuration required - `IHotkeyService` is always available. Automatically selects the best backend for the current platform.
 
+### Native Menu Bar (v2.4.0)
+Attach a Win32 native menu bar to the Photino window with File, Edit, View, Help menus or any custom layout. Supports mnemonics (Alt+F), accelerator display text, checkable items, and dynamic enable/disable.
+
+```csharp
+using CheapAvaloniaBlazor.Models;
+
+new HostBuilder()
+    .WithTitle("My App")
+    .WithMenuBar(
+    [
+        MenuItemDefinition.CreateSubMenu("&File",
+        [
+            MenuItemDefinition.Create("&New", () => NewFile(), id: "file_new", accelerator: "Ctrl+N"),
+            MenuItemDefinition.Create("&Open...", () => OpenFile(), id: "file_open", accelerator: "Ctrl+O"),
+            MenuItemDefinition.Separator(),
+            MenuItemDefinition.Create("E&xit", () => Environment.Exit(0), id: "file_exit"),
+        ]),
+        MenuItemDefinition.CreateSubMenu("&View",
+        [
+            MenuItemDefinition.CreateCheckable("&Dark Mode", false, () => ToggleTheme(), id: "view_dark"),
+        ]),
+        MenuItemDefinition.CreateSubMenu("&Help",
+        [
+            MenuItemDefinition.Create("&About", () => ShowAbout(), id: "help_about"),
+        ]),
+    ])
+    .AddMudBlazor()
+    .RunApp(args);
+```
+
+Control from Blazor components:
+```csharp
+@inject IMenuBarService MenuBar
+
+// Enable/disable menu items dynamically
+MenuBar.EnableMenuItem("file_new", isEnabled: false);
+
+// Toggle check state
+MenuBar.CheckMenuItem("view_dark", isChecked: true);
+
+// React to any menu click
+MenuBar.MenuItemClicked += (menuItemId) =>
+    Console.WriteLine($"Menu clicked: {menuItemId}");
+```
+
+**Platform support:** Windows only (Win32 native menu). `IsSupported` returns false on Linux/macOS. Accelerator text is display-only — use `IHotkeyService` for actual keyboard bindings.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -401,6 +448,9 @@ new HostBuilder()
     .WithSettingsAppName("MyApp")
     .AutoSaveSettings()
 
+    // Menu Bar (Windows only)
+    .WithMenuBar([...])
+
     // Server
     .UsePort(5001).UseHttps(true)
 
@@ -483,6 +533,7 @@ MyDesktopApp/
 | App Lifecycle Events | Tested | Untested | Untested |
 | Theme Detection | Tested | Untested | Untested |
 | Global Hotkeys | Tested | Tested (D-Bus/X11) | Not supported |
+| Native Menu Bar | Tested | Not supported | Not supported |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -497,6 +548,7 @@ MyDesktopApp/
 | `IAppLifecycleService` | Singleton | Window lifecycle events (minimize, maximize, focus, close) |
 | `IThemeService` | Singleton | OS dark/light mode detection and runtime change tracking |
 | `IHotkeyService` | Singleton | System-wide global hotkeys (Windows + Linux, `IsSupported` for detection) |
+| `IMenuBarService` | Singleton | Native Win32 menu bar (Windows only, `IsSupported` for detection) |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 
@@ -519,6 +571,7 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - App lifecycle events (window state tracking and event log)
 - Theme detection (OS dark/light mode with follow-system toggle)
 - Global hotkeys (system-wide keyboard shortcuts, Windows + Linux)
+- Native menu bar (Win32 menu with mnemonics, accelerators, checkable items)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -639,7 +692,7 @@ var builder = new HostBuilder()
 
 ## Project Status & Roadmap
 
-### Current Status: v2.3.0
+### Current Status: v2.4.0
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
 - Splash Screen: Enabled by default, fully customizable
@@ -649,6 +702,7 @@ var builder = new HostBuilder()
 - App Lifecycle Events: Window state tracking, close cancellation, focus/minimize/maximize events
 - Theme Detection: OS dark/light mode detection with runtime change tracking
 - Global Hotkeys: System-wide keyboard shortcuts (Windows via Win32, Linux via D-Bus/X11)
+- Native Menu Bar: Win32 native menu bar with mnemonics, accelerators, checkable items, submenus (Windows only)
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
 - Window Management: Minimize, maximize, resize, title changes, hide/show
 - Clipboard: Read/write text via clipboard API

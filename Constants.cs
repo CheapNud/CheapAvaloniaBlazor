@@ -255,6 +255,17 @@ public static class Constants
     }
 
     /// <summary>
+    /// Native menu bar related constants
+    /// </summary>
+    public static class MenuBar
+    {
+        /// <summary>
+        /// First Win32 menu item command ID. Avoids collision with system-defined IDs.
+        /// </summary>
+        public const int FirstMenuItemId = 1001;
+    }
+
+    /// <summary>
     /// System tray related constants
     /// </summary>
     public static class SystemTray
