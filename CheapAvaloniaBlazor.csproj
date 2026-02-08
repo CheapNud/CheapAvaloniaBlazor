@@ -46,6 +46,7 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.11" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.22.0" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

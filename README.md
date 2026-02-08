@@ -268,7 +268,13 @@ Theme.ThemeChanged += (newTheme) =>
 Uses Avalonia's built-in platform theme detection under the hood. No builder configuration required - `IThemeService` is always available.
 
 ### Global Hotkeys (v2.3.0)
-Register system-wide keyboard shortcuts that fire even when the application window is not focused. Windows only, with `IsSupported` for runtime platform detection.
+Register system-wide keyboard shortcuts that fire even when the application window is not focused. Supported on Windows and Linux, with `IsSupported` for runtime platform detection.
+
+**Platform support:**
+- **Windows**: Win32 `RegisterHotKey` API
+- **Linux (Wayland)**: D-Bus GlobalShortcuts portal (KDE 5.27+, GNOME 48+, Hyprland)
+- **Linux (X11)**: `XGrabKey` fallback (X11 sessions and XWayland)
+- **macOS**: Not supported (`IsSupported` returns false)
 
 ```csharp
 @inject IHotkeyService Hotkeys
@@ -294,7 +300,7 @@ Hotkeys.HotkeyPressed += (hotkeyId) =>
     Console.WriteLine($"Hotkey {hotkeyId} fired");
 ```
 
-No builder configuration required - `IHotkeyService` is always available. Uses Win32 `RegisterHotKey` API under the hood.
+No builder configuration required - `IHotkeyService` is always available. Automatically selects the best backend for the current platform.
 
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
@@ -464,7 +470,7 @@ MyDesktopApp/
 | Settings Persistence | Tested | Untested | Untested |
 | App Lifecycle Events | Tested | Untested | Untested |
 | Theme Detection | Tested | Untested | Untested |
-| Global Hotkeys | Tested | Not supported | Not supported |
+| Global Hotkeys | Tested | Tested (D-Bus/X11) | Not supported |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -478,7 +484,7 @@ MyDesktopApp/
 | `ISettingsService` | Singleton | JSON settings persistence (key-value + typed sections) |
 | `IAppLifecycleService` | Singleton | Window lifecycle events (minimize, maximize, focus, close) |
 | `IThemeService` | Singleton | OS dark/light mode detection and runtime change tracking |
-| `IHotkeyService` | Singleton | System-wide global hotkeys (Windows only, `IsSupported` for detection) |
+| `IHotkeyService` | Singleton | System-wide global hotkeys (Windows + Linux, `IsSupported` for detection) |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 
@@ -500,7 +506,7 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - Settings persistence (key-value and typed section APIs)
 - App lifecycle events (window state tracking and event log)
 - Theme detection (OS dark/light mode with follow-system toggle)
-- Global hotkeys (system-wide keyboard shortcuts, Windows only)
+- Global hotkeys (system-wide keyboard shortcuts, Windows + Linux)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -556,6 +562,7 @@ dotnet publish -c Release -r osx-x64 --self-contained -p:PublishSingleFile=true
 - `Avalonia 11.3.11` - Desktop framework
 - `MudBlazor 8.15.0` - Material Design components
 - `Photino.NET 4.0.16` - WebView hosting
+- `Tmds.DBus.Protocol 0.22.0` - D-Bus protocol for Linux global hotkeys
 - `Microsoft.AspNetCore.App` - ASP.NET Core framework reference
 
 ---
@@ -629,7 +636,7 @@ var builder = new HostBuilder()
 - Settings Persistence: JSON-based key-value + typed section APIs with auto-save
 - App Lifecycle Events: Window state tracking, close cancellation, focus/minimize/maximize events
 - Theme Detection: OS dark/light mode detection with runtime change tracking
-- Global Hotkeys: System-wide keyboard shortcuts via Win32 RegisterHotKey (Windows only)
+- Global Hotkeys: System-wide keyboard shortcuts (Windows via Win32, Linux via D-Bus/X11)
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
 - Window Management: Minimize, maximize, resize, title changes, hide/show
 - Clipboard: Read/write text via clipboard API

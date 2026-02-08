@@ -415,7 +415,7 @@
 
             <MudStack Spacing="2">
                 <MudChip T="string" Size="Size.Small" Color="@(HotkeyService.IsSupported ? Color.Success : Color.Error)">
-                    @(HotkeyService.IsSupported ? "Supported (Windows)" : "Not Supported")
+                    @(HotkeyService.IsSupported ? "Supported" : "Not Supported")
                 </MudChip>
 
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -490,7 +490,7 @@
 
                 <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
                     <MudText Typo="Typo.caption">
-                        Win32 RegisterHotKey API. Works system-wide, even when the app window is not focused. Windows only.
+                        System-wide hotkeys that work even when the app is not focused. Windows (Win32) and Linux (D-Bus portal / X11).
                     </MudText>
                 </MudAlert>
             </MudStack>

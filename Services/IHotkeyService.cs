@@ -6,13 +6,13 @@ namespace CheapAvaloniaBlazor.Services;
 /// <summary>
 /// Service for registering system-wide global hotkeys.
 /// Hotkeys fire even when the application window is not focused.
-/// Currently supported on Windows only via Win32 RegisterHotKey API.
+/// Supported on Windows (Win32 RegisterHotKey) and Linux (D-Bus GlobalShortcuts portal / X11 XGrabKey).
 /// </summary>
 public interface IHotkeyService
 {
     /// <summary>
-    /// Whether global hotkeys are supported on the current platform.
-    /// True on Windows, false on Linux/macOS.
+    /// Whether global hotkeys are supported on the current platform/session.
+    /// True on Windows and Linux (with D-Bus portal or X11), false on macOS.
     /// </summary>
     bool IsSupported { get; }
 
@@ -23,9 +23,8 @@ public interface IHotkeyService
     /// <param name="key">The key to register</param>
     /// <param name="callback">Action invoked when the hotkey is pressed</param>
     /// <returns>A unique hotkey ID for later unregistration</returns>
-    /// <exception cref="PlatformNotSupportedException">Thrown on non-Windows platforms</exception>
-    /// <exception cref="InvalidOperationException">Thrown when Win32 registration fails (e.g. hotkey already in use)</exception>
-    /// <exception cref="ArgumentException">Thrown when the key cannot be mapped to a virtual key code</exception>
+    /// <exception cref="PlatformNotSupportedException">Thrown on unsupported platforms</exception>
+    /// <exception cref="InvalidOperationException">Thrown when registration fails (e.g. hotkey already in use)</exception>
     int RegisterHotkey(HotkeyModifiers modifiers, Key key, Action callback);
 
     /// <summary>
