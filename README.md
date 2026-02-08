@@ -300,6 +300,18 @@ Hotkeys.HotkeyPressed += (hotkeyId) =>
     Console.WriteLine($"Hotkey {hotkeyId} fired");
 ```
 
+**Supported keys** (via `Avalonia.Input.Key`):
+- Letters: `A`–`Z`
+- Digits: `D0`–`D9`
+- Function keys: `F1`–`F24`
+- NumPad: `NumPad0`–`NumPad9`
+- Navigation: `Home`, `End`, `PageUp`, `PageDown`, `Insert`, `Delete`
+- Arrows: `Left`, `Up`, `Right`, `Down`
+- Special: `Space`, `Return`, `Escape`, `Tab`, `Back`
+- Misc: `PrintScreen`, `Pause`, `CapsLock`, `NumLock`, `Scroll`
+
+**Modifiers** (combinable with `|`): `Ctrl`, `Alt`, `Shift`, `Win`
+
 No builder configuration required - `IHotkeyService` is always available. Automatically selects the best backend for the current platform.
 
 ### Splash Screen (v1.1.0)

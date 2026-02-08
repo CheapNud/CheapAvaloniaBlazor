@@ -129,6 +129,7 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
                     XUngrabKey(_display, keycode, modMask | lockVariant, _rootWindow);
             }
 
+            XFlush(_display);
             _registrationMap.Clear();
             _grabMap.Clear();
             XCloseDisplay(_display);
@@ -237,6 +238,8 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
             XGrabKey(_display, keycode, x11Mods | lockVariant, _rootWindow, false, GrabModeAsync, GrabModeAsync);
         }
 
+        XFlush(_display);
+
         _grabMap[(keycode, x11Mods)] = hotkeyId;
         _registrationMap[hotkeyId] = (keycode, x11Mods);
 
@@ -253,6 +256,8 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
 
         foreach (var lockVariant in LockVariants)
             XUngrabKey(_display, keycode, modMask | lockVariant, _rootWindow);
+
+        XFlush(_display);
 
         _grabMap.Remove((keycode, modMask));
         _registrationMap.Remove(hotkeyId);
@@ -303,6 +308,10 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
     [DllImport("libX11.so.6")]
     [SupportedOSPlatform("linux")]
     private static extern int XPending(IntPtr display);
+
+    [DllImport("libX11.so.6")]
+    [SupportedOSPlatform("linux")]
+    private static extern int XFlush(IntPtr display);
 
     [DllImport("libX11.so.6")]
     [SupportedOSPlatform("linux")]
