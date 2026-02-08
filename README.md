@@ -246,6 +246,27 @@ Lifecycle.Closing += (sender, args) =>
 
 No builder configuration required - `IAppLifecycleService` is always available.
 
+### Theme Detection (v2.2.0)
+Detect OS dark/light mode preference and automatically react to runtime theme switches.
+
+```csharp
+@inject IThemeService Theme
+
+// Read current OS theme
+var theme = Theme.CurrentTheme;  // SystemTheme.Light or SystemTheme.Dark
+var isDark = Theme.IsDarkMode;   // Convenience bool
+
+// React to OS theme changes at runtime
+Theme.ThemeChanged += (newTheme) =>
+{
+    // Auto-sync MudBlazor dark mode with OS preference
+    _isDarkMode = newTheme == SystemTheme.Dark;
+    InvokeAsync(StateHasChanged);
+};
+```
+
+Uses Avalonia's built-in platform theme detection under the hood. No builder configuration required - `IThemeService` is always available.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -413,6 +434,7 @@ MyDesktopApp/
 | System Notifications (JS) | Tested | Untested | Untested |
 | Settings Persistence | Tested | Untested | Untested |
 | App Lifecycle Events | Tested | Untested | Untested |
+| Theme Detection | Tested | Untested | Untested |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -425,6 +447,7 @@ MyDesktopApp/
 | `ISystemTrayService` | Singleton | Tray icon, context menu, minimize/restore to tray |
 | `ISettingsService` | Singleton | JSON settings persistence (key-value + typed sections) |
 | `IAppLifecycleService` | Singleton | Window lifecycle events (minimize, maximize, focus, close) |
+| `IThemeService` | Singleton | OS dark/light mode detection and runtime change tracking |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 
@@ -445,6 +468,7 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - System notifications (OS notification center)
 - Settings persistence (key-value and typed section APIs)
 - App lifecycle events (window state tracking and event log)
+- Theme detection (OS dark/light mode with follow-system toggle)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -572,6 +596,7 @@ var builder = new HostBuilder()
 - Dual Notifications: Desktop toasts (Avalonia) + system notifications (JS Web Notification API)
 - Settings Persistence: JSON-based key-value + typed section APIs with auto-save
 - App Lifecycle Events: Window state tracking, close cancellation, focus/minimize/maximize events
+- Theme Detection: OS dark/light mode detection with runtime change tracking
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
 - Window Management: Minimize, maximize, resize, title changes, hide/show
 - Clipboard: Read/write text via clipboard API
