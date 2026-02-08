@@ -31,6 +31,11 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
     private volatile bool _stopping;
     private volatile bool _disposed;
 
+    // Error handler for grab conflict detection (BadAccess = key already grabbed)
+    private const int BadAccess = 10;
+    private volatile bool _lastGrabHadError;
+    private XErrorHandlerDelegate? _errorHandlerDelegate; // prevent GC collection
+
     public bool IsSupported { get; }
 
     public event Action<int>? HotkeyPressed;
@@ -232,19 +237,50 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
 
         var x11Mods = ToX11Modifiers(modifiers);
 
+        // Install error handler to detect grab conflicts (BadAccess = key already grabbed)
+        _lastGrabHadError = false;
+        _errorHandlerDelegate ??= GrabErrorHandler;
+        var previousHandler = XSetErrorHandlerManaged(_errorHandlerDelegate);
+
         // Register with all 4 lock-state variants
         foreach (var lockVariant in LockVariants)
         {
             XGrabKey(_display, keycode, x11Mods | lockVariant, _rootWindow, false, GrabModeAsync, GrabModeAsync);
         }
 
-        XFlush(_display);
+        // Force all pending errors to be delivered synchronously
+        XSync(_display, false);
+
+        // Restore previous error handler
+        XSetErrorHandlerNative(previousHandler);
+
+        if (_lastGrabHadError)
+        {
+            _logger.LogWarning("X11: Grab conflict (BadAccess) for keycode={Keycode} mods=0x{Mods:X} — key already grabbed by another application", keycode, x11Mods);
+
+            // Roll back — ungrab any variants that may have succeeded
+            foreach (var lockVariant in LockVariants)
+                XUngrabKey(_display, keycode, x11Mods | lockVariant, _rootWindow);
+
+            XFlush(_display);
+            return false;
+        }
 
         _grabMap[(keycode, x11Mods)] = hotkeyId;
         _registrationMap[hotkeyId] = (keycode, x11Mods);
 
         _logger.LogDebug("X11: Grabbed keycode={Keycode} mods=0x{Mods:X} for hotkey ID={Id}", keycode, x11Mods, hotkeyId);
         return true;
+    }
+
+    private int GrabErrorHandler(IntPtr display, IntPtr errorEvent)
+    {
+        // XErrorEvent layout (64-bit): error_code is unsigned char at byte offset 32
+        var errorCode = Marshal.ReadByte(errorEvent, 32);
+        if (errorCode == BadAccess)
+            _lastGrabHadError = true;
+
+        return 0;
     }
 
     private bool ExecuteUngrab(int hotkeyId)
@@ -280,6 +316,9 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
 
     private const int GrabModeAsync = 1;
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int XErrorHandlerDelegate(IntPtr display, IntPtr errorEvent);
+
     [DllImport("libX11.so.6")]
     [SupportedOSPlatform("linux")]
     private static extern IntPtr XOpenDisplay(IntPtr displayName);
@@ -312,6 +351,18 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
     [DllImport("libX11.so.6")]
     [SupportedOSPlatform("linux")]
     private static extern int XFlush(IntPtr display);
+
+    [DllImport("libX11.so.6")]
+    [SupportedOSPlatform("linux")]
+    private static extern int XSync(IntPtr display, [MarshalAs(UnmanagedType.Bool)] bool discard);
+
+    [DllImport("libX11.so.6", EntryPoint = "XSetErrorHandler")]
+    [SupportedOSPlatform("linux")]
+    private static extern IntPtr XSetErrorHandlerManaged(XErrorHandlerDelegate handler);
+
+    [DllImport("libX11.so.6", EntryPoint = "XSetErrorHandler")]
+    [SupportedOSPlatform("linux")]
+    private static extern IntPtr XSetErrorHandlerNative(IntPtr handler);
 
     [DllImport("libX11.so.6")]
     [SupportedOSPlatform("linux")]
