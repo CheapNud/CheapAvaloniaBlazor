@@ -334,6 +334,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             var themeService = CheapAvaloniaBlazorRuntime.GetRequiredService<IThemeService>();
             services.AddSingleton(themeService);
 
+            var hotkeyService = CheapAvaloniaBlazorRuntime.GetRequiredService<IHotkeyService>();
+            services.AddSingleton(hotkeyService);
+
             // Add the DesktopInteropService
             _logger.LogDebug("Adding DesktopInteropService...");
             services.AddScoped<IDesktopInteropService, DesktopInteropService>();

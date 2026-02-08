@@ -81,12 +81,26 @@
 
 ## Priority 2 - Enhanced Desktop Experience
 
-### Global Hotkeys
-- [ ] Register system-wide keyboard shortcuts
-- [ ] `IHotkeyService` interface
-- [ ] Methods: `RegisterHotkey()`, `UnregisterHotkey()`, `UnregisterAll()`
-- [ ] Modifier key support (Ctrl, Alt, Shift, Win)
-- [ ] Conflict detection with existing system hotkeys
+### Global Hotkeys - DONE (v2.3.0)
+- [x] Register system-wide keyboard shortcuts via Win32 `RegisterHotKey` API
+- [x] `IHotkeyService` interface with `IsSupported` for cross-platform detection
+- [x] Methods: `RegisterHotkey()`, `UnregisterHotkey()`, `UnregisterAll()`
+- [x] Modifier key support (Ctrl, Alt, Shift, Win) via `HotkeyModifiers` flags enum
+- [x] Conflict detection with existing system hotkeys (Win32 error propagation)
+- [x] `HotkeyPressed` global event for any hotkey press
+- [x] Dedicated background thread with Win32 `GetMessage` loop
+- [x] `Avalonia.Input.Key` → Win32 VK code mapping via `KeyMapper`
+- [x] Proper `IDisposable` cleanup (unregister all, stop message pump)
+- [x] Demo panel in DesktopFeatures sample with register/unregister and event log
+- [x] Platform backend architecture (`IHotkeyBackend` → Windows/D-Bus/X11/Null)
+- [x] Linux D-Bus GlobalShortcuts portal backend (Wayland: KDE 5.27+, GNOME 48+, Hyprland)
+- [x] Linux X11 XGrabKey fallback backend (X11 sessions + XWayland)
+- [x] NumLock/CapsLock-aware key grab (4 modifier variants per hotkey)
+- [x] Automatic backend selection with D-Bus → X11 → Null fallback chain
+- [x] `KeyMapper.ToX11KeySym()` and `KeyMapper.ToPortalTrigger()` mapping methods
+- [ ] Linux testing: verify D-Bus portal on KDE/GNOME/Hyprland
+- [ ] Linux testing: verify X11 backend on X11 sessions
+- [ ] Linux testing: verify D-Bus → X11 fallback chain on X11-only systems
 
 ### Native Menu Bar
 - [ ] File, Edit, View, Help standard menus
