@@ -86,12 +86,15 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
         {
             _logger.LogError(ex, "D-Bus: Failed to bind shortcut for hotkey ID={Id}", hotkeyId);
 
+            // Roll back — defensive check in case a concurrent Unregister already removed it
             lock (_lock)
             {
-                var shortcutId = _shortcutIdMap[hotkeyId];
-                _shortcutIdMap.Remove(hotkeyId);
-                _reverseMap.Remove(shortcutId);
-                _hotkeyDetails.Remove(hotkeyId);
+                if (_shortcutIdMap.TryGetValue(hotkeyId, out var shortcutId))
+                {
+                    _shortcutIdMap.Remove(hotkeyId);
+                    _reverseMap.Remove(shortcutId);
+                    _hotkeyDetails.Remove(hotkeyId);
+                }
             }
 
             return false;
@@ -203,7 +206,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
     private string? CreateSession()
     {
         var senderName = _connection!.UniqueName!.Replace(".", "_").Replace(":", "");
-        var sessionToken = $"cheapblazor_hotkey_{Environment.ProcessId}";
+        var sessionToken = $"cheapblazor_hotkey_{Environment.ProcessId}_{Environment.TickCount64}";
         var requestToken = $"req_{Environment.ProcessId}_create";
         var requestPath = $"/org/freedesktop/portal/desktop/request/{senderName}/{requestToken}";
 

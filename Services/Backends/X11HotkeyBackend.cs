@@ -146,7 +146,8 @@ internal sealed class X11HotkeyBackend : IHotkeyBackend
     {
         if (_pollThread?.IsAlive == true) return;
 
-        _eventBuffer = Marshal.AllocHGlobal(192); // XEvent is 192 bytes on 64-bit
+        if (_eventBuffer == IntPtr.Zero)
+            _eventBuffer = Marshal.AllocHGlobal(192); // XEvent is 192 bytes on 64-bit
 
         _pollThread = new Thread(PollLoop)
         {

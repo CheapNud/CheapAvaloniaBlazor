@@ -60,11 +60,11 @@ internal sealed class WindowsHotkeyBackend : IHotkeyBackend
         if (_disposed) return false;
         if (!OperatingSystem.IsWindows()) return false;
 
-        bool wasTracked;
+        bool isTracked;
         lock (_registeredIds)
-            wasTracked = _registeredIds.Remove(hotkeyId);
+            isTracked = _registeredIds.Contains(hotkeyId);
 
-        if (!wasTracked) return false;
+        if (!isTracked) return false;
 
         if (_messageThread?.IsAlive == true)
         {
@@ -73,6 +73,10 @@ internal sealed class WindowsHotkeyBackend : IHotkeyBackend
             WakeMessageThread();
             completionSource.Task.GetAwaiter().GetResult();
         }
+
+        // Remove from tracking AFTER the Win32 unregister completes
+        lock (_registeredIds)
+            _registeredIds.Remove(hotkeyId);
 
         return true;
     }
@@ -190,7 +194,8 @@ internal sealed class WindowsHotkeyBackend : IHotkeyBackend
         if (_messageThreadId != 0)
             PostThreadMessage(_messageThreadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
 
-        _messageThread.Join(TimeSpan.FromSeconds(3));
+        if (!_messageThread.Join(TimeSpan.FromSeconds(3)))
+            _logger.LogWarning("Hotkey message pump thread did not stop within timeout");
     }
 
     #region Win32 P/Invoke
