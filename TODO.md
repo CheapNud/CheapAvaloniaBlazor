@@ -81,12 +81,17 @@
 
 ## Priority 2 - Enhanced Desktop Experience
 
-### Global Hotkeys
-- [ ] Register system-wide keyboard shortcuts
-- [ ] `IHotkeyService` interface
-- [ ] Methods: `RegisterHotkey()`, `UnregisterHotkey()`, `UnregisterAll()`
-- [ ] Modifier key support (Ctrl, Alt, Shift, Win)
-- [ ] Conflict detection with existing system hotkeys
+### Global Hotkeys - DONE (v2.3.0)
+- [x] Register system-wide keyboard shortcuts via Win32 `RegisterHotKey` API
+- [x] `IHotkeyService` interface with `IsSupported` for cross-platform detection
+- [x] Methods: `RegisterHotkey()`, `UnregisterHotkey()`, `UnregisterAll()`
+- [x] Modifier key support (Ctrl, Alt, Shift, Win) via `HotkeyModifiers` flags enum
+- [x] Conflict detection with existing system hotkeys (Win32 error propagation)
+- [x] `HotkeyPressed` global event for any hotkey press
+- [x] Dedicated background thread with Win32 `GetMessage` loop
+- [x] `Avalonia.Input.Key` → Win32 VK code mapping via `KeyMapper`
+- [x] Proper `IDisposable` cleanup (unregister all, stop message pump)
+- [x] Demo panel in DesktopFeatures sample with register/unregister and event log
 
 ### Native Menu Bar
 - [ ] File, Edit, View, Help standard menus

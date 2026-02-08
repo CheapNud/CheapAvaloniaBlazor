@@ -6,6 +6,7 @@
 @inject ISettingsService SettingsService
 @inject IAppLifecycleService LifecycleService
 @inject IThemeService ThemeService
+@inject IHotkeyService HotkeyService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -408,6 +409,94 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Global Hotkeys</MudText>
+
+            <MudStack Spacing="2">
+                <MudChip T="string" Size="Size.Small" Color="@(HotkeyService.IsSupported ? Color.Success : Color.Error)">
+                    @(HotkeyService.IsSupported ? "Supported (Windows)" : "Not Supported")
+                </MudChip>
+
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudSelect T="CheapAvaloniaBlazor.Models.HotkeyModifiers"
+                               Value="_hotkeyModifier1"
+                               ValueChanged="@((CheapAvaloniaBlazor.Models.HotkeyModifiers m) => _hotkeyModifier1 = m)"
+                               Label="Modifier 1"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="min-width: 100px;">
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Ctrl">Ctrl</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Alt">Alt</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Shift">Shift</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Win">Win</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSelect T="CheapAvaloniaBlazor.Models.HotkeyModifiers"
+                               Value="_hotkeyModifier2"
+                               ValueChanged="@((CheapAvaloniaBlazor.Models.HotkeyModifiers m) => _hotkeyModifier2 = m)"
+                               Label="Modifier 2"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="min-width: 100px;">
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.None">None</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Ctrl">Ctrl</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Alt">Alt</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Shift">Shift</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Win">Win</MudSelectItem>
+                    </MudSelect>
+
+                    <MudTextField @bind-Value="_hotkeyKeyName"
+                                  Label="Key (e.g. H)"
+                                  Variant="Variant.Outlined"
+                                  Style="max-width: 120px;" />
+                </MudStack>
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="RegisterDemoHotkey"
+                               Disabled="@(!HotkeyService.IsSupported)">
+                        Register
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Clear"
+                               Color="Color.Warning"
+                               OnClick="UnregisterAllHotkeys"
+                               Disabled="@(!HotkeyService.IsSupported || _registeredHotkeyIds.Count == 0)">
+                        Unregister All
+                    </MudButton>
+                </MudButtonGroup>
+
+                @if (_registeredHotkeyIds.Count > 0)
+                {
+                    <MudText Typo="Typo.caption">Registered: @_registeredHotkeyIds.Count hotkey(s)</MudText>
+                }
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Hotkey Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_hotkeyEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No hotkey presses yet. Register a hotkey, then press it (works even when app is not focused).
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _hotkeyEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Win32 RegisterHotKey API. Works system-wide, even when the app window is not focused. Windows only.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -465,6 +554,13 @@
     // Theme detection demo
     private readonly List<string> _themeEvents = [];
 
+    // Hotkey demo
+    private CheapAvaloniaBlazor.Models.HotkeyModifiers _hotkeyModifier1 = CheapAvaloniaBlazor.Models.HotkeyModifiers.Ctrl;
+    private CheapAvaloniaBlazor.Models.HotkeyModifiers _hotkeyModifier2 = CheapAvaloniaBlazor.Models.HotkeyModifiers.Shift;
+    private string _hotkeyKeyName = "H";
+    private readonly List<int> _registeredHotkeyIds = [];
+    private readonly List<string> _hotkeyEvents = [];
+
     protected override async Task OnInitializedAsync()
     {
         _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
@@ -478,6 +574,9 @@
 
         // Subscribe to theme changes
         ThemeService.ThemeChanged += OnThemeChanged;
+
+        // Subscribe to hotkey presses
+        HotkeyService.HotkeyPressed += OnHotkeyPressed;
     }
 
     private async Task OpenFile()
@@ -707,6 +806,61 @@
         _lifecycleEvents.Clear();
     }
 
+    private void RegisterDemoHotkey()
+    {
+        if (string.IsNullOrWhiteSpace(_hotkeyKeyName))
+        {
+            Snackbar.Add("Enter a key name (e.g. H, F1, Space)", Severity.Warning);
+            return;
+        }
+
+        if (!Enum.TryParse<Avalonia.Input.Key>(_hotkeyKeyName.Trim(), ignoreCase: true, out var parsedKey))
+        {
+            Snackbar.Add($"Unknown key: '{_hotkeyKeyName}'. Use names like H, F1, Space, D1, etc.", Severity.Error);
+            return;
+        }
+
+        var combinedModifiers = _hotkeyModifier1 | _hotkeyModifier2;
+
+        try
+        {
+            var hotkeyId = HotkeyService.RegisterHotkey(combinedModifiers, parsedKey, () =>
+            {
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                _hotkeyEvents.Insert(0, $"[{timestamp}] {combinedModifiers}+{parsedKey} pressed!");
+
+                if (_hotkeyEvents.Count > 50)
+                    _hotkeyEvents.RemoveAt(_hotkeyEvents.Count - 1);
+
+                InvokeAsync(StateHasChanged);
+            });
+
+            _registeredHotkeyIds.Add(hotkeyId);
+            Snackbar.Add($"Registered: {combinedModifiers}+{parsedKey} (ID={hotkeyId})", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void UnregisterAllHotkeys()
+    {
+        foreach (var hotkeyId in _registeredHotkeyIds)
+        {
+            HotkeyService.UnregisterHotkey(hotkeyId);
+        }
+
+        var hotkeyCount = _registeredHotkeyIds.Count;
+        _registeredHotkeyIds.Clear();
+        Snackbar.Add($"Unregistered {hotkeyCount} hotkey(s)", Severity.Warning);
+    }
+
+    private void OnHotkeyPressed(int hotkeyId)
+    {
+        // Already handled by per-hotkey callbacks, but demonstrates the global event
+    }
+
     private void OnThemeChanged(CheapAvaloniaBlazor.Models.SystemTheme newTheme)
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
@@ -727,5 +881,14 @@
         LifecycleService.Deactivated -= OnLifecycleDeactivated;
 
         ThemeService.ThemeChanged -= OnThemeChanged;
+
+        HotkeyService.HotkeyPressed -= OnHotkeyPressed;
+
+        // Unregister hotkeys registered by this component
+        foreach (var hotkeyId in _registeredHotkeyIds)
+        {
+            HotkeyService.UnregisterHotkey(hotkeyId);
+        }
+        _registeredHotkeyIds.Clear();
     }
 }
