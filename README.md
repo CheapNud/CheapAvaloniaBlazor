@@ -267,6 +267,35 @@ Theme.ThemeChanged += (newTheme) =>
 
 Uses Avalonia's built-in platform theme detection under the hood. No builder configuration required - `IThemeService` is always available.
 
+### Global Hotkeys (v2.3.0)
+Register system-wide keyboard shortcuts that fire even when the application window is not focused. Windows only, with `IsSupported` for runtime platform detection.
+
+```csharp
+@inject IHotkeyService Hotkeys
+
+// Check platform support
+if (Hotkeys.IsSupported)
+{
+    // Register a global hotkey (Ctrl+Shift+H)
+    var id = Hotkeys.RegisterHotkey(
+        HotkeyModifiers.Ctrl | HotkeyModifiers.Shift,
+        Key.H,
+        () => Console.WriteLine("Hotkey pressed!"));
+
+    // Unregister when no longer needed
+    Hotkeys.UnregisterHotkey(id);
+
+    // Or unregister all at once
+    Hotkeys.UnregisterAll();
+}
+
+// Global event for any hotkey press
+Hotkeys.HotkeyPressed += (hotkeyId) =>
+    Console.WriteLine($"Hotkey {hotkeyId} fired");
+```
+
+No builder configuration required - `IHotkeyService` is always available. Uses Win32 `RegisterHotKey` API under the hood.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -435,6 +464,7 @@ MyDesktopApp/
 | Settings Persistence | Tested | Untested | Untested |
 | App Lifecycle Events | Tested | Untested | Untested |
 | Theme Detection | Tested | Untested | Untested |
+| Global Hotkeys | Tested | Not supported | Not supported |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -448,6 +478,7 @@ MyDesktopApp/
 | `ISettingsService` | Singleton | JSON settings persistence (key-value + typed sections) |
 | `IAppLifecycleService` | Singleton | Window lifecycle events (minimize, maximize, focus, close) |
 | `IThemeService` | Singleton | OS dark/light mode detection and runtime change tracking |
+| `IHotkeyService` | Singleton | System-wide global hotkeys (Windows only, `IsSupported` for detection) |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 
@@ -469,6 +500,7 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - Settings persistence (key-value and typed section APIs)
 - App lifecycle events (window state tracking and event log)
 - Theme detection (OS dark/light mode with follow-system toggle)
+- Global hotkeys (system-wide keyboard shortcuts, Windows only)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -588,7 +620,7 @@ var builder = new HostBuilder()
 
 ## Project Status & Roadmap
 
-### Current Status: v2.2.0
+### Current Status: v2.3.0
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
 - Splash Screen: Enabled by default, fully customizable
@@ -597,6 +629,7 @@ var builder = new HostBuilder()
 - Settings Persistence: JSON-based key-value + typed section APIs with auto-save
 - App Lifecycle Events: Window state tracking, close cancellation, focus/minimize/maximize events
 - Theme Detection: OS dark/light mode detection with runtime change tracking
+- Global Hotkeys: System-wide keyboard shortcuts via Win32 RegisterHotKey (Windows only)
 - File System Interop: Cross-platform file dialogs via Avalonia StorageProvider
 - Window Management: Minimize, maximize, resize, title changes, hide/show
 - Clipboard: Read/write text via clipboard API
