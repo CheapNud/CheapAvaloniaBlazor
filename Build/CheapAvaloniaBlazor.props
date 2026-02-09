@@ -1,4 +1,4 @@
-<!-- build/CheapAvaloniaBlazor.props -->
+<!-- Build/CheapAvaloniaBlazor.props -->
 <Project>
   <PropertyGroup>
     <!-- Enable Razor component discovery in consuming projects -->
