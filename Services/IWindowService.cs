@@ -21,6 +21,9 @@ public interface IWindowService : IDisposable
     /// <param name="options">Window creation options (URL path or component type, size, title, etc.)</param>
     /// <param name="cancellationToken">Token to cancel the window creation.</param>
     /// <returns>Unique window ID for the new window.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the component type whitelist is full
+    /// (more than <see cref="Constants.Window.MaxRegisteredComponentTypes"/> distinct types).
+    /// Re-using the same component type does not count against the limit.</exception>
     Task<string> CreateWindowAsync(WindowOptions options, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -31,6 +34,7 @@ public interface IWindowService : IDisposable
     /// <param name="cancellationToken">Token to cancel the modal wait. If cancelled, the parent
     /// window is re-enabled and the modal window is closed. Returns <see cref="ModalResult.Cancel()"/>.</param>
     /// <returns>The modal result (confirmed/cancelled with optional data payload).</returns>
+    /// <inheritdoc cref="CreateWindowAsync" path="/exception"/>
     Task<ModalResult> CreateModalAsync(WindowOptions options, CancellationToken cancellationToken = default);
 
     /// <summary>

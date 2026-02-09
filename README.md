@@ -417,6 +417,8 @@ WindowService.MessageReceived += (targetId, type, payload) =>
 
 **Platform support:** Child windows work on all platforms. Modal behavior (parent window disabling) is Windows-only via Win32 `EnableWindow`. On Linux/macOS, `IsModalSupported` returns false but dialogs still open as regular windows.
 
+**Limits:** When using `WindowOptions.ComponentType`, each distinct component type is registered in an internal security whitelist (prevents arbitrary type instantiation from URL parameters). The whitelist is capped at **256 distinct types** (`Constants.Window.MaxRegisteredComponentTypes`). Re-using the same type across multiple windows does not count again. This limit is a safety guard — typical apps use far fewer component types. URL-path windows (`WindowOptions.FromUrl`) are not affected.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 

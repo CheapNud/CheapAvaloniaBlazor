@@ -32,8 +32,16 @@ public sealed class WindowService : IWindowService
     /// Whitelist of component types allowed in WindowHost.razor.
     /// Only types explicitly passed via <see cref="WindowOptions.ComponentType"/> are registered.
     /// Prevents arbitrary type instantiation from URL query parameters.
+    /// Capped at <see cref="Constants.Window.MaxRegisteredComponentTypes"/> distinct types —
+    /// re-registering the same type (by FullName) is idempotent and does not count against the limit.
     /// </summary>
     private readonly ConcurrentDictionary<string, Type> _registeredComponents = new();
+
+    /// <summary>
+    /// Signaled by <see cref="RegisterMainWindow"/> when the main Photino window is ready.
+    /// Early <see cref="CreateWindowAsync"/> callers await this instead of hitting a null-check exception.
+    /// </summary>
+    private readonly TaskCompletionSource _mainWindowReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private PhotinoWindow? _mainPhotinoWindow;
     private IntPtr _mainWindowHandle;
@@ -63,6 +71,7 @@ public sealed class WindowService : IWindowService
     {
         _mainPhotinoWindow = photinoWindow;
         _mainWindowHandle = photinoWindow.WindowHandle;
+        _mainWindowReady.TrySetResult();
         _logger.LogInformation("Main window registered with handle {Handle}", _mainWindowHandle);
     }
 
@@ -227,6 +236,10 @@ public sealed class WindowService : IWindowService
         if (_disposed) return;
         _disposed = true;
 
+        // Unblock any callers waiting for main window registration.
+        // They'll proceed, see _mainPhotinoWindow is still null, and get a clear exception.
+        _mainWindowReady.TrySetResult();
+
         var windowCount = _windows.Count;
         _logger.LogDebug("WindowService disposing — closing {Count} child window(s)", windowCount);
 
@@ -285,6 +298,21 @@ public sealed class WindowService : IWindowService
         if (options.ComponentType is not null)
         {
             var fullName = options.ComponentType.FullName!;
+
+            // TryAdd is idempotent — re-registering the same type is a no-op.
+            // The cap only guards against pathological scenarios with hundreds of distinct types.
+            if (!_registeredComponents.ContainsKey(fullName)
+                && _registeredComponents.Count >= Constants.Window.MaxRegisteredComponentTypes)
+            {
+                _logger.LogWarning("Component type whitelist is full ({Max} types). " +
+                    "Refusing to register '{TypeName}'. Increase MaxRegisteredComponentTypes if this is intentional.",
+                    Constants.Window.MaxRegisteredComponentTypes, fullName);
+                CleanupFailedWindow(windowId);
+                throw new InvalidOperationException(
+                    $"Component type whitelist is full ({Constants.Window.MaxRegisteredComponentTypes} types). " +
+                    $"Cannot register '{fullName}'.");
+            }
+
             _registeredComponents.TryAdd(fullName, options.ComponentType);
             _logger.LogDebug("Registered component type '{TypeName}' for window hosting", fullName);
         }
@@ -305,11 +333,37 @@ public sealed class WindowService : IWindowService
             _modalCompletions[windowId] = modalTcs;
         }
 
+        // Wait for main window registration if not yet available — handles early callers
+        // (e.g., splash screen scenarios) where CreateWindowAsync is called before the main
+        // window's RegisterWindowCreatedHandler fires during WaitForClose().
+        if (_mainPhotinoWindow is null)
+        {
+            _logger.LogDebug("Main window not yet registered — waiting up to {Timeout}ms", Constants.Window.HandleReadyTimeoutMs);
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(Constants.Window.HandleReadyTimeoutMs);
+
+            try
+            {
+                await _mainWindowReady.Task.WaitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Timeout expired, not caller cancellation
+                CleanupFailedWindow(windowId);
+                throw new TimeoutException(
+                    $"Main window was not registered within {Constants.Window.HandleReadyTimeoutMs}ms. " +
+                    "Cannot create child windows before the main window is ready.");
+            }
+        }
+
+        // Post-wait null check: handles edge case where Dispose() signaled the TCS
+        // but main window was never actually registered.
         if (_mainPhotinoWindow is null)
         {
             _logger.LogError("Cannot create child window — main window not registered");
             CleanupFailedWindow(windowId);
-            throw new InvalidOperationException("Main window has not been registered. Cannot create child windows before the main window is ready.");
+            throw new InvalidOperationException("Main window has not been registered. Cannot create child windows.");
         }
 
         cancellationToken.ThrowIfCancellationRequested();

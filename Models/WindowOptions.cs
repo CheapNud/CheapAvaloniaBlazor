@@ -44,6 +44,12 @@ public class WindowOptions
     /// Blazor component type to render via DynamicComponent (e.g. typeof(SettingsDialog)).
     /// Mutually exclusive with <see cref="UrlPath"/>. The component does NOT need a @page directive.
     /// </summary>
+    /// <remarks>
+    /// Each distinct component type is registered in an internal whitelist on first use.
+    /// The whitelist is capped at <see cref="Constants.Window.MaxRegisteredComponentTypes"/> (256)
+    /// distinct types. Re-using the same type for multiple windows does not count again.
+    /// This limit exists as a safety guard — typical apps use far fewer component types.
+    /// </remarks>
     public Type? ComponentType { get; set; }
 
     /// <summary>

@@ -320,6 +320,12 @@ public static class Constants
         /// Delay (ms) after child window Invoke to allow Blazor circuit initialization.
         /// </summary>
         public const int ChildWindowPostCreateDelayMs = 100;
+
+        /// <summary>
+        /// Maximum number of distinct component types that can be registered for window hosting.
+        /// Prevents unbounded growth of the whitelist in pathological scenarios.
+        /// </summary>
+        public const int MaxRegisteredComponentTypes = 256;
     }
 
     /// <summary>
