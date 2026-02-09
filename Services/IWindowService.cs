@@ -60,6 +60,14 @@ public interface IWindowService : IDisposable
     void BroadcastMessage(string messageType, object? payload = null);
 
     /// <summary>
+    /// Resolve a previously registered component type by its full name.
+    /// Only types passed via <see cref="WindowOptions.ComponentType"/> are registered.
+    /// Used internally by WindowHost.razor — prevents arbitrary type instantiation from URL params.
+    /// </summary>
+    /// <returns>The registered component type, or null if not found.</returns>
+    Type? ResolveWindowComponent(string fullName);
+
+    /// <summary>
     /// Fires when a new child window has been created and its native handle is available.
     /// Parameter: windowId.
     /// </summary>

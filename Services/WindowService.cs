@@ -28,6 +28,13 @@ public sealed class WindowService : IWindowService
     private readonly ConcurrentDictionary<string, WindowInfo> _windows = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<ModalResult>> _modalCompletions = new();
 
+    /// <summary>
+    /// Whitelist of component types allowed in WindowHost.razor.
+    /// Only types explicitly passed via <see cref="WindowOptions.ComponentType"/> are registered.
+    /// Prevents arbitrary type instantiation from URL query parameters.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, Type> _registeredComponents = new();
+
     private PhotinoWindow? _mainPhotinoWindow;
     private IntPtr _mainWindowHandle;
     private volatile bool _disposed;
@@ -57,6 +64,12 @@ public sealed class WindowService : IWindowService
         _mainPhotinoWindow = photinoWindow;
         _mainWindowHandle = photinoWindow.WindowHandle;
         _logger.LogInformation("Main window registered with handle {Handle}", _mainWindowHandle);
+    }
+
+    public Type? ResolveWindowComponent(string fullName)
+    {
+        _registeredComponents.TryGetValue(fullName, out var componentType);
+        return componentType;
     }
 
     public Task<string> CreateWindowAsync(WindowOptions options)
@@ -108,16 +121,18 @@ public sealed class WindowService : IWindowService
     {
         if (_disposed) return;
 
-        if (!_modalCompletions.TryGetValue(windowId, out var tcs))
+        // TryRemove ensures exactly one code path (CompleteModal vs OnChildWindowClosed)
+        // takes ownership of the TCS and parent re-enable. Prevents double EnableParentWindow
+        // when user clicks X at the same time as CompleteModal is called.
+        if (!_modalCompletions.TryRemove(windowId, out var tcs))
         {
             _logger.LogWarning("CompleteModal: no modal completion found for window '{WindowId}'", windowId);
             return;
         }
 
-        // Set the result (TrySetResult handles race with X-close)
         tcs.TrySetResult(result);
 
-        // Re-enable the parent window
+        // We own the cleanup since we successfully removed the TCS
         if (_windows.TryGetValue(windowId, out var windowInfo))
         {
             var parentHandle = ResolveParentHandle(windowInfo.ParentWindowId);
@@ -176,6 +191,7 @@ public sealed class WindowService : IWindowService
             {
                 _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
             }
+            windowInfo.PhotinoWindow = null;
         }
 
         // Complete any outstanding modal TCS with Cancel
@@ -186,6 +202,7 @@ public sealed class WindowService : IWindowService
 
         _windows.Clear();
         _modalCompletions.Clear();
+        _registeredComponents.Clear();
         _modalBackend.Dispose();
 
         _logger.LogDebug("WindowService disposed");
@@ -196,6 +213,16 @@ public sealed class WindowService : IWindowService
     private async Task<string> CreateWindowCoreAsync(WindowOptions options, bool isModal, TaskCompletionSource<ModalResult>? modalTcs = null)
     {
         var windowId = Guid.NewGuid().ToString("N")[..12];
+
+        // Register component type in whitelist before building the URL.
+        // WindowHost.razor will only instantiate types that appear here.
+        if (options.ComponentType is not null)
+        {
+            var fullName = options.ComponentType.FullName!;
+            _registeredComponents.TryAdd(fullName, options.ComponentType);
+            _logger.LogDebug("Registered component type '{TypeName}' for window hosting", fullName);
+        }
+
         var windowUrl = BuildWindowUrl(options, windowId);
 
         var windowInfo = new WindowInfo
@@ -215,8 +242,7 @@ public sealed class WindowService : IWindowService
         if (_mainPhotinoWindow is null)
         {
             _logger.LogError("Cannot create child window — main window not registered");
-            _windows.TryRemove(windowId, out _);
-            _modalCompletions.TryRemove(windowId, out _);
+            CleanupFailedWindow(windowId);
             throw new InvalidOperationException("Main window has not been registered. Cannot create child windows before the main window is ready.");
         }
 
@@ -291,8 +317,10 @@ public sealed class WindowService : IWindowService
         {
             _logger.LogError("Child window '{WindowId}' handle was not ready within {Timeout}ms",
                 windowId, Constants.Window.HandleReadyTimeoutMs);
-            _windows.TryRemove(windowId, out _);
-            _modalCompletions.TryRemove(windowId, out _);
+
+            // Attempt to close a partially-created window (handle may exist even if signal wasn't set)
+            CleanupPartialWindow(windowInfo);
+            CleanupFailedWindow(windowId);
             handleReady.Dispose();
             throw new TimeoutException($"Child window '{windowId}' native handle was not ready within {Constants.Window.HandleReadyTimeoutMs}ms");
         }
@@ -302,8 +330,8 @@ public sealed class WindowService : IWindowService
         if (windowInfo.WindowHandle == IntPtr.Zero)
         {
             _logger.LogError("Child window '{WindowId}' was created but handle is not available", windowId);
-            _windows.TryRemove(windowId, out _);
-            _modalCompletions.TryRemove(windowId, out _);
+            CleanupPartialWindow(windowInfo);
+            CleanupFailedWindow(windowId);
             throw new InvalidOperationException($"Child window '{windowId}' native handle was not captured.");
         }
 
@@ -322,16 +350,15 @@ public sealed class WindowService : IWindowService
 
     private void OnChildWindowClosed(string windowId)
     {
-        // If this was a modal and the TCS hasn't been completed yet (user clicked X),
-        // complete it with Cancel
+        // TryRemove ensures exactly one code path takes ownership (see CompleteModal).
         if (_modalCompletions.TryRemove(windowId, out var tcs))
         {
             tcs.TrySetResult(ModalResult.Cancel());
 
-            // Re-enable the parent window
-            if (_windows.TryGetValue(windowId, out var windowInfo))
+            // We own the cleanup since we successfully removed the TCS
+            if (_windows.TryGetValue(windowId, out var modalWindowInfo))
             {
-                var parentHandle = ResolveParentHandle(windowInfo.ParentWindowId);
+                var parentHandle = ResolveParentHandle(modalWindowInfo.ParentWindowId);
                 if (parentHandle != IntPtr.Zero)
                 {
                     _modalBackend.EnableParentWindow(parentHandle);
@@ -339,7 +366,11 @@ public sealed class WindowService : IWindowService
             }
         }
 
-        _windows.TryRemove(windowId, out _);
+        // Release managed reference to PhotinoWindow (native resources freed by message pump)
+        if (_windows.TryRemove(windowId, out var removedInfo))
+        {
+            removedInfo.PhotinoWindow = null;
+        }
 
         if (!_disposed)
         {
@@ -355,14 +386,37 @@ public sealed class WindowService : IWindowService
         _logger.LogInformation("Child window '{WindowId}' closed", windowId);
     }
 
+    /// <summary>
+    /// Attempt to close a partially-created window that may have a handle but failed setup.
+    /// </summary>
+    private void CleanupPartialWindow(WindowInfo windowInfo)
+    {
+        if (windowInfo.WindowHandle != IntPtr.Zero)
+        {
+            _logger.LogDebug("Cleaning up partially-created window '{WindowId}' (handle={Handle})",
+                windowInfo.WindowId, windowInfo.WindowHandle);
+            _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
+        }
+        windowInfo.PhotinoWindow = null;
+    }
+
+    /// <summary>
+    /// Remove tracking state for a window that failed to fully initialize.
+    /// </summary>
+    private void CleanupFailedWindow(string windowId)
+    {
+        _windows.TryRemove(windowId, out _);
+        _modalCompletions.TryRemove(windowId, out _);
+    }
+
     private string BuildWindowUrl(WindowOptions options, string windowId)
     {
         var baseUrl = _blazorHost.BaseUrl;
 
         if (options.ComponentType is not null)
         {
-            // Component type mode: use the library's WindowHost page
-            var typeName = Uri.EscapeDataString(options.ComponentType.AssemblyQualifiedName ?? options.ComponentType.FullName!);
+            // Component type mode: use FullName as the lookup key for the whitelist
+            var typeName = Uri.EscapeDataString(options.ComponentType.FullName!);
             return $"{baseUrl}{Constants.Window.WindowHostRoute}" +
                    $"?{Constants.Window.ComponentTypeQueryParam}={typeName}" +
                    $"&{Constants.Window.WindowIdQueryParam}={Uri.EscapeDataString(windowId)}";
