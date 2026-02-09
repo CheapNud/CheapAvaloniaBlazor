@@ -148,11 +148,19 @@ public sealed class WindowService : IWindowService
         return Task.CompletedTask;
     }
 
+    /// <remarks>
+    /// Concurrency contract: Three paths compete for modal TCS ownership via TryRemove on
+    /// _modalCompletions — CompleteModal, OnChildWindowClosed, and the CancellationToken callback.
+    /// ConcurrentDictionary.TryRemove is atomic: exactly ONE path wins and executes the
+    /// EnableParentWindow + PostCloseMessage cleanup. Losers get false and no-op.
+    /// Post-removal actions (EnableParent, PostClose) use value-type IntPtr copies and
+    /// WindowsModalBackend guards each call with IsWindow, so stale handles are safe.
+    /// </remarks>
     public void CompleteModal(string windowId, ModalResult result)
     {
         if (_disposed) return;
 
-        // TryRemove ensures exactly one code path (CompleteModal vs OnChildWindowClosed)
+        // TryRemove ensures exactly one code path (CompleteModal vs OnChildWindowClosed vs CancellationToken)
         // takes ownership of the TCS and parent re-enable. Prevents double EnableParentWindow
         // when user clicks X at the same time as CompleteModal is called.
         if (!_modalCompletions.TryRemove(windowId, out var tcs))
@@ -205,24 +213,47 @@ public sealed class WindowService : IWindowService
         SendMessage("*", messageType, payload);
     }
 
+    /// <remarks>
+    /// PhotinoWindow does not implement IDisposable. Native HWND resources are freed by the
+    /// Win32 message pump when it processes the WM_CLOSE → WM_DESTROY sequence. We post
+    /// WM_CLOSE to every tracked child window and null the managed reference for GC.
+    ///
+    /// If the message pump itself has crashed (catastrophic failure), native handles leak — but
+    /// the OS reclaims all handles when the process exits. This is the standard Win32 contract
+    /// and not something we can guard against at the managed layer.
+    /// </remarks>
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
 
-        _logger.LogDebug("WindowService disposing — closing {Count} child window(s)", _windows.Count);
+        var windowCount = _windows.Count;
+        _logger.LogDebug("WindowService disposing — closing {Count} child window(s)", windowCount);
 
         // PostMessage is non-blocking (unlike SendMessage) so this is safe from any thread,
         // including the Photino message pump thread. The WM_CLOSE messages are queued and
         // processed asynchronously by the pump — no deadlock risk.
+        var closedCount = 0;
         foreach (var kvp in _windows)
         {
             var windowInfo = kvp.Value;
             if (windowInfo.WindowHandle != IntPtr.Zero)
             {
                 _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
+                closedCount++;
+            }
+            else
+            {
+                _logger.LogWarning("WindowService Dispose: window '{WindowId}' has no handle — cannot send WM_CLOSE",
+                    windowInfo.WindowId);
             }
             windowInfo.PhotinoWindow = null;
+        }
+
+        if (closedCount != windowCount)
+        {
+            _logger.LogWarning("WindowService Dispose: sent WM_CLOSE to {Closed}/{Total} windows — " +
+                "{Remaining} window(s) had no handle", closedCount, windowCount, windowCount - closedCount);
         }
 
         // Complete any outstanding modal TCS with Cancel

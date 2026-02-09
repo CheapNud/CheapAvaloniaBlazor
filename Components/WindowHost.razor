@@ -45,6 +45,16 @@ else if (!string.IsNullOrEmpty(_errorMessage))
             return;
         }
 
+        // Defense-in-depth: verify the whitelisted type is actually a Blazor component.
+        // The whitelist itself prevents arbitrary types, but this guards against developer mistakes
+        // where a non-component type was somehow registered (e.g., bypassing FromComponent validation).
+        if (!typeof(IComponent).IsAssignableFrom(resolvedType))
+        {
+            _errorMessage = $"Type '{decodedName}' is not a Blazor component.";
+            Logger.LogError("WindowHost: whitelisted type '{TypeName}' does not implement IComponent", decodedName);
+            return;
+        }
+
         _componentType = resolvedType;
 
         // Pass WindowId as parameter if the component declares it

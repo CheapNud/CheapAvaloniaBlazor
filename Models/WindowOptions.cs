@@ -81,9 +81,16 @@ public class WindowOptions
     /// <summary>
     /// Create options that render a Blazor component type via DynamicComponent.
     /// </summary>
-    public static WindowOptions FromComponent(Type componentType, string? title = null) => new()
+    /// <exception cref="ArgumentException">Thrown when <paramref name="componentType"/> does not implement <see cref="IComponent"/>.</exception>
+    public static WindowOptions FromComponent(Type componentType, string? title = null)
     {
-        ComponentType = componentType,
-        Title = title,
-    };
+        if (!typeof(IComponent).IsAssignableFrom(componentType))
+            throw new ArgumentException($"Type '{componentType.FullName}' does not implement IComponent.", nameof(componentType));
+
+        return new()
+        {
+            ComponentType = componentType,
+            Title = title,
+        };
+    }
 }
