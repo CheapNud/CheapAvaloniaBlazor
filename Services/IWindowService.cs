@@ -4,8 +4,8 @@ namespace CheapAvaloniaBlazor.Services;
 
 /// <summary>
 /// Service for creating and managing child windows and modal dialogs.
-/// Each child window runs in its own background thread and connects to the same Blazor server
-/// as an independent SignalR circuit.
+/// Child windows are created on the main Photino thread via Invoke() and connect to the
+/// same Blazor server as independent SignalR circuits.
 /// </summary>
 public interface IWindowService : IDisposable
 {
@@ -19,16 +19,19 @@ public interface IWindowService : IDisposable
     /// Create a new child window. Returns the window ID that can be used with other methods.
     /// </summary>
     /// <param name="options">Window creation options (URL path or component type, size, title, etc.)</param>
+    /// <param name="cancellationToken">Token to cancel the window creation.</param>
     /// <returns>Unique window ID for the new window.</returns>
-    Task<string> CreateWindowAsync(WindowOptions options);
+    Task<string> CreateWindowAsync(WindowOptions options, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a modal dialog that disables the parent window until closed.
     /// The returned task completes when the modal is closed (via CompleteModal or user X-close).
     /// </summary>
     /// <param name="options">Window creation options. ParentWindowId defaults to main window.</param>
+    /// <param name="cancellationToken">Token to cancel the modal wait. If cancelled, the parent
+    /// window is re-enabled and the modal window is closed. Returns <see cref="ModalResult.Cancel()"/>.</param>
     /// <returns>The modal result (confirmed/cancelled with optional data payload).</returns>
-    Task<ModalResult> CreateModalAsync(WindowOptions options);
+    Task<ModalResult> CreateModalAsync(WindowOptions options, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Close a child window by its ID. No-op if the window has already been closed.

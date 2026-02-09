@@ -17,6 +17,10 @@ internal sealed class WindowsModalBackend : IModalBackend
 
     public WindowsModalBackend(ILogger logger)
     {
+        // [SupportedOSPlatform] is analyzer-only — enforce at runtime too.
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("WindowsModalBackend requires Windows.");
+
         _logger = logger;
     }
 
