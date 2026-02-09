@@ -70,17 +70,18 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         }
         catch
         {
-            // Clean up GCHandle and restore state on any failure during initialization
-            if (_wndProcDelegateHandle.IsAllocated)
-                _wndProcDelegateHandle.Free();
-            _wndProcDelegate = null;
-
-            // If we already subclassed, restore original WndProc
+            // ORDER MATTERS: Restore WndProc FIRST while the delegate is still alive,
+            // then free the GCHandle. Reversing this order leaves a freed delegate as
+            // the active WndProc — Windows dispatching a message would access-violate.
             if (_originalWndProc != IntPtr.Zero && IsWindow(_windowHandle))
             {
                 SetWindowLongPtr(_windowHandle, GWLP_WNDPROC, _originalWndProc);
                 _originalWndProc = IntPtr.Zero;
             }
+
+            if (_wndProcDelegateHandle.IsAllocated)
+                _wndProcDelegateHandle.Free();
+            _wndProcDelegate = null;
 
             throw;
         }
