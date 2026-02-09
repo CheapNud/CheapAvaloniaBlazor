@@ -8,6 +8,7 @@
 @inject IThemeService ThemeService
 @inject IHotkeyService HotkeyService
 @inject IMenuBarService MenuBarService
+@inject IWindowService WindowService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -553,6 +554,87 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Multi-Window</MudText>
+
+            <MudStack Spacing="2">
+                <MudChip T="string" Size="Size.Small" Color="@(WindowService.IsModalSupported ? Color.Success : Color.Warning)">
+                    @(WindowService.IsModalSupported ? "Modal Supported" : "Modal Not Supported (windows still work)")
+                </MudChip>
+
+                <MudText Typo="Typo.caption">Active child windows: @WindowService.GetWindows().Count</MudText>
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.OpenInNew"
+                               OnClick="OpenChildWindow">
+                        Open Child Window
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Settings"
+                               OnClick="OpenSettingsModal">
+                        Settings Modal
+                    </MudButton>
+                </MudButtonGroup>
+
+                @if (_lastModalResult is not null)
+                {
+                    <MudAlert Severity="@(_lastModalResult.Confirmed ? Severity.Success : Severity.Warning)" Dense="true">
+                        <MudText Typo="Typo.caption">
+                            Modal result: @(_lastModalResult.Confirmed ? "Confirmed" : "Cancelled")
+                            @if (_lastModalResult.Data is not null)
+                            {
+                                @: — @_lastModalResult.Data
+                            }
+                        </MudText>
+                    </MudAlert>
+                }
+
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudTextField @bind-Value="_windowMessage"
+                                  Label="Message to child windows"
+                                  Variant="Variant.Outlined"
+                                  Style="flex: 1;" />
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.CellTower"
+                               OnClick="BroadcastToChildren"
+                               Disabled="@(WindowService.GetWindows().Count == 0)">
+                        Broadcast
+                    </MudButton>
+                </MudStack>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Window Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_windowEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No window events yet. Open a child window or modal dialog.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _windowEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="ClearWindowLog">
+                    Clear Log
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Each window is a separate Blazor circuit. Modals disable the parent window (Windows only). Inter-window messaging via events.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -622,6 +704,11 @@
     private bool _menuDarkModeChecked;
     private bool _fileNewEnabled = true;
 
+    // Multi-window demo
+    private readonly List<string> _windowEvents = [];
+    private CheapAvaloniaBlazor.Models.ModalResult? _lastModalResult;
+    private string _windowMessage = "Hello from main!";
+
     protected override async Task OnInitializedAsync()
     {
         _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
@@ -641,6 +728,11 @@
 
         // Subscribe to menu bar clicks
         MenuBarService.MenuItemClicked += OnMenuItemClicked;
+
+        // Subscribe to window events
+        WindowService.WindowCreated += OnWindowCreated;
+        WindowService.WindowClosed += OnWindowClosed;
+        WindowService.MessageReceived += OnWindowMessageReceived;
     }
 
     private async Task OpenFile()
@@ -955,6 +1047,76 @@
         _menuBarEvents.Clear();
     }
 
+    private async Task OpenChildWindow()
+    {
+        try
+        {
+            var windowId = await WindowService.CreateWindowAsync(
+                CheapAvaloniaBlazor.Models.WindowOptions.FromUrl("/child-window", "Child Window Demo"));
+            Snackbar.Add($"Opened child window: {windowId}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to open child window: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenSettingsModal()
+    {
+        try
+        {
+            var options = CheapAvaloniaBlazor.Models.WindowOptions.FromComponent<SettingsDialog>("Settings");
+            options.Width = 500;
+            options.Height = 450;
+            options.Resizable = false;
+
+            _lastModalResult = await WindowService.CreateModalAsync(options);
+
+            var statusText = _lastModalResult.Confirmed ? "Saved" : "Cancelled";
+            Snackbar.Add($"Settings modal {statusText}", _lastModalResult.Confirmed ? Severity.Success : Severity.Info);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to open settings modal: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void BroadcastToChildren()
+    {
+        WindowService.BroadcastMessage("main_message", _windowMessage);
+        Snackbar.Add("Message broadcast to all windows", Severity.Info);
+    }
+
+    private void OnWindowCreated(string windowId)
+    {
+        AddWindowEntry($"Window created: {windowId}");
+    }
+
+    private void OnWindowClosed(string windowId)
+    {
+        AddWindowEntry($"Window closed: {windowId}");
+    }
+
+    private void OnWindowMessageReceived(string targetWindowId, string messageType, object? payload)
+    {
+        if (targetWindowId != CheapAvaloniaBlazor.Constants.Window.MainWindowId && targetWindowId != "*") return;
+        AddWindowEntry($"Message [{messageType}]: {payload}");
+    }
+
+    private void AddWindowEntry(string text)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _windowEvents.Insert(0, $"[{timestamp}] {text}");
+        if (_windowEvents.Count > 50) _windowEvents.RemoveAt(_windowEvents.Count - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearWindowLog()
+    {
+        _windowEvents.Clear();
+    }
+
     private void OnThemeChanged(CheapAvaloniaBlazor.Models.SystemTheme newTheme)
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
@@ -979,6 +1141,10 @@
         HotkeyService.HotkeyPressed -= OnHotkeyPressed;
 
         MenuBarService.MenuItemClicked -= OnMenuItemClicked;
+
+        WindowService.WindowCreated -= OnWindowCreated;
+        WindowService.WindowClosed -= OnWindowClosed;
+        WindowService.MessageReceived -= OnWindowMessageReceived;
 
         // Unregister hotkeys registered by this component
         foreach (var hotkeyId in _registeredHotkeyIds)

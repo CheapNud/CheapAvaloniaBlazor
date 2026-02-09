@@ -148,7 +148,7 @@ public static class BlazorComponentMapper
                     return null;
                 }
             })
-            .Where(asm => asm != null && asm != entryAssembly && asm != libraryAssembly)
+            .Where(asm => asm != null && asm != entryAssembly)
             .Where(asm => asm!.GetTypes().Any(t => t.GetCustomAttributes(routeAttributeType, false).Length > 0))
             .ToArray();
 

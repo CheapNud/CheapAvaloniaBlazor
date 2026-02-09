@@ -272,6 +272,57 @@ public static class Constants
     }
 
     /// <summary>
+    /// Multi-window and modal dialog constants
+    /// </summary>
+    public static class Window
+    {
+        /// <summary>
+        /// Window ID assigned to the main (primary) Photino window.
+        /// </summary>
+        public const string MainWindowId = "main";
+
+        /// <summary>
+        /// Query parameter name appended to child window URLs to identify the window.
+        /// </summary>
+        public const string WindowIdQueryParam = "_windowId";
+
+        /// <summary>
+        /// Query parameter name for the component type in the WindowHost route.
+        /// </summary>
+        public const string ComponentTypeQueryParam = "_type";
+
+        /// <summary>
+        /// Blazor route for the library's DynamicComponent host page.
+        /// </summary>
+        public const string WindowHostRoute = "/_cheapblazor/window";
+
+        /// <summary>
+        /// Default width for child windows.
+        /// </summary>
+        public const int DefaultChildWidth = 800;
+
+        /// <summary>
+        /// Default height for child windows.
+        /// </summary>
+        public const int DefaultChildHeight = 600;
+
+        /// <summary>
+        /// Maximum time (ms) to wait for a child window's native handle to become available.
+        /// </summary>
+        public const int HandleReadyTimeoutMs = 10_000;
+
+        /// <summary>
+        /// Win32 WM_CLOSE message constant for thread-safe window close via PostMessage.
+        /// </summary>
+        public const uint WM_CLOSE = 0x0010;
+
+        /// <summary>
+        /// Maximum time (ms) to wait for child window threads to join during Dispose.
+        /// </summary>
+        public const int ThreadJoinTimeoutMs = 3_000;
+    }
+
+    /// <summary>
     /// System tray related constants
     /// </summary>
     public static class SystemTray

@@ -225,6 +225,17 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             });
         }
 
+        // Register main window handle with WindowService for multi-window support.
+        // Child windows need the main HWND for modal dialog parent disabling.
+        var windowService = CheapAvaloniaBlazorRuntime.GetRequiredService<IWindowService>() as WindowService;
+        if (windowService is not null)
+        {
+            photinoWindow.RegisterWindowCreatedHandler((s, e) =>
+            {
+                windowService.RegisterMainWindow(photinoWindow.WindowHandle);
+            });
+        }
+
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {

@@ -1,0 +1,64 @@
+@page "/_cheapblazor/window"
+@using Microsoft.AspNetCore.Components
+@implements IDisposable
+
+@if (_componentType is not null)
+{
+    <DynamicComponent Type="_componentType" Parameters="_effectiveParameters" />
+}
+else if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color: red; padding: 1rem;">@_errorMessage</p>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "_type")]
+    public string? TypeName { get; set; }
+
+    [SupplyParameterFromQuery(Name = "_windowId")]
+    public string? WindowId { get; set; }
+
+    private Type? _componentType;
+    private string? _errorMessage;
+    private Dictionary<string, object>? _effectiveParameters;
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(TypeName))
+        {
+            _errorMessage = "No component type specified (_type query parameter missing).";
+            return;
+        }
+
+        // Resolve type from all loaded assemblies (assembly-qualified name)
+        _componentType = Type.GetType(TypeName);
+
+        // Fallback: scan by full name if assembly-qualified name didn't resolve
+        if (_componentType is null)
+        {
+            var decodedName = Uri.UnescapeDataString(TypeName);
+            _componentType = Type.GetType(decodedName)
+                ?? AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(a =>
+                    {
+                        try { return a.GetType(decodedName); }
+                        catch { return null; }
+                    })
+                    .FirstOrDefault(t => t is not null);
+        }
+
+        if (_componentType is null)
+        {
+            _errorMessage = $"Component type '{TypeName}' could not be resolved.";
+            return;
+        }
+
+        // Pass WindowId as parameter if the component declares it
+        if (!string.IsNullOrEmpty(WindowId))
+        {
+            _effectiveParameters = new Dictionary<string, object> { ["WindowId"] = WindowId };
+        }
+    }
+
+    public void Dispose() { }
+}

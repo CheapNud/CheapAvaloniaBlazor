@@ -340,6 +340,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             var menuBarService = CheapAvaloniaBlazorRuntime.GetRequiredService<IMenuBarService>();
             services.AddSingleton(menuBarService);
 
+            var windowService = CheapAvaloniaBlazorRuntime.GetRequiredService<IWindowService>();
+            services.AddSingleton(windowService);
+
             // Add the DesktopInteropService
             _logger.LogDebug("Adding DesktopInteropService...");
             services.AddScoped<IDesktopInteropService, DesktopInteropService>();

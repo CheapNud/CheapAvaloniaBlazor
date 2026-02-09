@@ -1,0 +1,89 @@
+using Microsoft.AspNetCore.Components;
+
+namespace CheapAvaloniaBlazor.Models;
+
+/// <summary>
+/// Options for creating a child window or modal dialog via <see cref="Services.IWindowService"/>.
+/// Use the static factory methods for concise creation.
+/// </summary>
+public class WindowOptions
+{
+    /// <summary>
+    /// Window title. Defaults to the application title if null.
+    /// </summary>
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Window width in pixels.
+    /// </summary>
+    public int Width { get; set; } = Constants.Window.DefaultChildWidth;
+
+    /// <summary>
+    /// Window height in pixels.
+    /// </summary>
+    public int Height { get; set; } = Constants.Window.DefaultChildHeight;
+
+    /// <summary>
+    /// Whether the window can be resized.
+    /// </summary>
+    public bool Resizable { get; set; } = true;
+
+    /// <summary>
+    /// Center the window on the parent window. When false, the OS decides placement.
+    /// </summary>
+    public bool CenterOnParent { get; set; } = true;
+
+    // ── Content (exactly one should be set) ──────────────────────────────────
+
+    /// <summary>
+    /// Blazor URL path to load (e.g. "/settings"). Mutually exclusive with <see cref="ComponentType"/>.
+    /// </summary>
+    public string? UrlPath { get; set; }
+
+    /// <summary>
+    /// Blazor component type to render via DynamicComponent (e.g. typeof(SettingsDialog)).
+    /// Mutually exclusive with <see cref="UrlPath"/>. The component does NOT need a @page directive.
+    /// </summary>
+    public Type? ComponentType { get; set; }
+
+    /// <summary>
+    /// Optional parameters to pass to the component when using <see cref="ComponentType"/>.
+    /// </summary>
+    public Dictionary<string, object>? Parameters { get; set; }
+
+    // ── Modal ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Parent window ID for modal dialogs. Null defaults to the main window.
+    /// </summary>
+    public string? ParentWindowId { get; set; }
+
+    // ── Factory methods ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Create options that load a Blazor URL path (e.g. "/settings").
+    /// </summary>
+    public static WindowOptions FromUrl(string path, string? title = null) => new()
+    {
+        UrlPath = path,
+        Title = title,
+    };
+
+    /// <summary>
+    /// Create options that render a Blazor component type via DynamicComponent.
+    /// </summary>
+    public static WindowOptions FromComponent<T>(string? title = null) where T : IComponent => new()
+    {
+        ComponentType = typeof(T),
+        Title = title,
+    };
+
+    /// <summary>
+    /// Create options that render a Blazor component type via DynamicComponent.
+    /// </summary>
+    public static WindowOptions FromComponent(Type componentType, string? title = null) => new()
+    {
+        ComponentType = componentType,
+        Title = title,
+    };
+}
