@@ -23,6 +23,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
 
     private readonly Dictionary<int, MenuItemDefinition> _win32IdToDefinition = [];
     private readonly Dictionary<string, int> _stringIdToWin32Id = [];
+    private readonly List<IntPtr> _popupMenuHandles = [];
     private int _nextMenuId = Constants.MenuBar.FirstMenuItemId;
 
     private volatile bool _disposed;
@@ -60,7 +61,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         if (_disposed) return;
         if (_windowHandle == IntPtr.Zero) return;
 
-        // Destroy old menu bar
+        // Destroy old menu bar (DestroyMenu recursively destroys attached submenus)
         if (_menuBarHandle != IntPtr.Zero)
         {
             SetMenu(_windowHandle, IntPtr.Zero);
@@ -68,6 +69,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             _menuBarHandle = IntPtr.Zero;
         }
 
+        _popupMenuHandles.Clear();
         _win32IdToDefinition.Clear();
         _stringIdToWin32Id.Clear();
         _nextMenuId = Constants.MenuBar.FirstMenuItemId;
@@ -113,7 +115,10 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
 
         // ORDER MATTERS: Restore WndProc FIRST, then destroy menu.
         // Pending WM_COMMAND messages could reference freed memory otherwise.
-        if (_originalWndProc != IntPtr.Zero && _windowHandle != IntPtr.Zero)
+        // IsWindow() guards against the HWND being destroyed externally before Dispose runs.
+        var windowStillExists = _windowHandle != IntPtr.Zero && IsWindow(_windowHandle);
+
+        if (_originalWndProc != IntPtr.Zero && windowStillExists)
         {
             try
             {
@@ -130,8 +135,10 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         {
             try
             {
-                if (_windowHandle != IntPtr.Zero)
+                if (windowStillExists)
                     SetMenu(_windowHandle, IntPtr.Zero);
+
+                // DestroyMenu recursively destroys attached submenus
                 DestroyMenu(_menuBarHandle);
             }
             catch (Exception ex)
@@ -141,6 +148,14 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             _menuBarHandle = IntPtr.Zero;
         }
 
+        // Destroy any popup handles that weren't attached to the menu bar (error paths).
+        // DestroyMenu on already-freed handles returns FALSE harmlessly.
+        foreach (var popupHandle in _popupMenuHandles)
+        {
+            DestroyMenu(popupHandle);
+        }
+
+        _popupMenuHandles.Clear();
         _win32IdToDefinition.Clear();
         _stringIdToWin32Id.Clear();
 
@@ -179,6 +194,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     private IntPtr BuildPopupMenu(List<MenuItemDefinition> items)
     {
         var popupHandle = CreatePopupMenu();
+        _popupMenuHandles.Add(popupHandle);
 
         foreach (var menuItem in items)
         {
@@ -211,6 +227,13 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
 
     private int AssignMenuId(MenuItemDefinition definition)
     {
+        if (_nextMenuId > Constants.MenuBar.MaxMenuItemId)
+        {
+            throw new InvalidOperationException(
+                $"Menu item ID overflow: exceeded maximum of {Constants.MenuBar.MaxMenuItemId} (0x{Constants.MenuBar.MaxMenuItemId:X4}). " +
+                "Too many menu items registered. IDs above this threshold collide with Win32 system command IDs.");
+        }
+
         var menuId = _nextMenuId++;
         _win32IdToDefinition[menuId] = definition;
 
@@ -365,6 +388,11 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [DllImport("user32.dll")]
     [SupportedOSPlatform("windows")]
     private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [SupportedOSPlatform("windows")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(IntPtr hWnd);
 
     #endregion
 }

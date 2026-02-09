@@ -263,6 +263,12 @@ public static class Constants
         /// First Win32 menu item command ID. Avoids collision with system-defined IDs.
         /// </summary>
         public const int FirstMenuItemId = 1001;
+
+        /// <summary>
+        /// Maximum Win32 menu item command ID. Must stay below 0xF000 to avoid
+        /// collision with system command IDs (SC_CLOSE=0xF060, SC_MINIMIZE=0xF020, etc).
+        /// </summary>
+        public const int MaxMenuItemId = 0xEFFF;
     }
 
     /// <summary>

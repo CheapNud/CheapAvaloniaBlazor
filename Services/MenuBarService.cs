@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using CheapAvaloniaBlazor.Models;
 using CheapAvaloniaBlazor.Services.Backends;
 using Microsoft.Extensions.Logging;
@@ -86,14 +87,19 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
 
     private void OnBackendMenuItemClicked(string menuItemId)
     {
-        try
+        // Backend fires from Win32 WndProc thread — marshal to Avalonia dispatcher
+        // so Blazor UI subscribers can safely interact with the UI.
+        Dispatcher.UIThread.Post(() =>
         {
-            MenuItemClicked?.Invoke(menuItemId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "MenuItemClicked event handler threw for '{Id}'", menuItemId);
-        }
+            try
+            {
+                MenuItemClicked?.Invoke(menuItemId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "MenuItemClicked event handler threw for '{Id}'", menuItemId);
+            }
+        });
     }
 
     private static IMenuBarBackend CreateBackend(ILogger logger)
