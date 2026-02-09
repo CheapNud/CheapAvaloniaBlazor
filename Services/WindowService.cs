@@ -147,15 +147,10 @@ public sealed class WindowService : IWindowService
 
         Dispatcher.UIThread.Post(() =>
         {
-            try
+            InvokeHandlersSafely(MessageReceived, handler =>
             {
-                MessageReceived?.Invoke(windowId, messageType, payload);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "MessageReceived handler threw for window '{WindowId}', type '{MessageType}'",
-                    windowId, messageType);
-            }
+                ((Action<string, string, object?>)handler)(windowId, messageType, payload);
+            });
         });
     }
 
@@ -171,7 +166,9 @@ public sealed class WindowService : IWindowService
 
         _logger.LogDebug("WindowService disposing — closing {Count} child window(s)", _windows.Count);
 
-        // Close all child windows via PostMessage (thread-safe)
+        // PostMessage is non-blocking (unlike SendMessage) so this is safe from any thread,
+        // including the Photino message pump thread. The WM_CLOSE messages are queued and
+        // processed asynchronously by the pump — no deadlock risk.
         foreach (var kvp in _windows)
         {
             var windowInfo = kvp.Value;
@@ -223,6 +220,11 @@ public sealed class WindowService : IWindowService
             throw new InvalidOperationException("Main window has not been registered. Cannot create child windows before the main window is ready.");
         }
 
+        // Synchronization gate: WindowCreatedHandler fires during WaitForClose() on the Photino
+        // thread before WaitForClose returns. This is synchronous in current Photino, but we use
+        // an explicit signal to make the contract clear and defend against future Photino changes.
+        var handleReady = new ManualResetEventSlim(false);
+
         // Marshal child window creation to the main Photino thread via Invoke().
         // Photino's message pump is global (one per process). WaitForClose() on subsequent windows
         // creates the native window and returns immediately because the pump is already running.
@@ -255,11 +257,12 @@ public sealed class WindowService : IWindowService
 
                     childWindow.Load(windowUrl);
 
-                    // Capture handle when native window is created (fires during WaitForClose)
+                    // Capture handle when native window is created (fires during WaitForClose → Photino_ctor)
                     childWindow.RegisterWindowCreatedHandler((s, e) =>
                     {
                         windowInfo.WindowHandle = childWindow.WindowHandle;
                         windowInfo.PhotinoWindow = childWindow;
+                        handleReady.Set();
                     });
 
                     // Detect when user closes the child window
@@ -277,13 +280,25 @@ public sealed class WindowService : IWindowService
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to create child window '{WindowId}' on Photino thread", windowId);
-                    _windows.TryRemove(windowId, out _);
-                    _modalCompletions.TryRemove(windowId, out _);
+                    handleReady.Set(); // Unblock the caller even on failure
                 }
             });
         });
 
-        // After Invoke returns, the window should be created with handle available
+        // Wait for the handle signal with timeout — defends against Photino changes
+        // where WaitForClose behavior might differ
+        if (!handleReady.IsSet && !handleReady.Wait(Constants.Window.HandleReadyTimeoutMs))
+        {
+            _logger.LogError("Child window '{WindowId}' handle was not ready within {Timeout}ms",
+                windowId, Constants.Window.HandleReadyTimeoutMs);
+            _windows.TryRemove(windowId, out _);
+            _modalCompletions.TryRemove(windowId, out _);
+            handleReady.Dispose();
+            throw new TimeoutException($"Child window '{windowId}' native handle was not ready within {Constants.Window.HandleReadyTimeoutMs}ms");
+        }
+
+        handleReady.Dispose();
+
         if (windowInfo.WindowHandle == IntPtr.Zero)
         {
             _logger.LogError("Child window '{WindowId}' was created but handle is not available", windowId);
@@ -292,17 +307,13 @@ public sealed class WindowService : IWindowService
             throw new InvalidOperationException($"Child window '{windowId}' native handle was not captured.");
         }
 
-        // Fire event on Avalonia UI thread
+        // Fire event on Avalonia UI thread — isolate per-handler exceptions
         Dispatcher.UIThread.Post(() =>
         {
-            try
+            InvokeHandlersSafely(WindowCreated, handler =>
             {
-                WindowCreated?.Invoke(windowId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "WindowCreated event handler threw for '{WindowId}'", windowId);
-            }
+                ((Action<string>)handler)(windowId);
+            });
         });
 
         _logger.LogInformation("Child window '{WindowId}' created (modal={IsModal}, url={Url})", windowId, isModal, windowUrl);
@@ -334,14 +345,10 @@ public sealed class WindowService : IWindowService
         {
             Dispatcher.UIThread.Post(() =>
             {
-                try
+                InvokeHandlersSafely(WindowClosed, handler =>
                 {
-                    WindowClosed?.Invoke(windowId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "WindowClosed event handler threw for '{WindowId}'", windowId);
-                }
+                    ((Action<string>)handler)(windowId);
+                });
             });
         }
 
@@ -355,19 +362,22 @@ public sealed class WindowService : IWindowService
         if (options.ComponentType is not null)
         {
             // Component type mode: use the library's WindowHost page
-            var typeName = WebUtility.UrlEncode(options.ComponentType.AssemblyQualifiedName);
-            return $"{baseUrl}{Constants.Window.WindowHostRoute}?{Constants.Window.ComponentTypeQueryParam}={typeName}&{Constants.Window.WindowIdQueryParam}={windowId}";
+            var typeName = Uri.EscapeDataString(options.ComponentType.AssemblyQualifiedName ?? options.ComponentType.FullName!);
+            return $"{baseUrl}{Constants.Window.WindowHostRoute}" +
+                   $"?{Constants.Window.ComponentTypeQueryParam}={typeName}" +
+                   $"&{Constants.Window.WindowIdQueryParam}={Uri.EscapeDataString(windowId)}";
         }
 
         if (!string.IsNullOrEmpty(options.UrlPath))
         {
-            // URL path mode: navigate to the specified route
+            // URL path mode: extract any existing query string and merge with windowId
             var path = options.UrlPath.StartsWith('/') ? options.UrlPath : "/" + options.UrlPath;
-            return $"{baseUrl}{path}?{Constants.Window.WindowIdQueryParam}={windowId}";
+            var separator = path.Contains('?') ? "&" : "?";
+            return $"{baseUrl}{path}{separator}{Constants.Window.WindowIdQueryParam}={Uri.EscapeDataString(windowId)}";
         }
 
         // Fallback to root
-        return $"{baseUrl}/?{Constants.Window.WindowIdQueryParam}={windowId}";
+        return $"{baseUrl}/?{Constants.Window.WindowIdQueryParam}={Uri.EscapeDataString(windowId)}";
     }
 
     private IntPtr ResolveParentHandle(string? parentWindowId)
@@ -384,6 +394,27 @@ public sealed class WindowService : IWindowService
 
         _logger.LogWarning("Parent window '{ParentWindowId}' not found, falling back to main window", parentWindowId);
         return _mainWindowHandle;
+    }
+
+    /// <summary>
+    /// Invokes each subscriber of a multicast delegate independently so one bad handler
+    /// cannot crash the invocation chain for remaining subscribers.
+    /// </summary>
+    private void InvokeHandlersSafely(Delegate? multicastDelegate, Action<Delegate> invoker)
+    {
+        if (multicastDelegate is null) return;
+
+        foreach (var handler in multicastDelegate.GetInvocationList())
+        {
+            try
+            {
+                invoker(handler);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Event handler {Handler} threw an exception", handler.Method.Name);
+            }
+        }
     }
 
     private static void ValidateOptions(WindowOptions options)

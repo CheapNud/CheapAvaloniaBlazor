@@ -1,5 +1,7 @@
 @page "/_cheapblazor/window"
 @using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Logging
+@inject ILogger<WindowHost> Logger
 @implements IDisposable
 
 @if (_componentType is not null)
@@ -30,34 +32,68 @@ else if (!string.IsNullOrEmpty(_errorMessage))
             return;
         }
 
-        // Resolve type from all loaded assemblies (assembly-qualified name)
-        _componentType = Type.GetType(TypeName);
+        var resolvedType = ResolveComponentType(TypeName);
 
-        // Fallback: scan by full name if assembly-qualified name didn't resolve
-        if (_componentType is null)
-        {
-            var decodedName = Uri.UnescapeDataString(TypeName);
-            _componentType = Type.GetType(decodedName)
-                ?? AppDomain.CurrentDomain.GetAssemblies()
-                    .Select(a =>
-                    {
-                        try { return a.GetType(decodedName); }
-                        catch { return null; }
-                    })
-                    .FirstOrDefault(t => t is not null);
-        }
-
-        if (_componentType is null)
+        if (resolvedType is null)
         {
             _errorMessage = $"Component type '{TypeName}' could not be resolved.";
+            Logger.LogWarning("WindowHost: failed to resolve component type '{TypeName}'", TypeName);
             return;
         }
+
+        // Validate that the resolved type is actually a Blazor component
+        if (!typeof(IComponent).IsAssignableFrom(resolvedType))
+        {
+            _errorMessage = $"Type '{resolvedType.FullName}' is not a Blazor component (does not implement IComponent).";
+            Logger.LogWarning("WindowHost: type '{TypeName}' does not implement IComponent", resolvedType.FullName);
+            return;
+        }
+
+        _componentType = resolvedType;
 
         // Pass WindowId as parameter if the component declares it
         if (!string.IsNullOrEmpty(WindowId))
         {
             _effectiveParameters = new Dictionary<string, object> { ["WindowId"] = WindowId };
         }
+    }
+
+    private Type? ResolveComponentType(string typeName)
+    {
+        // Try assembly-qualified name first (fast path)
+        var resolvedType = Type.GetType(typeName);
+        if (resolvedType is not null) return resolvedType;
+
+        // Fallback: decode and try again, then scan allowed assemblies
+        var decodedName = Uri.UnescapeDataString(typeName);
+        resolvedType = Type.GetType(decodedName);
+        if (resolvedType is not null) return resolvedType;
+
+        // Only scan the entry assembly and assemblies explicitly referenced by it —
+        // not every assembly in the AppDomain (which would include framework/runtime assemblies).
+        var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
+        if (entryAssembly is null) return null;
+
+        // Check entry assembly
+        resolvedType = entryAssembly.GetType(decodedName);
+        if (resolvedType is not null) return resolvedType;
+
+        // Check referenced assemblies (covers the library's own assembly and user-referenced packages)
+        foreach (var assemblyName in entryAssembly.GetReferencedAssemblies())
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.Load(assemblyName);
+                resolvedType = assembly.GetType(decodedName);
+                if (resolvedType is not null) return resolvedType;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "WindowHost: failed to load referenced assembly '{AssemblyName}'", assemblyName.FullName);
+            }
+        }
+
+        return null;
     }
 
     public void Dispose() { }

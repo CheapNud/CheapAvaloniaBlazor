@@ -30,7 +30,13 @@ internal sealed class WindowsModalBackend : IModalBackend
             return;
         }
 
-        EnableWindow(parentHandle, false);
+        if (!EnableWindow(parentHandle, false))
+        {
+            var errorCode = Marshal.GetLastWin32Error();
+            _logger.LogWarning("EnableWindow(disable) failed for handle {Handle}, Win32 error {ErrorCode}", parentHandle, errorCode);
+            return;
+        }
+
         _logger.LogDebug("Disabled parent window {Handle} for modal", parentHandle);
     }
 
@@ -44,10 +50,16 @@ internal sealed class WindowsModalBackend : IModalBackend
             return;
         }
 
+        // EnableWindow returns the PREVIOUS enabled state (false = was disabled, true = was enabled).
+        // A return of false when enabling means the window WAS disabled, which is expected for modals.
+        // The call only truly "fails" if the handle is invalid (guarded above via IsWindow).
         EnableWindow(parentHandle, true);
 
-        // Bring the parent to the foreground after modal closes
-        SetForegroundWindow(parentHandle);
+        if (!SetForegroundWindow(parentHandle))
+        {
+            _logger.LogDebug("SetForegroundWindow failed for handle {Handle} — window may not have input focus", parentHandle);
+        }
+
         _logger.LogDebug("Re-enabled parent window {Handle} after modal", parentHandle);
     }
 
@@ -61,7 +73,13 @@ internal sealed class WindowsModalBackend : IModalBackend
             return;
         }
 
-        PostMessage(windowHandle, Constants.Window.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+        if (!PostMessage(windowHandle, Constants.Window.WM_CLOSE, IntPtr.Zero, IntPtr.Zero))
+        {
+            var errorCode = Marshal.GetLastWin32Error();
+            _logger.LogWarning("PostMessage(WM_CLOSE) failed for handle {Handle}, Win32 error {ErrorCode}", windowHandle, errorCode);
+            return;
+        }
+
         _logger.LogDebug("Posted WM_CLOSE to window {Handle}", windowHandle);
     }
 
@@ -69,6 +87,11 @@ internal sealed class WindowsModalBackend : IModalBackend
 
     // ── P/Invoke ─────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// EnableWindow returns the PREVIOUS enabled state, not success/failure.
+    /// Returns true if the window was previously disabled, false if it was previously enabled.
+    /// The call fails only if the handle is invalid (guard with IsWindow first).
+    /// </summary>
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool EnableWindow(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
