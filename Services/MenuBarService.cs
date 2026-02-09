@@ -27,6 +27,9 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
         _backend = CreateBackend(logger);
         _backend.MenuItemClicked += OnBackendMenuItemClicked;
 
+        if (_backend is WindowsMenuBarBackend windowsBackend)
+            windowsBackend.AsyncExceptionOccurred += OnAsyncException;
+
         _logger.LogDebug("MenuBarService initialized with backend {Backend} (supported={Supported})",
             _backend.GetType().Name, _backend.IsSupported);
     }
@@ -82,6 +85,10 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
         _disposed = true;
 
         _backend.MenuItemClicked -= OnBackendMenuItemClicked;
+
+        if (_backend is WindowsMenuBarBackend windowsBackend)
+            windowsBackend.AsyncExceptionOccurred -= OnAsyncException;
+
         _backend.Dispose();
     }
 
@@ -100,6 +107,11 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
                 _logger.LogError(ex, "MenuItemClicked event handler threw for '{Id}'", menuItemId);
             }
         });
+    }
+
+    private void OnAsyncException(Exception ex)
+    {
+        _logger.LogError(ex, "Async menu item callback threw an unhandled exception");
     }
 
     private static IMenuBarBackend CreateBackend(ILogger logger)

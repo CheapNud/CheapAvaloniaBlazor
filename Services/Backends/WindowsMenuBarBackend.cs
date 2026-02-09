@@ -32,6 +32,12 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
 
     public event Action<string>? MenuItemClicked;
 
+    /// <summary>
+    /// Fired when an async menu item callback throws. Allows the orchestrator to surface errors
+    /// that would otherwise be silently swallowed in fire-and-forget from the WndProc thread.
+    /// </summary>
+    internal event Action<Exception>? AsyncExceptionOccurred;
+
     public WindowsMenuBarBackend(ILogger logger)
     {
         _logger = logger;
@@ -69,6 +75,12 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             _menuBarHandle = IntPtr.Zero;
         }
 
+        // Destroy any popup handles from error paths that weren't attached to the bar.
+        // DestroyMenu on already-freed handles (destroyed by parent above) returns FALSE harmlessly.
+        foreach (var popupHandle in _popupMenuHandles)
+        {
+            DestroyMenu(popupHandle);
+        }
         _popupMenuHandles.Clear();
         _win32IdToDefinition.Clear();
         _stringIdToWin32Id.Clear();
@@ -158,6 +170,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         _popupMenuHandles.Clear();
         _win32IdToDefinition.Clear();
         _stringIdToWin32Id.Clear();
+        _wndProcDelegate = null;
 
         _logger.LogDebug("WindowsMenuBarBackend: Disposed");
     }
@@ -166,6 +179,11 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     private void BuildAndAttachMenuBar(IEnumerable<MenuItemDefinition> menus)
     {
         _menuBarHandle = CreateMenu();
+        if (_menuBarHandle == IntPtr.Zero)
+        {
+            _logger.LogError("WindowsMenuBarBackend: CreateMenu() returned null — menu bar will not be created");
+            return;
+        }
 
         foreach (var topLevelMenu in menus)
         {
@@ -194,6 +212,11 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     private IntPtr BuildPopupMenu(List<MenuItemDefinition> items)
     {
         var popupHandle = CreatePopupMenu();
+        if (popupHandle == IntPtr.Zero)
+        {
+            _logger.LogError("WindowsMenuBarBackend: CreatePopupMenu() returned null — submenu will be empty");
+            return IntPtr.Zero;
+        }
         _popupMenuHandles.Add(popupHandle);
 
         foreach (var menuItem in items)
@@ -296,7 +319,8 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             }
         }
 
-        // Invoke async callback (fire-and-forget since WndProc is synchronous)
+        // Invoke async callback (fire-and-forget since WndProc is synchronous).
+        // Exceptions are logged and surfaced via AsyncExceptionOccurred for the orchestrator.
         if (definition.OnClickAsync is not null)
         {
             _ = Task.Run(async () =>
@@ -308,6 +332,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Menu item OnClickAsync threw for '{Text}'", definition.Text);
+                    AsyncExceptionOccurred?.Invoke(ex);
                 }
             });
         }
