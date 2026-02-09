@@ -28,7 +28,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     private readonly List<IntPtr> _popupMenuHandles = [];
     private int _nextMenuId = Constants.MenuBar.FirstMenuItemId;
 
-    private volatile bool _disposed;
+    private int _disposed; // 0 = not disposed, 1 = disposed (Interlocked)
     private bool _handlingCommand;
 
     public bool IsSupported => OperatingSystem.IsWindows();
@@ -49,7 +49,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     public void Initialize(IntPtr windowHandle, IEnumerable<MenuItemDefinition> menus)
     {
-        if (_disposed) return;
+        if (Volatile.Read(ref _disposed) != 0) return;
         if (windowHandle == IntPtr.Zero) return;
 
         _windowHandle = windowHandle;
@@ -58,18 +58,38 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         // GCHandle.Alloc prevents GC even if the field reference is accidentally removed during refactoring.
         _wndProcDelegate = WndProc;
         _wndProcDelegateHandle = GCHandle.Alloc(_wndProcDelegate);
-        _originalWndProc = SetWindowLongPtr(_windowHandle, GWLP_WNDPROC,
-            Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
 
-        _logger.LogDebug("WindowsMenuBarBackend: Subclassed WndProc on HWND {Handle}", windowHandle);
+        try
+        {
+            _originalWndProc = SetWindowLongPtr(_windowHandle, GWLP_WNDPROC,
+                Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
 
-        BuildAndAttachMenuBar(menus);
+            _logger.LogDebug("WindowsMenuBarBackend: Subclassed WndProc on HWND {Handle}", windowHandle);
+
+            BuildAndAttachMenuBar(menus);
+        }
+        catch
+        {
+            // Clean up GCHandle and restore state on any failure during initialization
+            if (_wndProcDelegateHandle.IsAllocated)
+                _wndProcDelegateHandle.Free();
+            _wndProcDelegate = null;
+
+            // If we already subclassed, restore original WndProc
+            if (_originalWndProc != IntPtr.Zero && IsWindow(_windowHandle))
+            {
+                SetWindowLongPtr(_windowHandle, GWLP_WNDPROC, _originalWndProc);
+                _originalWndProc = IntPtr.Zero;
+            }
+
+            throw;
+        }
     }
 
     [SupportedOSPlatform("windows")]
     public void SetMenuBar(IEnumerable<MenuItemDefinition> menus)
     {
-        if (_disposed) return;
+        if (Volatile.Read(ref _disposed) != 0) return;
         if (_windowHandle == IntPtr.Zero) return;
 
         // Destroy old menu bar (DestroyMenu recursively destroys attached submenus)
@@ -97,7 +117,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     public void EnableMenuItem(string menuItemId, bool enabled)
     {
-        if (_disposed) return;
+        if (Volatile.Read(ref _disposed) != 0) return;
         if (!_stringIdToWin32Id.TryGetValue(menuItemId, out var win32Id)) return;
 
         var flags = MF_BYCOMMAND | (enabled ? MF_ENABLED : MF_GRAYED);
@@ -112,7 +132,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     public void CheckMenuItem(string menuItemId, bool isChecked)
     {
-        if (_disposed) return;
+        if (Volatile.Read(ref _disposed) != 0) return;
         if (!_stringIdToWin32Id.TryGetValue(menuItemId, out var win32Id)) return;
 
         var flags = MF_BYCOMMAND | (isChecked ? MF_CHECKED : MF_UNCHECKED);
@@ -127,8 +147,8 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        // Atomic check-and-set: only one thread enters disposal
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0) return;
 
         // ORDER MATTERS: Restore WndProc FIRST, then destroy menu.
         // Pending WM_COMMAND messages could reference freed memory otherwise.
@@ -295,7 +315,10 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        if (msg == WM_COMMAND && !_handlingCommand)
+        // Cache locally: Dispose() on another thread could zero _originalWndProc mid-execution.
+        var cachedOriginalWndProc = _originalWndProc;
+
+        if (msg == WM_COMMAND && !_handlingCommand && Volatile.Read(ref _disposed) == 0)
         {
             var commandId = LOWORD(wParam);
             var notificationCode = HIWORD(wParam);
@@ -318,7 +341,12 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             }
         }
 
-        return CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+        // Use cached pointer — safe even if Dispose() zeroed _originalWndProc concurrently.
+        // If cached pointer is Zero (Dispose already ran), use DefWindowProc as final fallback.
+        if (cachedOriginalWndProc == IntPtr.Zero)
+            return DefWindowProc(hWnd, msg, wParam, lParam);
+
+        return CallWindowProc(cachedOriginalWndProc, hWnd, msg, wParam, lParam);
     }
 
     private void HandleMenuItemClick(MenuItemDefinition definition)
@@ -446,6 +474,10 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [SupportedOSPlatform("windows")]
+    private static extern IntPtr DefWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     #endregion
 }
