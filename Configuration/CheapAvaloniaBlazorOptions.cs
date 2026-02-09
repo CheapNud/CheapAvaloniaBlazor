@@ -168,6 +168,13 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public bool AutoSaveSettings { get; set; } = true;
 
+    // Menu Bar Options
+
+    /// <summary>
+    /// Native menu bar item definitions (Windows only). Set via .WithMenuBar() on the builder.
+    /// </summary>
+    public List<MenuItemDefinition>? MenuBarItems { get; set; }
+
     /// <summary>
     /// Splash screen configuration
     /// </summary>

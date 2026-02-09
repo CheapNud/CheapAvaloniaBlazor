@@ -1,4 +1,4 @@
-<!-- build/CheapAvaloniaBlazor.targets -->
+<!-- Build/CheapAvaloniaBlazor.targets -->
 <Project>
   <Target Name="CheapAvaloniaBlazorCheck" BeforeTargets="Build">
     <Message Text="CheapAvaloniaBlazor: Configuring Blazor desktop application..." Importance="high" />

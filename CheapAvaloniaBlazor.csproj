@@ -64,7 +64,7 @@
 
   <ItemGroup>
     <!-- Build targets for consuming projects -->
-    <Content Include="build\CheapAvaloniaBlazor.props" PackagePath="build\" />
-    <Content Include="build\CheapAvaloniaBlazor.targets" PackagePath="build\" />
+    <Content Include="Build\CheapAvaloniaBlazor.props" PackagePath="build\" />
+    <Content Include="Build\CheapAvaloniaBlazor.targets" PackagePath="build\" />
   </ItemGroup>
 </Project>

@@ -1,43 +1,7 @@
-﻿// cheap-blazor-interop.js
+// cheap-blazor-interop.js
 // This file should be embedded as a resource in the package
 
 window.cheapBlazor = {
-    initialize: function () {
-        // Set up communication with Photino
-        if (window.external && window.external.sendMessage) {
-            console.log('CheapAvaloniaBlazor: Photino bridge initialized');
-        }
-
-        // Handle window controls
-        this.setupWindowControls();
-
-        // Handle file drop
-        this.setupFileDrop();
-    },
-
-    // Window control functions
-    sendMessage: function (type, payload) {
-        if (window.external && window.external.sendMessage) {
-            window.external.sendMessage(JSON.stringify({ type, payload }));
-        }
-    },
-
-    closeWindow: function () {
-        this.sendMessage('close');
-    },
-
-    minimizeWindow: function () {
-        this.sendMessage('minimize');
-    },
-
-    maximizeWindow: function () {
-        this.sendMessage('maximize');
-    },
-
-    setWindowTitle: function (title) {
-        this.sendMessage('setTitle', title);
-    },
-
     // Clipboard functions
     getClipboardText: async function () {
         try {
@@ -93,24 +57,6 @@ window.cheapBlazor = {
                         lastModified: f.lastModified
                     }))
                 );
-            }
-        });
-    },
-
-    // Window controls setup
-    setupWindowControls: function () {
-        // Handle double-click on title bar to maximize
-        const titlebar = document.querySelector('.titlebar-drag-region');
-        if (titlebar) {
-            titlebar.addEventListener('dblclick', () => {
-                this.sendMessage('toggleMaximize');
-            });
-        }
-
-        // Prevent context menu in title bar
-        document.addEventListener('contextmenu', (e) => {
-            if (e.target.closest('.cheap-blazor-titlebar')) {
-                e.preventDefault();
             }
         });
     },
