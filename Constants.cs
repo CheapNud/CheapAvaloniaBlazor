@@ -317,9 +317,9 @@ public static class Constants
         public const uint WM_CLOSE = 0x0010;
 
         /// <summary>
-        /// Maximum time (ms) to wait for child window threads to join during Dispose.
+        /// Delay (ms) after child window Invoke to allow Blazor circuit initialization.
         /// </summary>
-        public const int ThreadJoinTimeoutMs = 3_000;
+        public const int ChildWindowPostCreateDelayMs = 100;
     }
 
     /// <summary>

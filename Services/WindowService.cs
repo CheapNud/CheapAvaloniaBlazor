@@ -10,9 +10,16 @@ namespace CheapAvaloniaBlazor.Services;
 
 /// <summary>
 /// Cross-platform orchestrator for child windows and modal dialogs.
-/// Each child window runs a Photino WebView2 instance on its own STA background thread,
-/// connecting to the shared Blazor server as an independent SignalR circuit.
+/// Child windows are created on the main Photino thread via Invoke() so they participate
+/// in the existing Win32 message pump. Each window connects to the shared Blazor server
+/// as an independent SignalR circuit.
 /// </summary>
+/// <remarks>
+/// Photino enforces ONE global message pump per process (static _messageLoopIsStarted flag).
+/// Calling WaitForClose() on subsequent PhotinoWindows creates the native window and returns
+/// immediately because the pump is already running — the new window is serviced by the
+/// existing pump. This is the correct multi-window pattern for Photino.
+/// </remarks>
 public sealed class WindowService : IWindowService
 {
     private readonly IBlazorHostService _blazorHost;
@@ -21,6 +28,7 @@ public sealed class WindowService : IWindowService
     private readonly ConcurrentDictionary<string, WindowInfo> _windows = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<ModalResult>> _modalCompletions = new();
 
+    private PhotinoWindow? _mainPhotinoWindow;
     private IntPtr _mainWindowHandle;
     private volatile bool _disposed;
 
@@ -42,11 +50,13 @@ public sealed class WindowService : IWindowService
 
     /// <summary>
     /// Called by BlazorHostWindow after the main Photino window's native handle is created.
+    /// Stores the PhotinoWindow reference for Invoke()-based child window creation.
     /// </summary>
-    internal void RegisterMainWindow(IntPtr windowHandle)
+    internal void RegisterMainWindow(PhotinoWindow photinoWindow)
     {
-        _mainWindowHandle = windowHandle;
-        _logger.LogInformation("Main window registered with handle {Handle}", windowHandle);
+        _mainPhotinoWindow = photinoWindow;
+        _mainWindowHandle = photinoWindow.WindowHandle;
+        _logger.LogInformation("Main window registered with handle {Handle}", _mainWindowHandle);
     }
 
     public Task<string> CreateWindowAsync(WindowOptions options)
@@ -161,7 +171,7 @@ public sealed class WindowService : IWindowService
 
         _logger.LogDebug("WindowService disposing — closing {Count} child window(s)", _windows.Count);
 
-        // Close all child windows
+        // Close all child windows via PostMessage (thread-safe)
         foreach (var kvp in _windows)
         {
             var windowInfo = kvp.Value;
@@ -169,12 +179,6 @@ public sealed class WindowService : IWindowService
             {
                 _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
             }
-        }
-
-        // Wait for threads to finish
-        foreach (var kvp in _windows)
-        {
-            kvp.Value.WindowThread?.Join(Constants.Window.ThreadJoinTimeoutMs);
         }
 
         // Complete any outstanding modal TCS with Cancel
@@ -192,7 +196,7 @@ public sealed class WindowService : IWindowService
 
     // ── Internal ─────────────────────────────────────────────────────────────
 
-    private Task<string> CreateWindowCoreAsync(WindowOptions options, bool isModal, TaskCompletionSource<ModalResult>? modalTcs = null)
+    private async Task<string> CreateWindowCoreAsync(WindowOptions options, bool isModal, TaskCompletionSource<ModalResult>? modalTcs = null)
     {
         var windowId = Guid.NewGuid().ToString("N")[..12];
         var windowUrl = BuildWindowUrl(options, windowId);
@@ -211,31 +215,84 @@ public sealed class WindowService : IWindowService
             _modalCompletions[windowId] = modalTcs;
         }
 
-        var handleReady = new ManualResetEventSlim(false);
-
-        var thread = new Thread(() => RunChildWindow(windowId, windowUrl, options, windowInfo, handleReady));
-        thread.IsBackground = true;
-
-        if (OperatingSystem.IsWindows())
+        if (_mainPhotinoWindow is null)
         {
-            thread.SetApartmentState(ApartmentState.STA);
-        }
-
-        windowInfo.WindowThread = thread;
-        thread.Start();
-
-        // Wait for the native handle to become available
-        if (!handleReady.Wait(Constants.Window.HandleReadyTimeoutMs))
-        {
-            _logger.LogError("Child window '{WindowId}' handle was not ready within {Timeout}ms", windowId, Constants.Window.HandleReadyTimeoutMs);
+            _logger.LogError("Cannot create child window — main window not registered");
             _windows.TryRemove(windowId, out _);
             _modalCompletions.TryRemove(windowId, out _);
-            throw new TimeoutException($"Child window '{windowId}' native handle was not ready within {Constants.Window.HandleReadyTimeoutMs}ms");
+            throw new InvalidOperationException("Main window has not been registered. Cannot create child windows before the main window is ready.");
         }
 
-        handleReady.Dispose();
+        // Marshal child window creation to the main Photino thread via Invoke().
+        // Photino's message pump is global (one per process). WaitForClose() on subsequent windows
+        // creates the native window and returns immediately because the pump is already running.
+        // The child window is then serviced by the existing pump — this is the correct pattern.
+        // Task.Run avoids blocking the calling (Blazor) thread while Invoke marshals.
+        await Task.Run(() =>
+        {
+            _mainPhotinoWindow.Invoke(() =>
+            {
+                try
+                {
+                    // Child windows share the main window's WebView2 user data directory.
+                    // This is safe because all windows run on the same thread (via Invoke).
+                    // Sharing also reuses the browser process and its cached static assets
+                    // (including blazor.web.js which the server may not serve on fresh requests).
+                    var childWindow = new PhotinoWindow(_mainPhotinoWindow)
+                        .SetTitle(options.Title ?? "Child Window")
+                        .SetSize(options.Width, options.Height)
+                        .SetMinSize(Constants.Defaults.MinimumResizableWidth, Constants.Defaults.MinimumResizableHeight)
+                        .SetResizable(options.Resizable)
+                        .SetTopMost(false)
+                        .SetUseOsDefaultSize(false)
+                        .SetUseOsDefaultLocation(!options.CenterOnParent)
+                        .SetLogVerbosity(1);
 
-        // Fire event on UI thread
+                    if (options.CenterOnParent)
+                    {
+                        childWindow.Center();
+                    }
+
+                    childWindow.Load(windowUrl);
+
+                    // Capture handle when native window is created (fires during WaitForClose)
+                    childWindow.RegisterWindowCreatedHandler((s, e) =>
+                    {
+                        windowInfo.WindowHandle = childWindow.WindowHandle;
+                        windowInfo.PhotinoWindow = childWindow;
+                    });
+
+                    // Detect when user closes the child window
+                    childWindow.WindowClosing += (s, e) =>
+                    {
+                        OnChildWindowClosed(windowId);
+                        return false; // Allow close
+                    };
+
+                    // WaitForClose() creates the native window and returns immediately
+                    // because the main message pump is already running (_messageLoopIsStarted = true).
+                    // The window lives on in the existing pump, serviced like any other HWND on this thread.
+                    childWindow.WaitForClose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to create child window '{WindowId}' on Photino thread", windowId);
+                    _windows.TryRemove(windowId, out _);
+                    _modalCompletions.TryRemove(windowId, out _);
+                }
+            });
+        });
+
+        // After Invoke returns, the window should be created with handle available
+        if (windowInfo.WindowHandle == IntPtr.Zero)
+        {
+            _logger.LogError("Child window '{WindowId}' was created but handle is not available", windowId);
+            _windows.TryRemove(windowId, out _);
+            _modalCompletions.TryRemove(windowId, out _);
+            throw new InvalidOperationException($"Child window '{windowId}' native handle was not captured.");
+        }
+
+        // Fire event on Avalonia UI thread
         Dispatcher.UIThread.Post(() =>
         {
             try
@@ -249,49 +306,7 @@ public sealed class WindowService : IWindowService
         });
 
         _logger.LogInformation("Child window '{WindowId}' created (modal={IsModal}, url={Url})", windowId, isModal, windowUrl);
-        return Task.FromResult(windowId);
-    }
-
-    private void RunChildWindow(string windowId, string windowUrl, WindowOptions options, WindowInfo windowInfo, ManualResetEventSlim handleReady)
-    {
-        try
-        {
-            var photinoWindow = new PhotinoWindow()
-                .SetTitle(options.Title ?? "Child Window")
-                .SetSize(options.Width, options.Height)
-                .SetMinSize(Constants.Defaults.MinimumResizableWidth, Constants.Defaults.MinimumResizableHeight)
-                .SetResizable(options.Resizable)
-                .SetTopMost(false)
-                .SetUseOsDefaultSize(false)
-                .SetUseOsDefaultLocation(!options.CenterOnParent)
-                .SetLogVerbosity(1);
-
-            if (options.CenterOnParent)
-            {
-                photinoWindow.Center();
-            }
-
-            photinoWindow.Load(windowUrl);
-
-            // Capture handle when native window is created
-            photinoWindow.RegisterWindowCreatedHandler((s, e) =>
-            {
-                windowInfo.WindowHandle = photinoWindow.WindowHandle;
-                handleReady.Set();
-            });
-
-            // Block until window closes
-            photinoWindow.WaitForClose();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Child window '{WindowId}' thread threw an exception", windowId);
-            handleReady.Set(); // Unblock the caller even on failure
-        }
-        finally
-        {
-            OnChildWindowClosed(windowId);
-        }
+        return windowId;
     }
 
     private void OnChildWindowClosed(string windowId)
@@ -398,7 +413,7 @@ public sealed class WindowService : IWindowService
     {
         public required string WindowId { get; init; }
         public IntPtr WindowHandle { get; set; }
-        public Thread? WindowThread { get; set; }
+        public PhotinoWindow? PhotinoWindow { get; set; }
         public bool IsModal { get; set; }
         public string? ParentWindowId { get; set; }
     }
