@@ -17,9 +17,11 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     private IntPtr _menuBarHandle;
     private IntPtr _originalWndProc;
 
-    // CRITICAL: Must be stored as an instance field to prevent GC from collecting the delegate.
-    // If GC collects this while the WndProc is still subclassed, the app crashes with access violation.
+    // CRITICAL: The WndProc delegate must not be collected by GC while the subclass is active.
+    // Field reference alone can be accidentally removed during refactoring, so we also pin
+    // with GCHandle to make the intent explicit and survive any future code cleanup.
     private WndProcDelegate? _wndProcDelegate;
+    private GCHandle _wndProcDelegateHandle;
 
     private readonly Dictionary<int, MenuItemDefinition> _win32IdToDefinition = [];
     private readonly Dictionary<string, int> _stringIdToWin32Id = [];
@@ -27,6 +29,7 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     private int _nextMenuId = Constants.MenuBar.FirstMenuItemId;
 
     private volatile bool _disposed;
+    private bool _handlingCommand;
 
     public bool IsSupported => OperatingSystem.IsWindows();
 
@@ -51,8 +54,10 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
 
         _windowHandle = windowHandle;
 
-        // Subclass the window to intercept WM_COMMAND
+        // Subclass the window to intercept WM_COMMAND.
+        // GCHandle.Alloc prevents GC even if the field reference is accidentally removed during refactoring.
         _wndProcDelegate = WndProc;
+        _wndProcDelegateHandle = GCHandle.Alloc(_wndProcDelegate);
         _originalWndProc = SetWindowLongPtr(_windowHandle, GWLP_WNDPROC,
             Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
 
@@ -170,6 +175,9 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         _popupMenuHandles.Clear();
         _win32IdToDefinition.Clear();
         _stringIdToWin32Id.Clear();
+
+        if (_wndProcDelegateHandle.IsAllocated)
+            _wndProcDelegateHandle.Free();
         _wndProcDelegate = null;
 
         _logger.LogDebug("WindowsMenuBarBackend: Disposed");
@@ -196,6 +204,8 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             {
                 // Top-level item without children (unusual but supported)
                 var menuId = AssignMenuId(topLevelMenu);
+                if (menuId < 0) continue; // ID space exhausted, skip item
+
                 var flags = MF_STRING;
                 if (!topLevelMenu.IsEnabled) flags |= MF_GRAYED;
                 AppendMenu(_menuBarHandle, flags, (uint)menuId, topLevelMenu.Text);
@@ -236,6 +246,8 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
             }
 
             var menuId = AssignMenuId(menuItem);
+            if (menuId < 0) continue; // ID space exhausted, skip item
+
             var displayText = BuildDisplayText(menuItem);
 
             uint flags = MF_STRING;
@@ -248,13 +260,19 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
         return popupHandle;
     }
 
+    /// <summary>
+    /// Assigns a Win32 command ID to a menu item definition.
+    /// Returns -1 if the ID space is exhausted (item should be skipped by caller).
+    /// </summary>
     private int AssignMenuId(MenuItemDefinition definition)
     {
         if (_nextMenuId > Constants.MenuBar.MaxMenuItemId)
         {
-            throw new InvalidOperationException(
-                $"Menu item ID overflow: exceeded maximum of {Constants.MenuBar.MaxMenuItemId} (0x{Constants.MenuBar.MaxMenuItemId:X4}). " +
-                "Too many menu items registered. IDs above this threshold collide with Win32 system command IDs.");
+            _logger.LogError(
+                "Menu item ID overflow: exceeded maximum of {Max} (0x{MaxHex:X4}). " +
+                "Menu item '{Text}' will not be interactive. Reduce the number of menu items.",
+                Constants.MenuBar.MaxMenuItemId, Constants.MenuBar.MaxMenuItemId, definition.Text);
+            return -1;
         }
 
         var menuId = _nextMenuId++;
@@ -277,15 +295,25 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     [SupportedOSPlatform("windows")]
     private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        if (msg == WM_COMMAND)
+        if (msg == WM_COMMAND && !_handlingCommand)
         {
             var commandId = LOWORD(wParam);
             var notificationCode = HIWORD(wParam);
 
-            // notificationCode == 0 means menu click (not accelerator or control notification)
+            // notificationCode == 0 means menu click (not accelerator or control notification).
+            // _handlingCommand guards against reentrancy: if a callback programmatically
+            // triggers another WM_COMMAND, we forward to the original WndProc instead of re-entering.
             if (notificationCode == 0 && _win32IdToDefinition.TryGetValue(commandId, out var definition))
             {
-                HandleMenuItemClick(definition);
+                _handlingCommand = true;
+                try
+                {
+                    HandleMenuItemClick(definition);
+                }
+                finally
+                {
+                    _handlingCommand = false;
+                }
                 return IntPtr.Zero;
             }
         }

@@ -13,9 +13,11 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
 {
     private readonly ILogger<MenuBarService> _logger;
     private readonly IMenuBarBackend _backend;
+    private readonly object _initLock = new();
 
     private List<MenuItemDefinition>? _pendingMenuItems;
     private volatile bool _disposed;
+    private bool _initialized;
 
     public bool IsSupported => _backend.IsSupported;
 
@@ -44,11 +46,17 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
         if (windowHandle == IntPtr.Zero) return;
         if (!_backend.IsSupported) return;
 
-        var menus = menuItems ?? _pendingMenuItems;
-        if (menus is null) return;
+        lock (_initLock)
+        {
+            if (_initialized) return;
 
-        _backend.Initialize(windowHandle, menus);
-        _pendingMenuItems = null;
+            var menus = menuItems ?? _pendingMenuItems;
+            if (menus is null) return;
+
+            _backend.Initialize(windowHandle, menus);
+            _pendingMenuItems = null;
+            _initialized = true;
+        }
 
         _logger.LogInformation("Native menu bar initialized on window handle {Handle}", windowHandle);
     }
@@ -58,7 +66,10 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
     /// </summary>
     internal void SetPendingMenuItems(IEnumerable<MenuItemDefinition> menus)
     {
-        _pendingMenuItems = menus.ToList();
+        lock (_initLock)
+        {
+            _pendingMenuItems = menus.ToList();
+        }
     }
 
     public void SetMenuBar(IEnumerable<MenuItemDefinition> menus)
