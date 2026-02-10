@@ -225,6 +225,17 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             });
         }
 
+        // Register main window with WindowService for multi-window support.
+        // Child windows are created via mainWindow.Invoke() and need the PhotinoWindow reference.
+        var windowService = CheapAvaloniaBlazorRuntime.GetRequiredService<IWindowService>() as WindowService;
+        if (windowService is not null)
+        {
+            photinoWindow.RegisterWindowCreatedHandler((s, e) =>
+            {
+                windowService.RegisterMainWindow(photinoWindow);
+            });
+        }
+
         // Register window closing handler
         photinoWindow.WindowClosing += (sender, args) =>
         {

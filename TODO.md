@@ -120,12 +120,23 @@
 - [ ] Linux GTK menu bar integration (requires Photino widget hierarchy access)
 - [ ] macOS native menu bar integration
 
-### Multi-Window Support
-- [ ] `IWindowService` for creating additional windows
-- [ ] Methods: `CreateWindowAsync()`, `CloseWindowAsync()`, `GetWindows()`
-- [ ] Window-to-window communication
-- [ ] Modal dialog support
-- [ ] Window positioning relative to parent
+### Multi-Window Support - DONE (v2.5.0)
+- [x] `IWindowService` singleton for creating additional windows
+- [x] Methods: `CreateWindowAsync()`, `CreateModalAsync()`, `CloseWindowAsync()`, `GetWindows()`
+- [x] Window content via URL path (`WindowOptions.FromUrl("/settings")`) or component type (`WindowOptions.FromComponent<T>()`)
+- [x] `ModalResult` with `Confirmed`, `Data`, `GetData<T>()`, factory methods `Ok()` / `Cancel()`
+- [x] `CompleteModal()` for modal components to return data to the caller
+- [x] Window-to-window communication via `SendMessage()`, `BroadcastMessage()`, `MessageReceived` event
+- [x] Modal dialog support with `TaskCompletionSource<ModalResult>` (awaitable)
+- [x] Platform backend architecture (`IModalBackend` → Windows/Null)
+- [x] Win32 `EnableWindow` for true modal behavior (parent disabled while modal open)
+- [x] `SetForegroundWindow` to restore parent focus after modal closes
+- [x] Each child window on STA background thread with independent Blazor circuit
+- [x] `WindowHost.razor` (`/_cheapblazor/window`) for DynamicComponent rendering
+- [x] `WindowCreated` / `WindowClosed` events
+- [x] Demo panel in DesktopFeatures sample with child window, modal dialog, and messaging
+- [ ] Linux/macOS modal behavior (GTK/Cocoa parent disable)
+- [ ] Window positioning relative to parent (center-on-parent calculation)
 
 ### Drag-and-Drop Files (Blazor Exposed)
 - [ ] Expose existing JS drag-and-drop to Blazor components

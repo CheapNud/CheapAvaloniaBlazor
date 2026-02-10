@@ -148,7 +148,10 @@ public static class BlazorComponentMapper
                     return null;
                 }
             })
-            .Where(asm => asm != null && asm != entryAssembly && asm != libraryAssembly)
+            // The library assembly is intentionally included (not filtered out) because it contains
+            // WindowHost.razor with the @page "/_cheapblazor/window" route that the multi-window
+            // system needs the Blazor router to discover.
+            .Where(asm => asm != null && asm != entryAssembly)
             .Where(asm => asm!.GetTypes().Any(t => t.GetCustomAttributes(routeAttributeType, false).Length > 0))
             .ToArray();
 

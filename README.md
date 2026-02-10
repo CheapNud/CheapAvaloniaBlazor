@@ -361,6 +361,64 @@ MenuBar.MenuItemClicked += (menuItemId) =>
 
 **Platform support:** Windows only (Win32 native menu). `IsSupported` returns false on Linux/macOS. Accelerator text is display-only — use `IHotkeyService` for actual keyboard bindings.
 
+### Multi-Window Support (v2.5.0)
+Create child windows and modal dialogs from Blazor components. Each window runs on its own background thread with an independent Blazor SignalR circuit, connected to the same embedded server.
+
+**Open a child window (URL path):**
+```csharp
+@inject IWindowService WindowService
+
+var windowId = await WindowService.CreateWindowAsync(
+    WindowOptions.FromUrl("/settings", "Settings"));
+```
+
+**Open a modal dialog (component type, no @page needed):**
+```csharp
+var options = WindowOptions.FromComponent<SettingsDialog>("Settings");
+options.Width = 500;
+options.Height = 400;
+options.Resizable = false;
+
+ModalResult result = await WindowService.CreateModalAsync(options);
+
+if (result.Confirmed)
+{
+    var data = result.GetData<Dictionary<string, object>>();
+    // Use the returned data
+}
+```
+
+**Complete a modal from inside the dialog component:**
+```csharp
+[Parameter] public string? WindowId { get; set; }
+
+// Save button
+WindowService.CompleteModal(WindowId, ModalResult.Ok(myData));
+
+// Cancel button
+WindowService.CompleteModal(WindowId, ModalResult.Cancel());
+```
+
+**Inter-window messaging:**
+```csharp
+// Send to a specific window
+WindowService.SendMessage(targetWindowId, "refresh", payload);
+
+// Broadcast to all windows
+WindowService.BroadcastMessage("theme_changed", newTheme);
+
+// Receive messages (filter by your own window ID)
+WindowService.MessageReceived += (targetId, type, payload) =>
+{
+    if (targetId == myWindowId || targetId == "*")
+        HandleMessage(type, payload);
+};
+```
+
+**Platform support:** Child windows work on all platforms. Modal behavior (parent window disabling) is Windows-only via Win32 `EnableWindow`. On Linux/macOS, `IsModalSupported` returns false but dialogs still open as regular windows.
+
+**Limits:** When using `WindowOptions.ComponentType`, each distinct component type is registered in an internal security whitelist (prevents arbitrary type instantiation from URL parameters). The whitelist is capped at **256 distinct types** (`Constants.Window.MaxRegisteredComponentTypes`). Re-using the same type across multiple windows does not count again. This limit is a safety guard — typical apps use far fewer component types. URL-path windows (`WindowOptions.FromUrl`) are not affected.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -534,6 +592,8 @@ MyDesktopApp/
 | Theme Detection | Tested | Untested | Untested |
 | Global Hotkeys | Tested | Tested (D-Bus/X11) | Not supported |
 | Native Menu Bar | Tested | Not supported | Not supported |
+| Multi-Window / Child Windows | Tested | Untested | Untested |
+| Modal Dialogs (parent disable) | Tested | Not supported | Not supported |
 
 > **Minimize to Tray** uses Windows `user32.dll` P/Invoke to fully hide the window. On Linux/macOS, the window falls back to a regular minimize (taskbar icon stays visible). System Tray behavior on Linux depends on the desktop environment's support for Avalonia's `TrayIcon` API.
 
@@ -549,6 +609,7 @@ MyDesktopApp/
 | `IThemeService` | Singleton | OS dark/light mode detection and runtime change tracking |
 | `IHotkeyService` | Singleton | System-wide global hotkeys (Windows + Linux, `IsSupported` for detection) |
 | `IMenuBarService` | Singleton | Native Win32 menu bar (Windows only, `IsSupported` for detection) |
+| `IWindowService` | Singleton | Child windows, modal dialogs, inter-window messaging |
 | `IDiagnosticLoggerFactory` | Singleton | Conditional diagnostic logging |
 | `PhotinoMessageHandler` | Singleton | JavaScript ↔ C# bridge communication |
 

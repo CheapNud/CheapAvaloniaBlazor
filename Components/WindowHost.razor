@@ -1,0 +1,70 @@
+@page "/_cheapblazor/window"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Logging
+@inject IWindowService WindowService
+@inject ILogger<WindowHost> Logger
+@implements IDisposable
+
+@if (_componentType is not null)
+{
+    <DynamicComponent Type="_componentType" Parameters="_effectiveParameters" />
+}
+else if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color: red; padding: 1rem;">@_errorMessage</p>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "_type")]
+    public string? TypeName { get; set; }
+
+    [SupplyParameterFromQuery(Name = "_windowId")]
+    public string? WindowId { get; set; }
+
+    private Type? _componentType;
+    private string? _errorMessage;
+    private Dictionary<string, object>? _effectiveParameters;
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(TypeName))
+        {
+            _errorMessage = "No component type specified (_type query parameter missing).";
+            return;
+        }
+
+        // Resolve via the whitelist — only types explicitly passed through WindowOptions.ComponentType
+        // are registered. This prevents arbitrary type instantiation from URL query parameters.
+        var decodedName = Uri.UnescapeDataString(TypeName);
+        var resolvedType = WindowService.ResolveWindowComponent(decodedName);
+
+        if (resolvedType is null)
+        {
+            _errorMessage = $"Component type '{decodedName}' is not registered for window hosting.";
+            // Truncate user-provided input before logging to prevent log injection / bloat
+            var sanitizedName = decodedName.Length > 200 ? decodedName[..200] : decodedName;
+            Logger.LogWarning("WindowHost: type '{TypeName}' is not in the registered components whitelist", sanitizedName);
+            return;
+        }
+
+        // Defense-in-depth: verify the whitelisted type is actually a Blazor component.
+        // The whitelist itself prevents arbitrary types, but this guards against developer mistakes
+        // where a non-component type was somehow registered (e.g., bypassing FromComponent validation).
+        if (!typeof(IComponent).IsAssignableFrom(resolvedType))
+        {
+            _errorMessage = $"Type '{decodedName}' is not a Blazor component.";
+            Logger.LogError("WindowHost: whitelisted type '{TypeName}' does not implement IComponent", decodedName);
+            return;
+        }
+
+        _componentType = resolvedType;
+
+        // Pass WindowId as parameter if the component declares it
+        if (!string.IsNullOrEmpty(WindowId))
+        {
+            _effectiveParameters = new Dictionary<string, object> { ["WindowId"] = WindowId };
+        }
+    }
+
+    public void Dispose() { }
+}

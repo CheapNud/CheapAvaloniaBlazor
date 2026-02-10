@@ -272,6 +272,63 @@ public static class Constants
     }
 
     /// <summary>
+    /// Multi-window and modal dialog constants
+    /// </summary>
+    public static class Window
+    {
+        /// <summary>
+        /// Window ID assigned to the main (primary) Photino window.
+        /// </summary>
+        public const string MainWindowId = "main";
+
+        /// <summary>
+        /// Query parameter name appended to child window URLs to identify the window.
+        /// </summary>
+        public const string WindowIdQueryParam = "_windowId";
+
+        /// <summary>
+        /// Query parameter name for the component type in the WindowHost route.
+        /// </summary>
+        public const string ComponentTypeQueryParam = "_type";
+
+        /// <summary>
+        /// Blazor route for the library's DynamicComponent host page.
+        /// </summary>
+        public const string WindowHostRoute = "/_cheapblazor/window";
+
+        /// <summary>
+        /// Default width for child windows.
+        /// </summary>
+        public const int DefaultChildWidth = 800;
+
+        /// <summary>
+        /// Default height for child windows.
+        /// </summary>
+        public const int DefaultChildHeight = 600;
+
+        /// <summary>
+        /// Maximum time (ms) to wait for a child window's native handle to become available.
+        /// </summary>
+        public const int HandleReadyTimeoutMs = 10_000;
+
+        /// <summary>
+        /// Win32 WM_CLOSE message constant for thread-safe window close via PostMessage.
+        /// </summary>
+        public const uint WM_CLOSE = 0x0010;
+
+        /// <summary>
+        /// Delay (ms) after child window Invoke to allow Blazor circuit initialization.
+        /// </summary>
+        public const int ChildWindowPostCreateDelayMs = 100;
+
+        /// <summary>
+        /// Maximum number of distinct component types that can be registered for window hosting.
+        /// Prevents unbounded growth of the whitelist in pathological scenarios.
+        /// </summary>
+        public const int MaxRegisteredComponentTypes = 256;
+    }
+
+    /// <summary>
     /// System tray related constants
     /// </summary>
     public static class SystemTray
