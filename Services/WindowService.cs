@@ -106,10 +106,9 @@ public sealed class WindowService : IWindowService
 
         // Register cancellation to prevent indefinite hang if the child window crashes or
         // the caller decides to bail. On cancel: complete TCS, re-enable parent, close child.
-        CancellationTokenRegistration? ctsRegistration = null;
-        if (cancellationToken.CanBeCanceled)
-        {
-            ctsRegistration = cancellationToken.Register(() =>
+        // CancellationTokenRegistration is a struct — default is a no-op Dispose, safe when !CanBeCanceled.
+        using var ctsRegistration = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(() =>
             {
                 if (_modalCompletions.TryRemove(windowId, out var cancelledTcs))
                 {
@@ -125,17 +124,10 @@ public sealed class WindowService : IWindowService
                             _modalBackend.PostCloseMessage(cancelledWindowInfo.WindowHandle);
                     }
                 }
-            });
-        }
+            })
+            : default;
 
-        try
-        {
-            return await tcs.Task;
-        }
-        finally
-        {
-            ctsRegistration?.Dispose();
-        }
+        return await tcs.Task;
     }
 
     public Task CloseWindowAsync(string windowId)
@@ -371,7 +363,7 @@ public sealed class WindowService : IWindowService
         // Synchronization gate: WindowCreatedHandler fires during WaitForClose() on the Photino
         // thread before WaitForClose returns. This is synchronous in current Photino, but we use
         // an explicit signal to make the contract clear and defend against future Photino changes.
-        var handleReady = new ManualResetEventSlim(false);
+        using var handleReady = new ManualResetEventSlim(false);
 
         try
         {
@@ -453,10 +445,6 @@ public sealed class WindowService : IWindowService
             CleanupPartialWindow(windowInfo);
             CleanupFailedWindow(windowId);
             throw;
-        }
-        finally
-        {
-            handleReady.Dispose();
         }
 
         if (windowInfo.WindowHandle == IntPtr.Zero)

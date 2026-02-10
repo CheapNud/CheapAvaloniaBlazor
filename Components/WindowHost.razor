@@ -41,7 +41,9 @@ else if (!string.IsNullOrEmpty(_errorMessage))
         if (resolvedType is null)
         {
             _errorMessage = $"Component type '{decodedName}' is not registered for window hosting.";
-            Logger.LogWarning("WindowHost: type '{TypeName}' is not in the registered components whitelist", decodedName);
+            // Truncate user-provided input before logging to prevent log injection / bloat
+            var sanitizedName = decodedName.Length > 200 ? decodedName[..200] : decodedName;
+            Logger.LogWarning("WindowHost: type '{TypeName}' is not in the registered components whitelist", sanitizedName);
             return;
         }
 
