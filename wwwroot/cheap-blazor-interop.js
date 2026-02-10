@@ -37,14 +37,19 @@ window.cheapBlazor = {
 
     // File drag-and-drop handling via Photino message channel.
     // Uses a drag counter to handle spurious dragenter/dragleave from child elements.
+    // The postMsg helper is guarded — preventDefault() always runs regardless of messaging.
     setupFileDrop: function () {
         var dragCounter = 0;
 
         var postMsg = function (type, payload) {
-            window.chrome.webview.postMessage(JSON.stringify({
-                type: type,
-                payload: payload || ''
-            }));
+            try {
+                if (window.chrome && window.chrome.webview) {
+                    window.chrome.webview.postMessage(JSON.stringify({
+                        type: type,
+                        payload: payload || ''
+                    }));
+                }
+            } catch (ignored) { }
         };
 
         document.addEventListener('dragenter', function (e) {
@@ -86,7 +91,6 @@ window.cheapBlazor = {
                 ));
             }
 
-            // Clean up visual feedback after drop
             postMsg('cheapblazor:dragleave');
         });
     },
@@ -132,8 +136,6 @@ window.cheapBlazor = {
     }
 };
 
-// Auto-initialize file drop when running inside Photino (WebView2).
-// The chrome.webview bridge is always available in WebView2 from page load.
-if (window.chrome && window.chrome.webview) {
-    window.cheapBlazor.setupFileDrop();
-}
+// Auto-initialize file drop. The preventDefault() calls must always run to prevent
+// WebView2 from navigating to dropped files. Messaging is guarded inside postMsg.
+window.cheapBlazor.setupFileDrop();
