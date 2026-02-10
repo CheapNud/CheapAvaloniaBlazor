@@ -329,6 +329,16 @@ public static class Constants
     }
 
     /// <summary>
+    /// Drag-and-drop message types for Photino ↔ JavaScript communication
+    /// </summary>
+    public static class DragDrop
+    {
+        public const string DragEnterMessage = "cheapblazor:dragenter";
+        public const string DragLeaveMessage = "cheapblazor:dragleave";
+        public const string FileDropMessage = "cheapblazor:filedrop";
+    }
+
+    /// <summary>
     /// System tray related constants
     /// </summary>
     public static class SystemTray

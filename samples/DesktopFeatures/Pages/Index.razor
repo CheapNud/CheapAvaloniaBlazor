@@ -9,6 +9,7 @@
 @inject IHotkeyService HotkeyService
 @inject IMenuBarService MenuBarService
 @inject IWindowService WindowService
+@inject IDragDropService DragDropService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -635,6 +636,60 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2"
+                  Style="@(_isDragOver ? "border: 2px dashed var(--mud-palette-primary); background: var(--mud-palette-primary-lighten);" : "")">
+            <MudText Typo="Typo.h6" Class="mb-3">Drag-and-Drop</MudText>
+
+            <MudStack Spacing="2">
+                @if (_isDragOver)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        <MudText Typo="Typo.body2">Drop files here...</MudText>
+                    </MudAlert>
+                }
+                else if (_droppedFiles.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Drag files from Explorer onto this window to see them listed here.
+                    </MudText>
+                }
+
+                @if (_droppedFiles.Count > 0)
+                {
+                    <MudList T="string" Dense="true">
+                        @foreach (var fileInfo in _droppedFiles)
+                        {
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@fileInfo.Name</MudText>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@FormatFileSize(fileInfo.Size)</MudChip>
+                                    @if (!string.IsNullOrEmpty(fileInfo.ContentType))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@fileInfo.ContentType</MudText>
+                                    }
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               OnClick="ClearDroppedFiles">
+                        Clear List
+                    </MudButton>
+                }
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        HTML5 drag-and-drop via WebView2. File metadata only (name, size, type) — file paths require native backend (V2).
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
     <MudItem xs="12">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
@@ -709,6 +764,10 @@
     private CheapAvaloniaBlazor.Models.ModalResult? _lastModalResult;
     private string _windowMessage = "Hello from main!";
 
+    // Drag-and-drop state
+    private readonly List<CheapAvaloniaBlazor.Models.DroppedFileInfo> _droppedFiles = [];
+    private bool _isDragOver;
+
     protected override async Task OnInitializedAsync()
     {
         _appSettings = await SettingsService.GetSectionAsync<DesktopFeatures.Models.AppSettings>();
@@ -733,6 +792,11 @@
         WindowService.WindowCreated += OnWindowCreated;
         WindowService.WindowClosed += OnWindowClosed;
         WindowService.MessageReceived += OnWindowMessageReceived;
+
+        // Subscribe to drag-and-drop events
+        DragDropService.FilesDropped += OnFilesDropped;
+        DragDropService.DragEnter += OnDragEnter;
+        DragDropService.DragLeave += OnDragLeave;
     }
 
     private async Task OpenFile()
@@ -1128,6 +1192,39 @@
         InvokeAsync(StateHasChanged);
     }
 
+    private void OnFilesDropped(IReadOnlyList<CheapAvaloniaBlazor.Models.DroppedFileInfo> files)
+    {
+        _droppedFiles.InsertRange(0, files);
+        if (_droppedFiles.Count > 50) _droppedFiles.RemoveRange(50, _droppedFiles.Count - 50);
+        _isDragOver = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDragEnter()
+    {
+        _isDragOver = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDragLeave()
+    {
+        _isDragOver = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearDroppedFiles()
+    {
+        _droppedFiles.Clear();
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes >= 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
+        if (bytes >= 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} MB";
+        if (bytes >= 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes} B";
+    }
+
     public void Dispose()
     {
         LifecycleService.Minimized -= OnLifecycleMinimized;
@@ -1145,6 +1242,10 @@
         WindowService.WindowCreated -= OnWindowCreated;
         WindowService.WindowClosed -= OnWindowClosed;
         WindowService.MessageReceived -= OnWindowMessageReceived;
+
+        DragDropService.FilesDropped -= OnFilesDropped;
+        DragDropService.DragEnter -= OnDragEnter;
+        DragDropService.DragLeave -= OnDragLeave;
 
         // Unregister hotkeys registered by this component
         foreach (var hotkeyId in _registeredHotkeyIds)

@@ -419,6 +419,34 @@ WindowService.MessageReceived += (targetId, type, payload) =>
 
 **Limits:** When using `WindowOptions.ComponentType`, each distinct component type is registered in an internal security whitelist (prevents arbitrary type instantiation from URL parameters). The whitelist is capped at **256 distinct types** (`Constants.Window.MaxRegisteredComponentTypes`). Re-using the same type across multiple windows does not count again. This limit is a safety guard — typical apps use far fewer component types. URL-path windows (`WindowOptions.FromUrl`) are not affected.
 
+### Drag-and-Drop Files (v2.6.0)
+
+Receive file drop events from the OS in Blazor components. Uses HTML5 drag-and-drop in WebView2, bridged to C# via the Photino message channel.
+
+```csharp
+@inject IDragDropService DragDropService
+
+// Subscribe to file drops
+DragDropService.FilesDropped += (files) =>
+{
+    foreach (var file in files)
+    {
+        Console.WriteLine($"{file.Name} ({file.Size} bytes, {file.ContentType})");
+    }
+};
+
+// Visual feedback during drag-over
+DragDropService.DragEnter += () => showDropZone = true;
+DragDropService.DragLeave += () => showDropZone = false;
+
+// Check drag state at any time
+if (DragDropService.IsDragOver) { /* highlight UI */ }
+```
+
+**File metadata:** Name, Size, ContentType, LastModified. File system paths (`FilePath`) are null in V1 — WebView2's browser sandbox does not expose paths from HTML5 drag events. Native file path extraction (Win32 `IDropTarget`) is planned for V2.
+
+**Cross-platform:** Works on Windows, Linux, and macOS. Auto-initialized when the application starts — no builder configuration needed.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 

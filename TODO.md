@@ -139,11 +139,13 @@
 - [ ] Window positioning relative to parent (center-on-parent calculation)
 
 ### Drag-and-Drop Files (Blazor Exposed)
-- [ ] Expose existing JS drag-and-drop to Blazor components
-- [ ] `IDropZoneService` or component
-- [ ] File path extraction from drop events
-- [ ] Multiple file support
-- [ ] Drag-over visual feedback helpers
+- [x] Expose JS drag-and-drop to Blazor components via `IDragDropService`
+- [x] `IDragDropService` singleton with `FilesDropped`, `DragEnter`, `DragLeave` events
+- [x] Multiple file support (file metadata: name, size, type, lastModified)
+- [x] Drag-over visual feedback via `IsDragOver` property and `DragEnter`/`DragLeave` events
+- [x] Auto-initialized JS bridge via Photino message channel
+- [x] Demo panel in DesktopFeatures sample
+- [ ] File path extraction via native backend (Win32 `IDropTarget` / `DragAcceptFiles`) — V2
 
 ---
 

@@ -35,29 +35,59 @@ window.cheapBlazor = {
         }
     },
 
-    // File handling
+    // File drag-and-drop handling via Photino message channel.
+    // Uses a drag counter to handle spurious dragenter/dragleave from child elements.
     setupFileDrop: function () {
-        document.addEventListener('dragover', (e) => {
+        var dragCounter = 0;
+
+        var postMsg = function (type, payload) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: type,
+                payload: payload || ''
+            }));
+        };
+
+        document.addEventListener('dragenter', function (e) {
             e.preventDefault();
-            e.stopPropagation();
+            dragCounter++;
+            if (dragCounter === 1) {
+                postMsg('cheapblazor:dragenter');
+            }
         });
 
-        document.addEventListener('drop', async (e) => {
+        document.addEventListener('dragover', function (e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) {
+                postMsg('cheapblazor:dragleave');
+            }
+        });
+
+        document.addEventListener('drop', function (e) {
             e.preventDefault();
             e.stopPropagation();
+            dragCounter = 0;
 
-            const files = Array.from(e.dataTransfer.files);
-            if (files.length > 0 && window.cheapBlazorInteropService) {
-                // Call back to Blazor service instance
-                await window.cheapBlazorInteropService.invokeMethodAsync('OnFilesDropped',
-                    files.map(f => ({
-                        name: f.name,
-                        size: f.size,
-                        type: f.type,
-                        lastModified: f.lastModified
-                    }))
-                );
+            var files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                postMsg('cheapblazor:filedrop', JSON.stringify(
+                    files.map(function (f) {
+                        return {
+                            name: f.name,
+                            size: f.size,
+                            type: f.type,
+                            lastModified: f.lastModified
+                        };
+                    })
+                ));
             }
+
+            // Clean up visual feedback after drop
+            postMsg('cheapblazor:dragleave');
         });
     },
 
@@ -101,3 +131,9 @@ window.cheapBlazor = {
         URL.revokeObjectURL(link.href);
     }
 };
+
+// Auto-initialize file drop when running inside Photino (WebView2).
+// The chrome.webview bridge is always available in WebView2 from page load.
+if (window.chrome && window.chrome.webview) {
+    window.cheapBlazor.setupFileDrop();
+}
