@@ -35,30 +35,74 @@ window.cheapBlazor = {
         }
     },
 
-    // File handling
+    // File drag-and-drop handling via Photino message channel.
+    // Uses a drag counter to handle spurious dragenter/dragleave from child elements.
+    // Capture-phase listeners on window to intercept before WebView2 internal handlers.
+    // The postMsg helper is guarded — preventDefault() always runs regardless of messaging.
     setupFileDrop: function () {
-        document.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        });
+        var dragCounter = 0;
 
-        document.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const files = Array.from(e.dataTransfer.files);
-            if (files.length > 0 && window.cheapBlazorInteropService) {
-                // Call back to Blazor service instance
-                await window.cheapBlazorInteropService.invokeMethodAsync('OnFilesDropped',
-                    files.map(f => ({
-                        name: f.name,
-                        size: f.size,
-                        type: f.type,
-                        lastModified: f.lastModified
-                    }))
-                );
+        var postMsg = function (type, payload) {
+            try {
+                if (window.chrome && window.chrome.webview) {
+                    window.chrome.webview.postMessage(JSON.stringify({
+                        type: type,
+                        payload: payload || ''
+                    }));
+                }
+            } catch (e) {
+                console.warn('[CheapBlazor] Message post failed:', e);
             }
-        });
+        };
+
+        // Capture phase (true) on window — fires before any bubbling handlers or WebView2 internals.
+        window.addEventListener('dragenter', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            if (dragCounter === 1) {
+                postMsg('cheapblazor:dragenter');
+            }
+        }, true);
+
+        window.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'copy';
+        }, true);
+
+        window.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter = Math.max(0, dragCounter - 1);
+            if (dragCounter === 0) {
+                postMsg('cheapblazor:dragleave');
+            }
+        }, true);
+
+        window.addEventListener('drop', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter = 0;
+
+            var files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                postMsg('cheapblazor:filedrop', JSON.stringify(
+                    files.map(function (f) {
+                        return {
+                            name: f.name,
+                            size: f.size,
+                            type: f.type,
+                            lastModified: f.lastModified
+                        };
+                    })
+                ));
+            }
+
+            postMsg('cheapblazor:dragleave');
+        }, true);
+
+        console.log('[CheapBlazor] File drop handlers registered (capture phase on window)');
     },
 
     // File system helpers
@@ -101,3 +145,7 @@ window.cheapBlazor = {
         URL.revokeObjectURL(link.href);
     }
 };
+
+// Auto-initialize file drop. The preventDefault() calls must always run to prevent
+// WebView2 from navigating to dropped files. Messaging is guarded inside postMsg.
+window.cheapBlazor.setupFileDrop();

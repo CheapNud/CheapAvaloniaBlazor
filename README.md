@@ -98,6 +98,20 @@ class Program
 
 ---
 
+## How `blazor.web.js` Is Served
+
+In .NET 10, `blazor.web.js` ships in the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package. Its MSBuild targets register it as a static web asset — but **only for `OutputType=Exe` projects using `Microsoft.NET.Sdk.Web`**. Desktop apps use `OutputType=WinExe`, so the framework skips them entirely regardless of SDK choice.
+
+CheapAvaloniaBlazor handles this automatically via `BlazorFrameworkExtractor`:
+1. At startup, the extractor checks if `wwwroot/_framework/blazor.web.js` already exists
+2. If not, it locates the file in the NuGet global packages cache (`~/.nuget/packages/microsoft.aspnetcore.app.internal.assets/{version}/_framework/`)
+3. Copies it to `{contentRoot}/wwwroot/_framework/blazor.web.js`
+4. `UseStaticFiles()` middleware then serves it at `/_framework/blazor.web.js`
+
+No consumer action required — this is transparent to the application.
+
+---
+
 ## Features
 
 ### System Tray (v2.0.0)
@@ -419,6 +433,34 @@ WindowService.MessageReceived += (targetId, type, payload) =>
 
 **Limits:** When using `WindowOptions.ComponentType`, each distinct component type is registered in an internal security whitelist (prevents arbitrary type instantiation from URL parameters). The whitelist is capped at **256 distinct types** (`Constants.Window.MaxRegisteredComponentTypes`). Re-using the same type across multiple windows does not count again. This limit is a safety guard — typical apps use far fewer component types. URL-path windows (`WindowOptions.FromUrl`) are not affected.
 
+### Drag-and-Drop Files (v2.6.0)
+
+Receive file drop events from the OS in Blazor components. Uses HTML5 drag-and-drop in WebView2, bridged to C# via the Photino message channel.
+
+```csharp
+@inject IDragDropService DragDropService
+
+// Subscribe to file drops
+DragDropService.FilesDropped += (files) =>
+{
+    foreach (var file in files)
+    {
+        Console.WriteLine($"{file.Name} ({file.Size} bytes, {file.ContentType})");
+    }
+};
+
+// Visual feedback during drag-over
+DragDropService.DragEnter += () => showDropZone = true;
+DragDropService.DragLeave += () => showDropZone = false;
+
+// Check drag state at any time
+if (DragDropService.IsDragOver) { /* highlight UI */ }
+```
+
+**File metadata:** Name, Size, ContentType, LastModified. File system paths (`FilePath`) are null in V1 — WebView2's browser sandbox does not expose paths from HTML5 drag events. Native file path extraction (Win32 `IDropTarget`) is planned for V2.
+
+**Cross-platform:** Works on Windows, Linux, and macOS. Auto-initialized when the application starts — no builder configuration needed.
+
 ### Splash Screen (v1.1.0)
 Enabled by default - Shows a loading screen while your app initializes.
 
@@ -721,6 +763,12 @@ dotnet build
   ```
 - Check browser dev tools for 404 errors
 - Ensure `AddMudBlazor()` is called in HostBuilder
+
+**Black Screen / `blazor.web.js` 404**
+- Run `dotnet restore` to ensure `Microsoft.AspNetCore.App.Internal.Assets` is in the NuGet cache
+- If using `Sdk.Razor`: the library extracts `blazor.web.js` at runtime from the NuGet cache — check startup logs for extraction messages
+- If using `Sdk.Web`: verify `MapStaticAssets()` is in the pipeline (called by `UseCheapBlazorDesktop()`)
+- Clear the WebView2 cache if you see stale behavior: delete `%LocalAppData%\Photino\EBWebView\Default\Cache\`
 
 **Platform Compatibility Issues**
 - **Linux/macOS**: Currently untested - if you encounter issues, please report them!

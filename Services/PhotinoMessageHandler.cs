@@ -269,7 +269,7 @@ public class PhotinoMessageHandler : IDisposable
         {
             _logger?.LogDebug($"Received web message: {message}");
             
-            var messageData = JsonSerializer.Deserialize<MessageData>(message);
+            var messageData = JsonSerializer.Deserialize<MessageData>(message, MessageJsonOptions);
             if (messageData?.Type == null) return;
 
             // Handle one-time result handlers
@@ -318,6 +318,11 @@ public class PhotinoMessageHandler : IDisposable
         _messageHandlers.Clear();
         _window = null;
     }
+
+    private static readonly JsonSerializerOptions MessageJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
 
     private class MessageData
     {

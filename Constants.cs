@@ -134,6 +134,17 @@ public static class Constants
         public const string ContentTypeJavaScript = "application/javascript";
         public const int StatusCodeNotFound = 404;
         public const int StatusCodeInternalServerError = 500;
+
+        /// <summary>
+        /// JS files that must revalidate on every request. WebView2 caches aggressively
+        /// and can serve stale versions across builds. Only library-owned files need this —
+        /// third-party JS (MudBlazor, etc.) should use normal browser caching.
+        /// </summary>
+        public static readonly string[] NoCacheJsFiles =
+        [
+            "cheap-blazor-interop.js",
+            "blazor.web.js",
+        ];
     }
 
     /// <summary>
@@ -326,6 +337,32 @@ public static class Constants
         /// Prevents unbounded growth of the whitelist in pathological scenarios.
         /// </summary>
         public const int MaxRegisteredComponentTypes = 256;
+    }
+
+    /// <summary>
+    /// Drag-and-drop message types for Photino ↔ JavaScript communication
+    /// </summary>
+    public static class DragDrop
+    {
+        public const string DragEnterMessage = "cheapblazor:dragenter";
+        public const string DragLeaveMessage = "cheapblazor:dragleave";
+        public const string FileDropMessage = "cheapblazor:filedrop";
+
+        /// <summary>
+        /// Maximum number of files accepted in a single drop event.
+        /// Prevents DoS via bulk file drag from malicious pages.
+        /// </summary>
+        public const int MaxDroppedFiles = 100;
+    }
+
+    /// <summary>
+    /// Blazor framework asset constants
+    /// </summary>
+    public static class BlazorFramework
+    {
+        public const string BlazorWebJsFileName = "blazor.web.js";
+        public const string FrameworkDirectory = "_framework";
+        public const string InternalAssetsPackageName = "microsoft.aspnetcore.app.internal.assets";
     }
 
     /// <summary>

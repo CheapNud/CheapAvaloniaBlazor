@@ -59,6 +59,10 @@ public static class WebApplicationExtensions
         // Required by MapRazorComponents
         app.UseAntiforgery();
 
+        // Map static assets including _framework/blazor.web.js.
+        // Required in .NET 9+ where framework JS is served via endpoint routing, not UseStaticFiles.
+        app.MapStaticAssets();
+
         // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
         // Centralized in BlazorComponentMapper to avoid reflection duplication
         var appType = Utilities.BlazorComponentMapper.DiscoverAppType();

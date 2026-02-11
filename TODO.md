@@ -2,28 +2,52 @@
 
 ## Known Technical Debt
 
-### DO NOT TOUCH - Environment Hack in EmbeddedBlazorHostService.cs
+### Environment Hardcoded to "Development" in EmbeddedBlazorHostService.cs
 
 **Status**: WORKING - DO NOT "FIX"
 
-**Location**: `Services/EmbeddedBlazorHostService.cs`
+**Location**: `Services/EmbeddedBlazorHostService.cs` (line ~105)
 
-**The Issue**: Environment is hardcoded to "Development" for `UseStaticWebAssets()` to work properly.
+**The Issue**: Environment is hardcoded to "Development" so `UseStaticWebAssets()` resolves
+NuGet-provided static assets (`_content/MudBlazor/`, `_content/CheapAvaloniaBlazor/`, etc.)
+from the development manifest. Production mode expects these files to be physically published
+to wwwroot, which doesn't happen in desktop app `dotnet run` workflows.
 
-**Why It's Like This**: Multiple sessions were spent attempting to properly configure static assets for Production/Release builds. Every "proper" solution resulted in `blazor.web.js` 404 errors and days of debugging. The framework files simply would not resolve correctly outside of Development environment.
+Since this is a localhost-only desktop app (not exposed to the internet), Development mode's
+relaxed security posture is irrelevant.
 
-**What Was Tried**:
+### blazor.web.js Serving Strategy
+
+**Location**: `Utilities/BlazorFrameworkExtractor.cs`, `Build/CheapAvaloniaBlazor.targets`
+
+**Background**: In .NET 10, `blazor.web.js` ships in the `Microsoft.AspNetCore.App.Internal.Assets`
+NuGet package. Its MSBuild targets only register the file as a static web asset when the consuming
+project uses `Microsoft.NET.Sdk.Web`. Desktop apps commonly use `Microsoft.NET.Sdk.Razor`, which
+means `blazor.web.js` never enters the static web assets manifest and 404s at runtime.
+
+**Why switching SDK doesn't help**: Even with `Microsoft.NET.Sdk.Web`, the Internal.Assets
+MSBuild targets have `Condition="'$(OutputType)' == 'Exe'"` — desktop apps use `WinExe`,
+so the targets are skipped entirely. Web SDK is not a solution for desktop apps.
+
+**Runtime solution** (`BlazorFrameworkExtractor`): At startup, `EmbeddedBlazorHostService`
+calls `BlazorFrameworkExtractor.ExtractBlazorFrameworkJs()` which finds `blazor.web.js` in
+the NuGet global packages folder
+(`~/.nuget/packages/microsoft.aspnetcore.app.internal.assets/{version}/_framework/`)
+and copies it to `{contentRoot}/wwwroot/_framework/`. `UseStaticFiles()` then serves it
+from disk. No consumer action required.
+
+**Build-time belt-and-suspenders**: `Build/CheapAvaloniaBlazor.targets` has a
+`CopyBlazorFrameworkFilesFromLibrary` MSBuild target that copies the file at build time
+for NuGet package consumers. This only fires for PackageReference (not ProjectReference).
+
+**What Was Tried Before This Solution**:
 - Embedded resources approach
 - Custom static file providers
-- Manual file copying in build targets
 - Various combinations of `UseStaticWebAssets()` and `UseStaticFiles()`
+- Passing `WebApplicationOptions` to the builder (breaks Blazor script serving)
 
-**Result**: All attempts failed. The current hack works reliably across all scenarios.
-
-**Future Consideration**: Only revisit this when:
-1. Microsoft changes how Blazor static assets work
-2. A proven solution exists in the wild
-3. You have infinite time and patience (you don't)
+**Future Consideration**: Only revisit if Microsoft changes how framework static assets work
+in a future .NET version. The current approach is robust across both SDK types.
 
 ---
 
@@ -139,11 +163,13 @@
 - [ ] Window positioning relative to parent (center-on-parent calculation)
 
 ### Drag-and-Drop Files (Blazor Exposed)
-- [ ] Expose existing JS drag-and-drop to Blazor components
-- [ ] `IDropZoneService` or component
-- [ ] File path extraction from drop events
-- [ ] Multiple file support
-- [ ] Drag-over visual feedback helpers
+- [x] Expose JS drag-and-drop to Blazor components via `IDragDropService`
+- [x] `IDragDropService` singleton with `FilesDropped`, `DragEnter`, `DragLeave` events
+- [x] Multiple file support (file metadata: name, size, type, lastModified)
+- [x] Drag-over visual feedback via `IsDragOver` property and `DragEnter`/`DragLeave` events
+- [x] Auto-initialized JS bridge via Photino message channel
+- [x] Demo panel in DesktopFeatures sample
+- [ ] File path extraction via native backend (Win32 `IDropTarget` / `DragAcceptFiles`) — V2
 
 ---
 
