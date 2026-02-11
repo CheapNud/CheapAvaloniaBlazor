@@ -67,7 +67,7 @@ dotnet add package CheapAvaloniaBlazor
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.2" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="2.1.0" />
   </ItemGroup>
 </Project>
 ```
@@ -114,7 +114,7 @@ No consumer action required — this is transparent to the application.
 
 ## Features
 
-### System Tray (v2.0.0)
+### System Tray (v2.1.0)
 Full system tray integration with icon management, context menus, and minimize/close-to-tray behavior.
 
 ```csharp
@@ -148,7 +148,7 @@ SystemTray.SetTrayMenu([
 
 > **Note:** When `EnableDevTools` is true, the taskbar icon will remain visible after minimizing to tray. This is a Photino/WebView2 limitation - the DevTools window maintains taskbar presence. Disable `EnableDevTools` for clean tray-only behavior.
 
-### Dual-Channel Notifications (v2.0.2)
+### Dual-Channel Notifications (v2.1.0)
 Two independent notification channels for different use cases:
 
 **Desktop Toasts** - Avalonia-rendered overlay notifications. Cross-platform, always works, styled by type:
@@ -232,7 +232,7 @@ await Settings.SetSectionAsync(new AppSettings { IsDarkMode = true });
 
 Settings are stored at `%LocalAppData%/{appName}/settings.json`. Configure the location with `WithSettingsFolder()` or `WithSettingsFileName()`.
 
-### App Lifecycle Events (v2.2.0)
+### App Lifecycle Events (v2.1.0)
 Subscribe to native window lifecycle events from Blazor components. Track window state and react to minimize, maximize, restore, and focus changes.
 
 ```csharp
@@ -260,7 +260,7 @@ Lifecycle.Closing += (sender, args) =>
 
 No builder configuration required - `IAppLifecycleService` is always available.
 
-### Theme Detection (v2.2.0)
+### Theme Detection (v2.1.0)
 Detect OS dark/light mode preference and automatically react to runtime theme switches.
 
 ```csharp
@@ -281,7 +281,7 @@ Theme.ThemeChanged += (newTheme) =>
 
 Uses Avalonia's built-in platform theme detection under the hood. No builder configuration required - `IThemeService` is always available.
 
-### Global Hotkeys (v2.3.0)
+### Global Hotkeys (v2.1.0)
 Register system-wide keyboard shortcuts that fire even when the application window is not focused. Supported on Windows and Linux, with `IsSupported` for runtime platform detection.
 
 **Platform support:**
@@ -328,7 +328,7 @@ Hotkeys.HotkeyPressed += (hotkeyId) =>
 
 No builder configuration required - `IHotkeyService` is always available. Automatically selects the best backend for the current platform.
 
-### Native Menu Bar (v2.4.0)
+### Native Menu Bar (v2.1.0)
 Attach a Win32 native menu bar to the Photino window with File, Edit, View, Help menus or any custom layout. Supports mnemonics (Alt+F), accelerator display text, checkable items, and dynamic enable/disable.
 
 ```csharp
@@ -375,7 +375,7 @@ MenuBar.MenuItemClicked += (menuItemId) =>
 
 **Platform support:** Windows only (Win32 native menu). `IsSupported` returns false on Linux/macOS. Accelerator text is display-only — use `IHotkeyService` for actual keyboard bindings.
 
-### Multi-Window Support (v2.5.0)
+### Multi-Window Support (v2.1.0)
 Create child windows and modal dialogs from Blazor components. Each window runs on its own background thread with an independent Blazor SignalR circuit, connected to the same embedded server.
 
 **Open a child window (URL path):**
@@ -433,7 +433,7 @@ WindowService.MessageReceived += (targetId, type, payload) =>
 
 **Limits:** When using `WindowOptions.ComponentType`, each distinct component type is registered in an internal security whitelist (prevents arbitrary type instantiation from URL parameters). The whitelist is capped at **256 distinct types** (`Constants.Window.MaxRegisteredComponentTypes`). Re-using the same type across multiple windows does not count again. This limit is a safety guard — typical apps use far fewer component types. URL-path windows (`WindowOptions.FromUrl`) are not affected.
 
-### Drag-and-Drop Files (v2.6.0)
+### Drag-and-Drop Files (v2.1.0)
 
 Receive file drop events from the OS in Blazor components. Uses HTML5 drag-and-drop in WebView2, bridged to C# via the Photino message channel.
 
@@ -801,7 +801,7 @@ var builder = new HostBuilder()
 
 ## Project Status & Roadmap
 
-### Current Status: v2.4.0
+### Current Status: v2.1.0
 - Core Framework: Avalonia + Blazor + Photino integration
 - NuGet Package: Published and functional
 - Splash Screen: Enabled by default, fully customizable

@@ -53,7 +53,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 
 ## Priority 1 - Essential Desktop Features
 
-### System Tray Support - DONE (v2.0.0)
+### System Tray Support - DONE (v2.1.0)
 - [x] Integrate Avalonia's `TrayIcon` / `NativeMenu` APIs
 - [x] Add `ISystemTrayService` interface
 - [x] Methods: `ShowTrayIcon()`, `HideTrayIcon()`, `SetTrayIcon()`, `SetTrayTooltip()`
@@ -64,7 +64,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 - [x] Window hide/show via user32.dll P/Invoke (Windows), minimize fallback (Linux/macOS)
 - [x] Fallback icon generation (16x16 WriteableBitmap) when no icon path provided
 
-### Dual-Channel Notifications - DONE (v2.0.2)
+### Dual-Channel Notifications - DONE (v2.1.0)
 - [x] `INotificationService` interface with desktop toasts + system notifications
 - [x] Desktop toasts via Avalonia `WindowNotificationManager` on transparent overlay window
 - [x] System notifications via JS Web Notification API (opt-in)
@@ -82,7 +82,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 - [x] Fluent builder: `WithSettingsAppName()`, `WithSettingsFolder()`, `WithSettingsFileName()`, `AutoSaveSettings()`
 - [x] Proper `IDisposable` cleanup, `SettingsChanged` event
 
-### App Lifecycle Events - DONE (v2.2.0)
+### App Lifecycle Events - DONE (v2.1.0)
 - [x] `OnClosing` event with cancellation support (prevent close, confirm dialogs)
 - [x] `OnMinimized` event
 - [x] `OnMaximized` event
@@ -93,7 +93,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 - [x] Wired to Photino native window events in `BlazorHostWindow`
 - [x] Demo panel in DesktopFeatures sample with event log
 
-### Theme Detection - DONE (v2.2.0)
+### Theme Detection - DONE (v2.1.0)
 - [x] Detect OS dark/light mode preference via Avalonia's `ActualThemeVariant`
 - [x] `IThemeService` interface with `CurrentTheme`, `IsDarkMode`, `ThemeChanged` event
 - [x] `SystemTheme` enum (`Light`, `Dark`)
@@ -105,7 +105,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 
 ## Priority 2 - Enhanced Desktop Experience
 
-### Global Hotkeys - DONE (v2.3.0)
+### Global Hotkeys - DONE (v2.1.0)
 - [x] Register system-wide keyboard shortcuts via Win32 `RegisterHotKey` API
 - [x] `IHotkeyService` interface with `IsSupported` for cross-platform detection
 - [x] Methods: `RegisterHotkey()`, `UnregisterHotkey()`, `UnregisterAll()`
@@ -126,7 +126,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 - [ ] Linux testing: verify X11 backend on X11 sessions
 - [ ] Linux testing: verify D-Bus → X11 fallback chain on X11-only systems
 
-### Native Menu Bar - DONE (v2.4.0)
+### Native Menu Bar - DONE (v2.1.0)
 - [x] File, Edit, View, Help standard menus
 - [x] Custom menu items via fluent API (`.WithMenuBar()` builder + `MenuItemDefinition` factory methods)
 - [x] Keyboard accelerators display text (e.g. "Ctrl+S" — display-only, actual binding via `IHotkeyService`)
@@ -144,7 +144,7 @@ in a future .NET version. The current approach is robust across both SDK types.
 - [ ] Linux GTK menu bar integration (requires Photino widget hierarchy access)
 - [ ] macOS native menu bar integration
 
-### Multi-Window Support - DONE (v2.5.0)
+### Multi-Window Support - DONE (v2.1.0)
 - [x] `IWindowService` singleton for creating additional windows
 - [x] Methods: `CreateWindowAsync()`, `CreateModalAsync()`, `CloseWindowAsync()`, `GetWindows()`
 - [x] Window content via URL path (`WindowOptions.FromUrl("/settings")`) or component type (`WindowOptions.FromComponent<T>()`)
