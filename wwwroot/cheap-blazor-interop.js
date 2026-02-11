@@ -50,7 +50,9 @@ window.cheapBlazor = {
                         payload: payload || ''
                     }));
                 }
-            } catch (ignored) { }
+            } catch (e) {
+                console.warn('[CheapBlazor] Message post failed:', e);
+            }
         };
 
         // Capture phase (true) on window — fires before any bubbling handlers or WebView2 internals.
@@ -72,7 +74,7 @@ window.cheapBlazor = {
         window.addEventListener('dragleave', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            dragCounter--;
+            dragCounter = Math.max(0, dragCounter - 1);
             if (dragCounter === 0) {
                 postMsg('cheapblazor:dragleave');
             }

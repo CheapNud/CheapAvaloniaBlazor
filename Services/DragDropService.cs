@@ -57,6 +57,13 @@ internal sealed class DragDropService : IDragDropService
                 return Task.FromResult(string.Empty);
             }
 
+            if (jsFiles.Count > Constants.DragDrop.MaxDroppedFiles)
+            {
+                _logger.LogWarning("DragDropService: Drop event exceeded max file count ({Count} > {Max}), truncating",
+                    jsFiles.Count, Constants.DragDrop.MaxDroppedFiles);
+                jsFiles = jsFiles.Take(Constants.DragDrop.MaxDroppedFiles).ToList();
+            }
+
             var droppedFiles = jsFiles
                 .Select(MapToDroppedFileInfo)
                 .ToList()
@@ -78,10 +85,10 @@ internal sealed class DragDropService : IDragDropService
 
     private static DroppedFileInfo MapToDroppedFileInfo(JsDroppedFile jsFile) => new()
     {
-        Name = jsFile.Name ?? "unknown",
-        Size = jsFile.Size,
+        Name = !string.IsNullOrWhiteSpace(jsFile.Name) ? jsFile.Name : "unknown",
+        Size = Math.Max(0, jsFile.Size),
         ContentType = jsFile.Type ?? string.Empty,
-        LastModified = DateTimeOffset.FromUnixTimeMilliseconds(jsFile.LastModified),
+        LastModified = DateTimeOffset.FromUnixTimeMilliseconds(Math.Max(0, jsFile.LastModified)),
     };
 
     private void InvokeHandlersSafely(Action action, string eventName)

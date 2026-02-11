@@ -126,12 +126,14 @@ public static class WebApplicationExtensions
         var logger = loggerFactory.CreateLogger(nameof(WebApplicationExtensions));
 
         // Serve wwwroot files from consuming project.
-        // Force revalidation for library JS files so WebView2 picks up changes across builds.
+        // Force revalidation for library-owned JS files so WebView2 picks up changes across builds.
+        // Scoped to specific files — third-party JS (MudBlazor, etc.) uses normal browser caching.
         app.UseStaticFiles(new StaticFileOptions
         {
             OnPrepareResponse = ctx =>
             {
-                if (ctx.File.Name.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+                if (Constants.Http.NoCacheJsFiles.Any(f =>
+                    ctx.File.Name.Equals(f, StringComparison.OrdinalIgnoreCase)))
                 {
                     ctx.Context.Response.Headers.CacheControl = "no-cache";
                 }
@@ -158,7 +160,8 @@ public static class WebApplicationExtensions
                 RequestPath = Constants.Endpoints.ContentPath,
                 OnPrepareResponse = ctx =>
                 {
-                    if (ctx.File.Name.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+                    if (Constants.Http.NoCacheJsFiles.Any(f =>
+                        ctx.File.Name.Equals(f, StringComparison.OrdinalIgnoreCase)))
                     {
                         ctx.Context.Response.Headers.CacheControl = "no-cache";
                     }

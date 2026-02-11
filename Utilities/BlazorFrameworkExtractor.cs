@@ -98,10 +98,13 @@ public static class BlazorFrameworkExtractor
             return null;
         }
 
-        // Find the highest version directory that contains blazor.web.js
-        // Sort descending so we pick the latest version first
+        // Find the highest version directory that contains blazor.web.js.
+        // Sort by parsed Version (semantic) so 10.0.2 > 9.0.10 — string sort gets this wrong.
         var versionDirs = Directory.GetDirectories(packageDir)
-            .OrderByDescending(d => d)
+            .Select(d => new { Path = d, Version = ParseVersion(System.IO.Path.GetFileName(d)) })
+            .Where(x => x.Version is not null)
+            .OrderByDescending(x => x.Version)
+            .Select(x => x.Path)
             .ToArray();
 
         foreach (var versionDir in versionDirs)
@@ -119,6 +122,18 @@ public static class BlazorFrameworkExtractor
 
         logger.LogVerbose("blazor.web.js not found in any version of {Package}", packageDir);
         return null;
+    }
+
+    /// <summary>
+    /// Parses a version string, stripping NuGet pre-release suffixes (e.g. "10.0.2-preview.1" → 10.0.2).
+    /// Returns null for non-version directory names.
+    /// </summary>
+    private static Version? ParseVersion(string versionString)
+    {
+        // Strip pre-release suffix: "10.0.2-preview.1" → "10.0.2"
+        var dashIndex = versionString.IndexOf('-');
+        var cleanVersion = dashIndex >= 0 ? versionString[..dashIndex] : versionString;
+        return Version.TryParse(cleanVersion, out var parsed) ? parsed : null;
     }
 
     /// <summary>
