@@ -37,6 +37,7 @@ window.cheapBlazor = {
 
     // File drag-and-drop handling via Photino message channel.
     // Uses a drag counter to handle spurious dragenter/dragleave from child elements.
+    // Capture-phase listeners on window to intercept before WebView2 internal handlers.
     // The postMsg helper is guarded — preventDefault() always runs regardless of messaging.
     setupFileDrop: function () {
         var dragCounter = 0;
@@ -52,27 +53,32 @@ window.cheapBlazor = {
             } catch (ignored) { }
         };
 
-        document.addEventListener('dragenter', function (e) {
+        // Capture phase (true) on window — fires before any bubbling handlers or WebView2 internals.
+        window.addEventListener('dragenter', function (e) {
             e.preventDefault();
+            e.stopPropagation();
             dragCounter++;
             if (dragCounter === 1) {
                 postMsg('cheapblazor:dragenter');
             }
-        });
+        }, true);
 
-        document.addEventListener('dragover', function (e) {
+        window.addEventListener('dragover', function (e) {
             e.preventDefault();
-        });
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'copy';
+        }, true);
 
-        document.addEventListener('dragleave', function (e) {
+        window.addEventListener('dragleave', function (e) {
             e.preventDefault();
+            e.stopPropagation();
             dragCounter--;
             if (dragCounter === 0) {
                 postMsg('cheapblazor:dragleave');
             }
-        });
+        }, true);
 
-        document.addEventListener('drop', function (e) {
+        window.addEventListener('drop', function (e) {
             e.preventDefault();
             e.stopPropagation();
             dragCounter = 0;
@@ -92,7 +98,9 @@ window.cheapBlazor = {
             }
 
             postMsg('cheapblazor:dragleave');
-        });
+        }, true);
+
+        console.log('[CheapBlazor] File drop handlers registered (capture phase on window)');
     },
 
     // File system helpers

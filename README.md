@@ -98,6 +98,20 @@ class Program
 
 ---
 
+## How `blazor.web.js` Is Served
+
+In .NET 10, `blazor.web.js` ships in the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package. Its MSBuild targets register it as a static web asset — but **only for `OutputType=Exe` projects using `Microsoft.NET.Sdk.Web`**. Desktop apps use `OutputType=WinExe`, so the framework skips them entirely regardless of SDK choice.
+
+CheapAvaloniaBlazor handles this automatically via `BlazorFrameworkExtractor`:
+1. At startup, the extractor checks if `wwwroot/_framework/blazor.web.js` already exists
+2. If not, it locates the file in the NuGet global packages cache (`~/.nuget/packages/microsoft.aspnetcore.app.internal.assets/{version}/_framework/`)
+3. Copies it to `{contentRoot}/wwwroot/_framework/blazor.web.js`
+4. `UseStaticFiles()` middleware then serves it at `/_framework/blazor.web.js`
+
+No consumer action required — this is transparent to the application.
+
+---
+
 ## Features
 
 ### System Tray (v2.0.0)
@@ -749,6 +763,12 @@ dotnet build
   ```
 - Check browser dev tools for 404 errors
 - Ensure `AddMudBlazor()` is called in HostBuilder
+
+**Black Screen / `blazor.web.js` 404**
+- Run `dotnet restore` to ensure `Microsoft.AspNetCore.App.Internal.Assets` is in the NuGet cache
+- If using `Sdk.Razor`: the library extracts `blazor.web.js` at runtime from the NuGet cache — check startup logs for extraction messages
+- If using `Sdk.Web`: verify `MapStaticAssets()` is in the pipeline (called by `UseCheapBlazorDesktop()`)
+- Clear the WebView2 cache if you see stale behavior: delete `%LocalAppData%\Photino\EBWebView\Default\Cache\`
 
 **Platform Compatibility Issues**
 - **Linux/macOS**: Currently untested - if you encounter issues, please report them!

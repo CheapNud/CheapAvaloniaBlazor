@@ -1,4 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
+  <!--
+    WHY Microsoft.NET.Sdk.Razor (not Web)?
+    =======================================
+    Desktop apps use OutputType=WinExe. The Internal.Assets MSBuild targets that
+    register blazor.web.js as a static web asset have Condition="OutputType == Exe"
+    so they skip WinExe projects entirely — even with Sdk.Web.
+
+    CheapAvaloniaBlazor handles this automatically: BlazorFrameworkExtractor copies
+    blazor.web.js from the NuGet cache to wwwroot/_framework/ at runtime, so
+    UseStaticFiles() can serve it. No consumer action required.
+  -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>

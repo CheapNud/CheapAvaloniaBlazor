@@ -339,6 +339,16 @@ public static class Constants
     }
 
     /// <summary>
+    /// Blazor framework asset constants
+    /// </summary>
+    public static class BlazorFramework
+    {
+        public const string BlazorWebJsFileName = "blazor.web.js";
+        public const string FrameworkDirectory = "_framework";
+        public const string InternalAssetsPackageName = "microsoft.aspnetcore.app.internal.assets";
+    }
+
+    /// <summary>
     /// System tray related constants
     /// </summary>
     public static class SystemTray

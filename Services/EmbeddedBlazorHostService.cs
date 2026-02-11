@@ -135,6 +135,11 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 var extractedPath = JavaScriptBridgeExtractor.ExtractJavaScriptBridge(wwwrootPath, _diagnosticLogger);
 
                 _diagnosticLogger.LogDiagnostic("JavaScript bridge extraction completed: {ExtractedPath}", extractedPath);
+
+                // Extract blazor.web.js from NuGet cache to wwwroot/_framework/.
+                // Non-Web-SDK projects (like desktop apps) don't get this file in their static web assets
+                // manifest, so UseStaticWebAssets() can't serve it. UseStaticFiles() serves it from disk.
+                Utilities.BlazorFrameworkExtractor.ExtractBlazorFrameworkJs(wwwrootPath, _diagnosticLogger);
             }
             catch (Exception ex)
             {
@@ -428,6 +433,10 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                     throw;
                 }
             });
+
+            // Map static assets including _framework/blazor.web.js.
+            // Required in .NET 9+ where framework JS is served via endpoint routing, not UseStaticFiles.
+            app.MapStaticAssets();
 
             // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
             // Centralized in BlazorComponentMapper to avoid reflection duplication

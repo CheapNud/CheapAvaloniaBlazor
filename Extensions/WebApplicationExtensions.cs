@@ -59,6 +59,10 @@ public static class WebApplicationExtensions
         // Required by MapRazorComponents
         app.UseAntiforgery();
 
+        // Map static assets including _framework/blazor.web.js.
+        // Required in .NET 9+ where framework JS is served via endpoint routing, not UseStaticFiles.
+        app.MapStaticAssets();
+
         // Modern Blazor Web App pattern: MapRazorComponents<App>().AddInteractiveServerRenderMode()
         // Centralized in BlazorComponentMapper to avoid reflection duplication
         var appType = Utilities.BlazorComponentMapper.DiscoverAppType();
@@ -121,8 +125,18 @@ public static class WebApplicationExtensions
         var loggerFactory = app.Services.GetRequiredService<Services.IDiagnosticLoggerFactory>();
         var logger = loggerFactory.CreateLogger(nameof(WebApplicationExtensions));
 
-        // Serve wwwroot files from consuming project
-        app.UseStaticFiles();
+        // Serve wwwroot files from consuming project.
+        // Force revalidation for library JS files so WebView2 picks up changes across builds.
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = ctx =>
+            {
+                if (ctx.File.Name.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Context.Response.Headers.CacheControl = "no-cache";
+                }
+            }
+        });
 
         // Get the assembly containing embedded resources
         var assembly = typeof(WebApplicationExtensions).Assembly;
@@ -141,7 +155,14 @@ public static class WebApplicationExtensions
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = embeddedProvider,
-                RequestPath = Constants.Endpoints.ContentPath
+                RequestPath = Constants.Endpoints.ContentPath,
+                OnPrepareResponse = ctx =>
+                {
+                    if (ctx.File.Name.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ctx.Context.Response.Headers.CacheControl = "no-cache";
+                    }
+                }
             });
 
             logger.LogVerbose("✅ Standard EmbeddedFileProvider configured successfully");
