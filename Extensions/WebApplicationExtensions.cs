@@ -120,9 +120,23 @@ public static class WebApplicationExtensions
     {
         var loggerFactory = app.Services.GetRequiredService<Services.IDiagnosticLoggerFactory>();
         var logger = loggerFactory.CreateLogger(nameof(WebApplicationExtensions));
+        var isDevelopment = app.Environment.IsDevelopment();
 
-        // Serve wwwroot files from consuming project
-        app.UseStaticFiles();
+        // Serve wwwroot files from consuming project.
+        // In Development, force revalidation for library-owned JS files so WebView2 picks up
+        // changes across builds. ETags are sent by default — no-cache just ensures the browser
+        // always checks (conditional GET → 304). Third-party JS caches normally in all environments.
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = ctx =>
+            {
+                if (isDevelopment && Constants.Http.NoCacheJsFiles.Any(f =>
+                    ctx.File.Name.Equals(f, StringComparison.OrdinalIgnoreCase)))
+                {
+                    ctx.Context.Response.Headers.CacheControl = "no-cache";
+                }
+            }
+        });
 
         // Get the assembly containing embedded resources
         var assembly = typeof(WebApplicationExtensions).Assembly;
@@ -141,7 +155,15 @@ public static class WebApplicationExtensions
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = embeddedProvider,
-                RequestPath = Constants.Endpoints.ContentPath
+                RequestPath = Constants.Endpoints.ContentPath,
+                OnPrepareResponse = ctx =>
+                {
+                    if (isDevelopment && Constants.Http.NoCacheJsFiles.Any(f =>
+                        ctx.File.Name.Equals(f, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        ctx.Context.Response.Headers.CacheControl = "no-cache";
+                    }
+                }
             });
 
             logger.LogVerbose("✅ Standard EmbeddedFileProvider configured successfully");
