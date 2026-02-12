@@ -196,12 +196,12 @@ in a future .NET version. The current approach is robust across both SDK types.
 - [ ] Identify reflection-heavy code paths
 - [ ] Create AOT-compatible build profile
 
-### Project Templates
-- [ ] `dotnet new cheapblazor` template
-- [ ] Minimal template (bare bones)
-- [ ] Full template (with sample pages)
-- [ ] Template with MudBlazor pre-configured
-- [ ] NuGet template package
+### Project Templates - DONE (v2.1.0)
+- [x] `dotnet new cheapblazor` template (minimal — MudBlazor + basic window)
+- [x] `dotnet new cheapblazor-full` template (all features enabled)
+- [x] NuGet template package (`CheapAvaloniaBlazor.Templates`)
+- [x] `sourceName` substitution (project name, namespaces, titles)
+- [x] Both templates build with 0 warnings, 0 errors
 
 ---
 

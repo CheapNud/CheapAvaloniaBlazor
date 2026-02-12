@@ -41,6 +41,29 @@ Building cross-platform desktop apps traditionally requires learning different U
 
 ## Quick Installation
 
+### Using Project Templates (Recommended)
+
+```bash
+# Install templates
+dotnet new install CheapAvaloniaBlazor.Templates
+
+# Create a minimal app (MudBlazor + basic window)
+dotnet new cheapblazor -n MyDesktopApp
+
+# Or create a full-featured app (all desktop services enabled)
+dotnet new cheapblazor-full -n MyDesktopApp
+
+cd MyDesktopApp
+dotnet run
+```
+
+| Template | Short Name | Description |
+|----------|-----------|-------------|
+| CheapAvaloniaBlazor Desktop App | `cheapblazor` | Clean starting point — MudBlazor + basic window |
+| CheapAvaloniaBlazor Desktop App (Full Featured) | `cheapblazor-full` | All features: tray, notifications, settings, hotkeys, menu bar, multi-window, drag-drop |
+
+### Manual Setup
+
 ```bash
 # Create a new console project
 dotnet new console -n MyDesktopApp
@@ -675,6 +698,8 @@ Location: `samples/DesktopFeatures/` - Demonstrates all desktop interop features
 - Theme detection (OS dark/light mode with follow-system toggle)
 - Global hotkeys (system-wide keyboard shortcuts, Windows + Linux)
 - Native menu bar (Win32 menu with mnemonics, accelerators, checkable items)
+- Multi-window (child windows, modals, inter-window messaging)
+- Drag-and-drop files (HTML5 drag events bridged to C#)
 - System paths and browser integration
 
 ### CheapShotcutRandomizer (External)
@@ -818,13 +843,15 @@ var builder = new HostBuilder()
 - JavaScript Bridge: Full bidirectional communication
 - MudBlazor Integration: Full component library support
 - Diagnostics: Comprehensive logging and troubleshooting system
+- Multi-Window: Child windows, modal dialogs, inter-window messaging
+- Drag-and-Drop: HTML5 drag events bridged to C# via WebView2 message channel
+- Package Templates: `dotnet new cheapblazor` and `cheapblazor-full` project scaffolding
 - Performance: ValueTask for zero-allocation synchronous operations
 
 ### Planned Features
 - Testing Framework: Unit and integration test support
 - Cross-Platform Testing: Full compatibility validation on Linux and macOS
 - Alternative UI Frameworks: Support for Tailwind CSS, Radzen, and other Blazor component libraries
-- Package Templates: `dotnet new` project templates
 - Plugin System: Extensible architecture
 
 ### Known Limitations
@@ -861,14 +888,13 @@ MIT License - Use freely in personal and commercial projects.
 ## Getting Started
 
 ```bash
-# Create new project
-dotnet new console -n MyFirstDesktopApp
+# Install templates
+dotnet new install CheapAvaloniaBlazor.Templates
+
+# Create and run a new app
+dotnet new cheapblazor -n MyFirstDesktopApp
 cd MyFirstDesktopApp
-
-# Add CheapAvaloniaBlazor
-dotnet add package CheapAvaloniaBlazor
-
-# Follow the Quick Start guide above
+dotnet run
 ```
 
 Questions or issues? [Open an issue](https://github.com/CheapNud/CheapAvaloniaBlazor/issues) for feedback.

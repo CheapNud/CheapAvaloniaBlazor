@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "CheapNud",
+  "classifications": ["Desktop", "Blazor", "Avalonia", "MudBlazor"],
+  "identity": "CheapAvaloniaBlazor.Full",
+  "name": "CheapAvaloniaBlazor Desktop App (Full Featured)",
+  "shortName": "cheapblazor-full",
+  "description": "A full-featured desktop app with all CheapAvaloniaBlazor services: tray, notifications, settings, hotkeys, menu bar, multi-window, drag-drop",
+  "tags": { "language": "C#", "type": "project" },
+  "sourceName": "CheapBlazorApp",
+  "preferNameDirectory": true
+}
