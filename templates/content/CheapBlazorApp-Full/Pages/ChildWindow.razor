@@ -1,0 +1,112 @@
+@page "/child-window"
+@implements IDisposable
+@inject IWindowService WindowService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-6">
+    <MudText Typo="Typo.h4" Class="mb-2">Child Window</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+        This is a child window running in its own Blazor circuit.
+    </MudText>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-3">Window Info</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr>
+                    <td>Window ID</td>
+                    <td><MudChip T="string" Size="Size.Small">@(WindowId ?? "N/A")</MudChip></td>
+                </tr>
+                <tr>
+                    <td>Active Windows</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="Color.Info">@WindowService.GetWindows().Count</MudChip></td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-3">Inter-Window Messaging</MudText>
+
+        <MudStack Spacing="2">
+            <MudTextField @bind-Value="_outgoingMessage"
+                          Label="Message to Main Window"
+                          Variant="Variant.Outlined" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Send"
+                       OnClick="SendToMain"
+                       Disabled="@(string.IsNullOrWhiteSpace(WindowId))">
+                Send to Main
+            </MudButton>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-2">Received Messages</MudText>
+            <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                @if (_receivedMessages.Count == 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        No messages received yet. Send a message from the main window.
+                    </MudText>
+                }
+                else
+                {
+                    @foreach (var entry in _receivedMessages)
+                    {
+                        <MudText Typo="Typo.caption">@entry</MudText>
+                    }
+                }
+            </MudPaper>
+        </MudStack>
+    </MudPaper>
+
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Error"
+               StartIcon="@Icons.Material.Filled.Close"
+               OnClick="CloseThisWindow"
+               Disabled="@(string.IsNullOrWhiteSpace(WindowId))">
+        Close This Window
+    </MudButton>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromQuery(Name = "_windowId")]
+    public string? WindowId { get; set; }
+
+    private string _outgoingMessage = "Hello from child!";
+    private readonly List<string> _receivedMessages = [];
+
+    protected override void OnInitialized()
+    {
+        WindowService.MessageReceived += OnMessageReceived;
+    }
+
+    private void SendToMain()
+    {
+        if (string.IsNullOrWhiteSpace(WindowId)) return;
+        WindowService.SendMessage(CheapAvaloniaBlazor.Constants.Window.MainWindowId, "child_message", _outgoingMessage);
+        Snackbar.Add("Message sent to main window", Severity.Success);
+    }
+
+    private void OnMessageReceived(string targetWindowId, string messageType, object? payload)
+    {
+        // Only handle messages for this window or broadcast
+        if (targetWindowId != WindowId && targetWindowId != "*") return;
+
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _receivedMessages.Insert(0, $"[{timestamp}] {messageType}: {payload}");
+        if (_receivedMessages.Count > 50) _receivedMessages.RemoveAt(_receivedMessages.Count - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CloseThisWindow()
+    {
+        if (!string.IsNullOrWhiteSpace(WindowId))
+            await WindowService.CloseWindowAsync(WindowId);
+    }
+
+    public void Dispose()
+    {
+        WindowService.MessageReceived -= OnMessageReceived;
+    }
+}

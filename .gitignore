@@ -366,3 +366,8 @@ FodyWeavers.xsd
 
 .claude/
 CLAUDE.md
+
+# Template testing artifacts
+templates/test/
+templates/out/
+templates/localpkg/

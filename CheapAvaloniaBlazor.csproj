@@ -31,11 +31,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Exclude samples folder from library compilation -->
-    <Compile Remove="samples\**" />
-    <Content Remove="samples\**" />
-    <EmbeddedResource Remove="samples\**" />
-    <None Remove="samples\**" />
+    <!-- Exclude samples and templates folders from library compilation -->
+    <Compile Remove="samples\**;templates\**" />
+    <Content Remove="samples\**;templates\**" />
+    <EmbeddedResource Remove="samples\**;templates\**" />
+    <None Remove="samples\**;templates\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,7 +64,7 @@
 
   <ItemGroup>
     <!-- Build targets for consuming projects -->
-    <Content Include="Build\CheapAvaloniaBlazor.props" PackagePath="build\" />
-    <Content Include="Build\CheapAvaloniaBlazor.targets" PackagePath="build\" />
+    <Content Include="Build\CheapAvaloniaBlazor.props" PackagePath="build" />
+    <Content Include="Build\CheapAvaloniaBlazor.targets" PackagePath="build" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,92 @@
+@inject IWindowService WindowService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-6">
+    <MudText Typo="Typo.h5" Class="mb-4">Settings</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        This is a modal dialog rendered via DynamicComponent.
+    </MudText>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudStack Spacing="3">
+            <MudSelect T="string"
+                       @bind-Value="_selectedTheme"
+                       Label="Theme"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("System")">System Default</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Light")">Light</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Dark")">Dark</MudSelectItem>
+            </MudSelect>
+
+            <MudSlider T="int"
+                       @bind-Value="_fontSize"
+                       Min="8"
+                       Max="24"
+                       Step="1"
+                       Color="Color.Primary">
+                Font Size: @_fontSize px
+            </MudSlider>
+
+            <MudSwitch T="bool"
+                       @bind-Value="_enableAnimations"
+                       Label="Enable Animations"
+                       Color="Color.Primary" />
+
+            <MudTextField @bind-Value="_userName"
+                          Label="Display Name"
+                          Variant="Variant.Outlined" />
+        </MudStack>
+    </MudPaper>
+
+    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Text"
+                   OnClick="OnCancel">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="OnSave">
+            Save
+        </MudButton>
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string? WindowId { get; set; }
+
+    private string _selectedTheme = "System";
+    private int _fontSize = 14;
+    private bool _enableAnimations = true;
+    private string _userName = "";
+
+    private void OnSave()
+    {
+        if (string.IsNullOrWhiteSpace(WindowId))
+        {
+            Snackbar.Add("No WindowId — cannot complete modal", Severity.Error);
+            return;
+        }
+
+        var settingsData = new Dictionary<string, object>
+        {
+            ["Theme"] = _selectedTheme,
+            ["FontSize"] = _fontSize,
+            ["EnableAnimations"] = _enableAnimations,
+            ["UserName"] = _userName,
+        };
+
+        WindowService.CompleteModal(WindowId, CheapAvaloniaBlazor.Models.ModalResult.Ok(settingsData));
+    }
+
+    private void OnCancel()
+    {
+        if (string.IsNullOrWhiteSpace(WindowId))
+        {
+            Snackbar.Add("No WindowId — cannot complete modal", Severity.Error);
+            return;
+        }
+
+        WindowService.CompleteModal(WindowId, CheapAvaloniaBlazor.Models.ModalResult.Cancel());
+    }
+}

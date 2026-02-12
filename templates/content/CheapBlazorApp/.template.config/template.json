@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "CheapNud",
+  "classifications": ["Desktop", "Blazor", "Avalonia", "MudBlazor"],
+  "identity": "CheapAvaloniaBlazor.Minimal",
+  "name": "CheapAvaloniaBlazor Desktop App",
+  "shortName": "cheapblazor",
+  "description": "A minimal desktop app with Blazor, Avalonia, Photino, and MudBlazor",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "CheapBlazorApp",
+  "preferNameDirectory": true
+}

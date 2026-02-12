@@ -1,0 +1,96 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ISettingsService SettingsService
+@inject IThemeService ThemeService
+
+<MudThemeProvider @ref="_themeProvider" @bind-IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudText Typo="Typo.h6">CheapBlazorApp</MudText>
+        <MudSpacer />
+        <MudTooltip Text="@(_followSystem ? "Following system theme" : (_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"))">
+            <MudIconButton Icon="@(_followSystem ? Icons.Material.Filled.SettingsBrightness : (_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode))"
+                           Color="Color.Inherit"
+                           OnClick="ToggleDarkMode" />
+        </MudTooltip>
+        <MudTooltip Text="@(_followSystem ? "Stop following system theme" : "Follow system theme")">
+            <MudIconButton Icon="@Icons.Material.Filled.Contrast"
+                           Color="@(_followSystem ? Color.Warning : Color.Inherit)"
+                           OnClick="ToggleFollowSystem" />
+        </MudTooltip>
+    </MudAppBar>
+    <MudMainContent Class="pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private MudThemeProvider? _themeProvider;
+    private bool _isDarkMode;
+    private bool _followSystem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var appSettings = await SettingsService.GetSectionAsync<CheapBlazorApp.Models.AppSettings>();
+        _isDarkMode = appSettings.IsDarkMode;
+        _followSystem = appSettings.FollowSystemTheme;
+
+        if (_followSystem)
+        {
+            _isDarkMode = ThemeService.IsDarkMode;
+        }
+
+        ThemeService.ThemeChanged += OnSystemThemeChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _themeProvider is not null)
+        {
+            var appSettings = await SettingsService.GetSectionAsync<CheapBlazorApp.Models.AppSettings>();
+            _isDarkMode = _followSystem ? ThemeService.IsDarkMode : appSettings.IsDarkMode;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleDarkMode()
+    {
+        if (_followSystem) return; // Ignore manual toggle when following system
+
+        _isDarkMode = !_isDarkMode;
+        await SettingsService.UpdateSectionAsync<CheapBlazorApp.Models.AppSettings>(s => s.IsDarkMode = _isDarkMode);
+    }
+
+    private async Task ToggleFollowSystem()
+    {
+        _followSystem = !_followSystem;
+
+        if (_followSystem)
+        {
+            _isDarkMode = ThemeService.IsDarkMode;
+        }
+
+        await SettingsService.UpdateSectionAsync<CheapBlazorApp.Models.AppSettings>(s =>
+        {
+            s.FollowSystemTheme = _followSystem;
+            s.IsDarkMode = _isDarkMode;
+        });
+    }
+
+    private void OnSystemThemeChanged(CheapAvaloniaBlazor.Models.SystemTheme newTheme)
+    {
+        if (!_followSystem) return;
+
+        _isDarkMode = newTheme == CheapAvaloniaBlazor.Models.SystemTheme.Dark;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.ThemeChanged -= OnSystemThemeChanged;
+    }
+}

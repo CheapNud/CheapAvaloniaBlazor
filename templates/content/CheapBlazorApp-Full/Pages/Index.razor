@@ -1,0 +1,1257 @@
+@page "/"
+@implements IDisposable
+@inject IDesktopInteropService DesktopInterop
+@inject ISystemTrayService TrayService
+@inject INotificationService NotificationService
+@inject ISettingsService SettingsService
+@inject IAppLifecycleService LifecycleService
+@inject IThemeService ThemeService
+@inject IHotkeyService HotkeyService
+@inject IMenuBarService MenuBarService
+@inject IWindowService WindowService
+@inject IDragDropService DragDropService
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" Class="mb-4">CheapBlazorApp</MudText>
+<MudText Typo="Typo.body1" Class="mb-6">
+    Demonstrates native desktop capabilities provided by CheapAvaloniaBlazor.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">File Dialogs</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.FolderOpen"
+                           OnClick="OpenFile">
+                    Open File
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveFile">
+                    Save File
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Tertiary"
+                           StartIcon="@Icons.Material.Filled.Folder"
+                           OnClick="OpenFolder">
+                    Open Folder
+                </MudButton>
+
+                @if (!string.IsNullOrEmpty(_selectedPath))
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-2">
+                        <MudText Typo="Typo.body2">@_selectedPath</MudText>
+                    </MudAlert>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Window Controls</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Minimize"
+                           OnClick="@(() => DesktopInterop.MinimizeWindowAsync())">
+                    Minimize
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Fullscreen"
+                           OnClick="@(() => DesktopInterop.MaximizeWindowAsync())">
+                    Maximize
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.FullscreenExit"
+                           OnClick="@(() => DesktopInterop.RestoreWindowAsync())">
+                    Restore
+                </MudButton>
+
+                <MudTextField @bind-Value="_windowTitle"
+                              Label="Window Title"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Edit"
+                              OnAdornmentClick="SetWindowTitle" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Clipboard</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_clipboardText"
+                              Label="Clipboard Text"
+                              Variant="Variant.Outlined"
+                              Lines="3" />
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.ContentCopy"
+                               OnClick="CopyToClipboard">
+                        Copy
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.ContentPaste"
+                               OnClick="PasteFromClipboard">
+                        Paste
+                    </MudButton>
+                </MudButtonGroup>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">System</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.OpenInBrowser"
+                           OnClick="@(() => DesktopInterop.OpenUrlInBrowserAsync("https://github.com/CheapNud/CheapAvaloniaBlazor"))">
+                    Open GitHub
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Folder"
+                           OnClick="ShowAppDataPath">
+                    Show AppData Path
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Description"
+                           OnClick="ShowDocumentsPath">
+                    Show Documents Path
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">System Tray</MudText>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.NotificationsActive"
+                           OnClick="MinimizeToTray">
+                    Minimize to Tray
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@(_trayVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                           OnClick="ToggleTrayIcon">
+                    @(_trayVisible ? "Hide Tray Icon" : "Show Tray Icon")
+                </MudButton>
+
+                <MudTextField @bind-Value="_trayTooltip"
+                              Label="Tray Tooltip"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Edit"
+                              OnAdornmentClick="SetTrayTooltip" />
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddCustomTrayMenuItem">
+                    Add Custom Menu Item
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Clear"
+                           OnClick="ClearCustomTrayMenuItems">
+                    Clear Custom Items
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Close button minimizes to tray. Right-click tray icon for menu.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Desktop Notifications</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_desktopNotificationTitle"
+                              Label="Title"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_desktopNotificationMessage"
+                              Label="Message"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+
+                <MudSelect T="CheapAvaloniaBlazor.Models.NotificationType"
+                           @bind-Value="_desktopNotificationType"
+                           Label="Type"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Information">Information</MudSelectItem>
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Success">Success</MudSelectItem>
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Warning">Warning</MudSelectItem>
+                    <MudSelectItem T="CheapAvaloniaBlazor.Models.NotificationType" Value="CheapAvaloniaBlazor.Models.NotificationType.Error">Error</MudSelectItem>
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.DesktopWindows"
+                           OnClick="SendDesktopNotification">
+                    Send Desktop Toast
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Avalonia-rendered toast overlay. Cross-platform, always works, styled by notification type.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">System Notifications</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_systemNotificationTitle"
+                              Label="Title"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_systemNotificationMessage"
+                              Label="Message"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Notifications"
+                           OnClick="SendSystemNotification"
+                           Disabled="@(!NotificationService.SystemNotificationsEnabled)">
+                    Send System Notification
+                </MudButton>
+
+                <MudAlert Severity="@(NotificationService.SystemNotificationsEnabled ? Severity.Info : Severity.Warning)" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        @if (NotificationService.SystemNotificationsEnabled)
+                        {
+                            @:JS Web Notification API (OS notification center). Browser permission may be requested on first use.
+                        }
+                        else
+                        {
+                            @:System notifications are disabled. Enable via .EnableSystemNotifications() in Program.cs.
+                        }
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Settings Persistence</MudText>
+
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_settingsKey"
+                              Label="Key"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_settingsValue"
+                              Label="Value"
+                              Variant="Variant.Outlined" />
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SetSettingsValue">
+                        Set
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="GetSettingsValue">
+                        Get
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Delete"
+                               Color="Color.Error"
+                               OnClick="DeleteSettingsValue">
+                        Delete
+                    </MudButton>
+                </MudButtonGroup>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Key-value API demo. Values persist to %LocalAppData%\CheapBlazorApp\settings.json
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">App Lifecycle</MudText>
+
+            <MudStack Spacing="2">
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>State</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>IsMinimized</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(LifecycleService.IsMinimized ? Color.Warning : Color.Default)">@LifecycleService.IsMinimized</MudChip></td>
+                        </tr>
+                        <tr>
+                            <td>IsMaximized</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(LifecycleService.IsMaximized ? Color.Info : Color.Default)">@LifecycleService.IsMaximized</MudChip></td>
+                        </tr>
+                        <tr>
+                            <td>IsFocused</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(LifecycleService.IsFocused ? Color.Success : Color.Default)">@LifecycleService.IsFocused</MudChip></td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_lifecycleEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No events yet. Try minimizing, maximizing, or switching focus.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _lifecycleEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="ClearLifecycleLog">
+                    Clear Log
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Photino native window events. Minimize, maximize, restore, or switch focus to see events fire.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Theme Detection</MudText>
+
+            <MudStack Spacing="2">
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>OS Theme</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(ThemeService.IsDarkMode ? Color.Dark : Color.Default)">@ThemeService.CurrentTheme</MudChip></td>
+                        </tr>
+                        <tr>
+                            <td>IsDarkMode</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@(ThemeService.IsDarkMode ? Color.Dark : Color.Default)">@ThemeService.IsDarkMode</MudChip></td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Theme Change Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_themeEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No theme changes detected yet. Try switching dark/light mode in Windows Settings.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _themeEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Detects OS dark/light mode via Avalonia. Use the contrast icon in the app bar to follow system theme.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Global Hotkeys</MudText>
+
+            <MudStack Spacing="2">
+                <MudChip T="string" Size="Size.Small" Color="@(HotkeyService.IsSupported ? Color.Success : Color.Error)">
+                    @(HotkeyService.IsSupported ? "Supported" : "Not Supported")
+                </MudChip>
+
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudSelect T="CheapAvaloniaBlazor.Models.HotkeyModifiers"
+                               Value="_hotkeyModifier1"
+                               ValueChanged="@((CheapAvaloniaBlazor.Models.HotkeyModifiers m) => _hotkeyModifier1 = m)"
+                               Label="Modifier 1"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="min-width: 100px;">
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Ctrl">Ctrl</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Alt">Alt</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Shift">Shift</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Win">Win</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSelect T="CheapAvaloniaBlazor.Models.HotkeyModifiers"
+                               Value="_hotkeyModifier2"
+                               ValueChanged="@((CheapAvaloniaBlazor.Models.HotkeyModifiers m) => _hotkeyModifier2 = m)"
+                               Label="Modifier 2"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="min-width: 100px;">
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.None">None</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Ctrl">Ctrl</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Alt">Alt</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Shift">Shift</MudSelectItem>
+                        <MudSelectItem T="CheapAvaloniaBlazor.Models.HotkeyModifiers" Value="CheapAvaloniaBlazor.Models.HotkeyModifiers.Win">Win</MudSelectItem>
+                    </MudSelect>
+
+                    <MudTextField @bind-Value="_hotkeyKeyName"
+                                  Label="Key (e.g. H)"
+                                  Variant="Variant.Outlined"
+                                  Style="max-width: 120px;" />
+                </MudStack>
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="RegisterDemoHotkey"
+                               Disabled="@(!HotkeyService.IsSupported)">
+                        Register
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Clear"
+                               Color="Color.Warning"
+                               OnClick="UnregisterAllHotkeys"
+                               Disabled="@(!HotkeyService.IsSupported || _registeredHotkeyIds.Count == 0)">
+                        Unregister All
+                    </MudButton>
+                </MudButtonGroup>
+
+                @if (_registeredHotkeyIds.Count > 0)
+                {
+                    <MudText Typo="Typo.caption">Registered: @_registeredHotkeyIds.Count hotkey(s)</MudText>
+                }
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Hotkey Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_hotkeyEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No hotkey presses yet. Register a hotkey, then press it (works even when app is not focused).
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _hotkeyEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        System-wide hotkeys that work even when the app is not focused. Windows (Win32) and Linux (D-Bus portal / X11).
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Native Menu Bar</MudText>
+
+            <MudStack Spacing="2">
+                <MudChip T="string" Size="Size.Small" Color="@(MenuBarService.IsSupported ? Color.Success : Color.Error)">
+                    @(MenuBarService.IsSupported ? "Supported" : "Not Supported")
+                </MudChip>
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.ToggleOn"
+                               OnClick="ToggleMenuDarkMode"
+                               Disabled="@(!MenuBarService.IsSupported)">
+                        Toggle Dark Mode Check
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Block"
+                               OnClick="ToggleFileNew"
+                               Disabled="@(!MenuBarService.IsSupported)">
+                        @(_fileNewEnabled ? "Disable" : "Enable") File > New
+                    </MudButton>
+                </MudButtonGroup>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Menu Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_menuBarEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No menu clicks yet. Use the native menu bar at the top of the window.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _menuBarEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="ClearMenuBarLog">
+                    Clear Log
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Win32 native menu bar. Mnemonics (Alt+F), accelerator text, checkable items, enable/disable. Windows only.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Multi-Window</MudText>
+
+            <MudStack Spacing="2">
+                <MudChip T="string" Size="Size.Small" Color="@(WindowService.IsModalSupported ? Color.Success : Color.Warning)">
+                    @(WindowService.IsModalSupported ? "Modal Supported" : "Modal Not Supported (windows still work)")
+                </MudChip>
+
+                <MudText Typo="Typo.caption">Active child windows: @WindowService.GetWindows().Count</MudText>
+
+                <MudButtonGroup Variant="Variant.Outlined">
+                    <MudButton StartIcon="@Icons.Material.Filled.OpenInNew"
+                               OnClick="OpenChildWindow">
+                        Open Child Window
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Settings"
+                               OnClick="OpenSettingsModal">
+                        Settings Modal
+                    </MudButton>
+                </MudButtonGroup>
+
+                @if (_lastModalResult is not null)
+                {
+                    <MudAlert Severity="@(_lastModalResult.Confirmed ? Severity.Success : Severity.Warning)" Dense="true">
+                        <MudText Typo="Typo.caption">
+                            Modal result: @(_lastModalResult.Confirmed ? "Confirmed" : "Cancelled")
+                            @if (_lastModalResult.Data is not null)
+                            {
+                                @: — @_lastModalResult.Data
+                            }
+                        </MudText>
+                    </MudAlert>
+                }
+
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudTextField @bind-Value="_windowMessage"
+                                  Label="Message to child windows"
+                                  Variant="Variant.Outlined"
+                                  Style="flex: 1;" />
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.CellTower"
+                               OnClick="BroadcastToChildren"
+                               Disabled="@(WindowService.GetWindows().Count == 0)">
+                        Broadcast
+                    </MudButton>
+                </MudStack>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Window Event Log</MudText>
+                <MudPaper Class="pa-2" Elevation="0" Style="max-height: 150px; overflow-y: auto;" Outlined="true">
+                    @if (_windowEvents.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No window events yet. Open a child window or modal dialog.
+                        </MudText>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _windowEvents)
+                        {
+                            <MudText Typo="Typo.caption">@entry</MudText>
+                        }
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="ClearWindowLog">
+                    Clear Log
+                </MudButton>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        Each window is a separate Blazor circuit. Modals disable the parent window (Windows only). Inter-window messaging via events.
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2"
+                  Style="@(_isDragOver ? "border: 2px dashed var(--mud-palette-primary); background: var(--mud-palette-primary-lighten);" : "")">
+            <MudText Typo="Typo.h6" Class="mb-3">Drag-and-Drop</MudText>
+
+            <MudStack Spacing="2">
+                @if (_isDragOver)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        <MudText Typo="Typo.body2">Drop files here...</MudText>
+                    </MudAlert>
+                }
+                else if (_droppedFiles.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Drag files from Explorer onto this window to see them listed here.
+                    </MudText>
+                }
+
+                @if (_droppedFiles.Count > 0)
+                {
+                    <MudList T="string" Dense="true">
+                        @foreach (var fileInfo in _droppedFiles)
+                        {
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@fileInfo.Name</MudText>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@FormatFileSize(fileInfo.Size)</MudChip>
+                                    @if (!string.IsNullOrEmpty(fileInfo.ContentType))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@fileInfo.ContentType</MudText>
+                                    }
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               OnClick="ClearDroppedFiles">
+                        Clear List
+                    </MudButton>
+                }
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.caption">
+                        HTML5 drag-and-drop via WebView2. File metadata only (name, size, type) — file paths require native backend (V2).
+                    </MudText>
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Recent Files</MudText>
+
+            @if (_appSettings.RecentFiles.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    No recent files. Use "Open File" to add some.
+                </MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var file in _appSettings.RecentFiles)
+                    {
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                            @file
+                        </MudListItem>
+                    }
+                </MudList>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="ClearRecentFiles"
+                           Class="mt-2">
+                    Clear Recent Files
+                </MudButton>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? _selectedPath;
+    private string _windowTitle = "CheapBlazorApp";
+    private string _clipboardText = "";
+    private string _trayTooltip = "CheapBlazorApp";
+    private bool _trayVisible = true;
+    private int _customMenuItemCount = 0;
+    private string _desktopNotificationTitle = "Hello!";
+    private string _desktopNotificationMessage = "This is a desktop toast from CheapAvaloniaBlazor.";
+    private CheapAvaloniaBlazor.Models.NotificationType _desktopNotificationType = CheapAvaloniaBlazor.Models.NotificationType.Information;
+    private string _systemNotificationTitle = "Hello!";
+    private string _systemNotificationMessage = "This is a system notification from CheapAvaloniaBlazor.";
+
+    // Settings persistence demo
+    private string _settingsKey = "myKey";
+    private string _settingsValue = "";
+    private CheapBlazorApp.Models.AppSettings _appSettings = new();
+
+    // Lifecycle events demo
+    private readonly List<string> _lifecycleEvents = [];
+
+    // Theme detection demo
+    private readonly List<string> _themeEvents = [];
+
+    // Hotkey demo
+    private CheapAvaloniaBlazor.Models.HotkeyModifiers _hotkeyModifier1 = CheapAvaloniaBlazor.Models.HotkeyModifiers.Ctrl;
+    private CheapAvaloniaBlazor.Models.HotkeyModifiers _hotkeyModifier2 = CheapAvaloniaBlazor.Models.HotkeyModifiers.Shift;
+    private string _hotkeyKeyName = "H";
+    private readonly List<int> _registeredHotkeyIds = [];
+    private readonly List<string> _hotkeyEvents = [];
+
+    // Menu bar demo
+    private readonly List<string> _menuBarEvents = [];
+    private bool _menuDarkModeChecked;
+    private bool _fileNewEnabled = true;
+
+    // Multi-window demo
+    private readonly List<string> _windowEvents = [];
+    private CheapAvaloniaBlazor.Models.ModalResult? _lastModalResult;
+    private string _windowMessage = "Hello from main!";
+
+    // Drag-and-drop state
+    private readonly List<CheapAvaloniaBlazor.Models.DroppedFileInfo> _droppedFiles = [];
+    private bool _isDragOver;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _appSettings = await SettingsService.GetSectionAsync<CheapBlazorApp.Models.AppSettings>();
+
+        // Subscribe to lifecycle events
+        LifecycleService.Minimized += OnLifecycleMinimized;
+        LifecycleService.Maximized += OnLifecycleMaximized;
+        LifecycleService.Restored += OnLifecycleRestored;
+        LifecycleService.Activated += OnLifecycleActivated;
+        LifecycleService.Deactivated += OnLifecycleDeactivated;
+
+        // Subscribe to theme changes
+        ThemeService.ThemeChanged += OnThemeChanged;
+
+        // Subscribe to hotkey presses
+        HotkeyService.HotkeyPressed += OnHotkeyPressed;
+
+        // Subscribe to menu bar clicks
+        MenuBarService.MenuItemClicked += OnMenuItemClicked;
+
+        // Subscribe to window events
+        WindowService.WindowCreated += OnWindowCreated;
+        WindowService.WindowClosed += OnWindowClosed;
+        WindowService.MessageReceived += OnWindowMessageReceived;
+
+        // Subscribe to drag-and-drop events
+        DragDropService.FilesDropped += OnFilesDropped;
+        DragDropService.DragEnter += OnDragEnter;
+        DragDropService.DragLeave += OnDragLeave;
+    }
+
+    private async Task OpenFile()
+    {
+        var options = new CheapAvaloniaBlazor.Models.FileDialogOptions
+        {
+            Title = "Select a file",
+            Filters =
+            [
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "All Files", Extensions = ["*"] },
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "Text Files", Extensions = ["txt", "md"] },
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "Images", Extensions = ["png", "jpg", "jpeg", "gif"] }
+            ]
+        };
+
+        _selectedPath = await DesktopInterop.OpenFileDialogAsync(options);
+
+        if (!string.IsNullOrEmpty(_selectedPath))
+        {
+            await SettingsService.UpdateSectionAsync<CheapBlazorApp.Models.AppSettings>(s => s.AddRecentFile(_selectedPath));
+            _appSettings = await SettingsService.GetSectionAsync<CheapBlazorApp.Models.AppSettings>();
+            Snackbar.Add($"Opened: {Path.GetFileName(_selectedPath)}", Severity.Success);
+        }
+    }
+
+    private async Task SaveFile()
+    {
+        var options = new CheapAvaloniaBlazor.Models.FileDialogOptions
+        {
+            Title = "Save file as",
+            DefaultFileName = "document.txt",
+            Filters =
+            [
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "Text Files", Extensions = ["txt"] },
+                new CheapAvaloniaBlazor.Models.FileFilter { Name = "All Files", Extensions = ["*"] }
+            ]
+        };
+
+        _selectedPath = await DesktopInterop.SaveFileDialogAsync(options);
+
+        if (!string.IsNullOrEmpty(_selectedPath))
+        {
+            await SettingsService.UpdateSectionAsync<CheapBlazorApp.Models.AppSettings>(s => s.LastSavedFile = _selectedPath);
+            Snackbar.Add($"Save location: {Path.GetFileName(_selectedPath)}", Severity.Success);
+        }
+    }
+
+    private async Task OpenFolder()
+    {
+        _selectedPath = await DesktopInterop.OpenFolderDialogAsync();
+
+        if (!string.IsNullOrEmpty(_selectedPath))
+        {
+            await SettingsService.UpdateSectionAsync<CheapBlazorApp.Models.AppSettings>(s => s.LastOpenedFolder = _selectedPath);
+            Snackbar.Add($"Selected folder: {_selectedPath}", Severity.Success);
+        }
+    }
+
+    private async Task SetWindowTitle()
+    {
+        if (!string.IsNullOrWhiteSpace(_windowTitle))
+        {
+            await DesktopInterop.SetWindowTitleAsync(_windowTitle);
+            Snackbar.Add("Window title updated", Severity.Info);
+        }
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(_clipboardText))
+        {
+            await DesktopInterop.SetClipboardTextAsync(_clipboardText);
+            Snackbar.Add("Copied to clipboard", Severity.Success);
+        }
+    }
+
+    private async Task PasteFromClipboard()
+    {
+        var text = await DesktopInterop.GetClipboardTextAsync();
+        if (text is not null)
+        {
+            _clipboardText = text;
+            Snackbar.Add("Pasted from clipboard", Severity.Success);
+        }
+    }
+
+    private async Task ShowAppDataPath()
+    {
+        var path = await DesktopInterop.GetAppDataPathAsync();
+        Snackbar.Add($"AppData: {path}", Severity.Info);
+    }
+
+    private async Task ShowDocumentsPath()
+    {
+        var path = await DesktopInterop.GetDocumentsPathAsync();
+        Snackbar.Add($"Documents: {path}", Severity.Info);
+    }
+
+    private async Task ClearRecentFiles()
+    {
+        await SettingsService.UpdateSectionAsync<CheapBlazorApp.Models.AppSettings>(s => s.RecentFiles.Clear());
+        _appSettings = await SettingsService.GetSectionAsync<CheapBlazorApp.Models.AppSettings>();
+        Snackbar.Add("Recent files cleared", Severity.Warning);
+    }
+
+    private async Task SetSettingsValue()
+    {
+        if (string.IsNullOrWhiteSpace(_settingsKey)) return;
+        await SettingsService.SetAsync(_settingsKey, _settingsValue);
+        Snackbar.Add($"Set '{_settingsKey}' = '{_settingsValue}'", Severity.Success);
+    }
+
+    private async Task GetSettingsValue()
+    {
+        if (string.IsNullOrWhiteSpace(_settingsKey)) return;
+        var fetchedValue = await SettingsService.GetAsync<string>(_settingsKey);
+        _settingsValue = fetchedValue ?? "(not found)";
+        Snackbar.Add($"Get '{_settingsKey}' = '{_settingsValue}'", Severity.Info);
+    }
+
+    private async Task DeleteSettingsValue()
+    {
+        if (string.IsNullOrWhiteSpace(_settingsKey)) return;
+        var deleted = await SettingsService.DeleteAsync(_settingsKey);
+        Snackbar.Add(deleted ? $"Deleted '{_settingsKey}'" : $"Key '{_settingsKey}' not found", deleted ? Severity.Warning : Severity.Info);
+    }
+
+    private void SendDesktopNotification()
+    {
+        if (string.IsNullOrWhiteSpace(_desktopNotificationTitle))
+        {
+            Snackbar.Add("Notification title is required", Severity.Warning);
+            return;
+        }
+
+        NotificationService.ShowDesktopNotification(
+            _desktopNotificationTitle,
+            _desktopNotificationMessage,
+            _desktopNotificationType);
+        Snackbar.Add("Desktop toast sent", Severity.Success);
+    }
+
+    private async Task SendSystemNotification()
+    {
+        if (string.IsNullOrWhiteSpace(_systemNotificationTitle))
+        {
+            Snackbar.Add("Notification title is required", Severity.Warning);
+            return;
+        }
+
+        await NotificationService.ShowSystemNotificationAsync(JSRuntime, _systemNotificationTitle, _systemNotificationMessage);
+        Snackbar.Add("System notification sent", Severity.Success);
+    }
+
+    private void MinimizeToTray()
+    {
+        TrayService.MinimizeToTray();
+        Snackbar.Add("Minimized to tray - click tray icon to restore", Severity.Info);
+    }
+
+    private void ToggleTrayIcon()
+    {
+        if (_trayVisible)
+        {
+            TrayService.HideTrayIcon();
+            _trayVisible = false;
+            Snackbar.Add("Tray icon hidden", Severity.Warning);
+        }
+        else
+        {
+            TrayService.ShowTrayIcon();
+            _trayVisible = true;
+            Snackbar.Add("Tray icon shown", Severity.Success);
+        }
+    }
+
+    private void SetTrayTooltip()
+    {
+        if (!string.IsNullOrWhiteSpace(_trayTooltip))
+        {
+            TrayService.SetTrayTooltip(_trayTooltip);
+            Snackbar.Add("Tray tooltip updated", Severity.Info);
+        }
+    }
+
+    private void AddCustomTrayMenuItem()
+    {
+        _customMenuItemCount++;
+        var itemNumber = _customMenuItemCount;
+
+        TrayService.AddTrayMenuItem(
+            CheapAvaloniaBlazor.Models.TrayMenuItemDefinition.Create(
+                $"Custom Item {itemNumber}",
+                () => Snackbar.Add($"Custom menu item {itemNumber} clicked!", Severity.Success),
+                $"custom_{itemNumber}"));
+
+        Snackbar.Add($"Added 'Custom Item {itemNumber}' to tray menu", Severity.Info);
+    }
+
+    private void ClearCustomTrayMenuItems()
+    {
+        TrayService.ClearTrayMenu();
+        _customMenuItemCount = 0;
+        Snackbar.Add("Custom tray menu items cleared", Severity.Warning);
+    }
+
+    private void AddLifecycleEntry(string eventName)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _lifecycleEvents.Insert(0, $"[{timestamp}] {eventName}");
+
+        // Keep last 50 entries
+        if (_lifecycleEvents.Count > 50)
+            _lifecycleEvents.RemoveAt(_lifecycleEvents.Count - 1);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLifecycleMinimized() => AddLifecycleEntry("Minimized");
+    private void OnLifecycleMaximized() => AddLifecycleEntry("Maximized");
+    private void OnLifecycleRestored() => AddLifecycleEntry("Restored");
+    private void OnLifecycleActivated() => AddLifecycleEntry("Activated");
+    private void OnLifecycleDeactivated() => AddLifecycleEntry("Deactivated");
+
+    private void ClearLifecycleLog()
+    {
+        _lifecycleEvents.Clear();
+    }
+
+    private void RegisterDemoHotkey()
+    {
+        if (string.IsNullOrWhiteSpace(_hotkeyKeyName))
+        {
+            Snackbar.Add("Enter a key name (e.g. H, F1, Space)", Severity.Warning);
+            return;
+        }
+
+        if (!Enum.TryParse<Avalonia.Input.Key>(_hotkeyKeyName.Trim(), ignoreCase: true, out var parsedKey))
+        {
+            Snackbar.Add($"Unknown key: '{_hotkeyKeyName}'. Use names like H, F1, Space, D1, etc.", Severity.Error);
+            return;
+        }
+
+        var combinedModifiers = _hotkeyModifier1 | _hotkeyModifier2;
+
+        try
+        {
+            var hotkeyId = HotkeyService.RegisterHotkey(combinedModifiers, parsedKey, () =>
+            {
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                _hotkeyEvents.Insert(0, $"[{timestamp}] {combinedModifiers}+{parsedKey} pressed!");
+
+                if (_hotkeyEvents.Count > 50)
+                    _hotkeyEvents.RemoveAt(_hotkeyEvents.Count - 1);
+
+                InvokeAsync(StateHasChanged);
+            });
+
+            _registeredHotkeyIds.Add(hotkeyId);
+            Snackbar.Add($"Registered: {combinedModifiers}+{parsedKey} (ID={hotkeyId})", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void UnregisterAllHotkeys()
+    {
+        foreach (var hotkeyId in _registeredHotkeyIds)
+        {
+            HotkeyService.UnregisterHotkey(hotkeyId);
+        }
+
+        var hotkeyCount = _registeredHotkeyIds.Count;
+        _registeredHotkeyIds.Clear();
+        Snackbar.Add($"Unregistered {hotkeyCount} hotkey(s)", Severity.Warning);
+    }
+
+    private void OnHotkeyPressed(int hotkeyId)
+    {
+        // Already handled by per-hotkey callbacks, but demonstrates the global event
+    }
+
+    private void OnMenuItemClicked(string menuItemId)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _menuBarEvents.Insert(0, $"[{timestamp}] Menu: {menuItemId}");
+
+        if (_menuBarEvents.Count > 50)
+            _menuBarEvents.RemoveAt(_menuBarEvents.Count - 1);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleMenuDarkMode()
+    {
+        _menuDarkModeChecked = !_menuDarkModeChecked;
+        MenuBarService.CheckMenuItem("view_darkmode", _menuDarkModeChecked);
+        Snackbar.Add($"Dark Mode check: {_menuDarkModeChecked}", Severity.Info);
+    }
+
+    private void ToggleFileNew()
+    {
+        _fileNewEnabled = !_fileNewEnabled;
+        MenuBarService.EnableMenuItem("file_new", _fileNewEnabled);
+        Snackbar.Add($"File > New {(_fileNewEnabled ? "enabled" : "disabled")}", Severity.Info);
+    }
+
+    private void ClearMenuBarLog()
+    {
+        _menuBarEvents.Clear();
+    }
+
+    private async Task OpenChildWindow()
+    {
+        try
+        {
+            var windowId = await WindowService.CreateWindowAsync(
+                CheapAvaloniaBlazor.Models.WindowOptions.FromUrl("/child-window", "Child Window Demo"));
+            Snackbar.Add($"Opened child window: {windowId}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to open child window: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenSettingsModal()
+    {
+        try
+        {
+            var options = CheapAvaloniaBlazor.Models.WindowOptions.FromComponent<SettingsDialog>("Settings");
+            options.Width = 500;
+            options.Height = 450;
+            options.Resizable = false;
+
+            _lastModalResult = await WindowService.CreateModalAsync(options);
+
+            var statusText = _lastModalResult.Confirmed ? "Saved" : "Cancelled";
+            Snackbar.Add($"Settings modal {statusText}", _lastModalResult.Confirmed ? Severity.Success : Severity.Info);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to open settings modal: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void BroadcastToChildren()
+    {
+        WindowService.BroadcastMessage("main_message", _windowMessage);
+        Snackbar.Add("Message broadcast to all windows", Severity.Info);
+    }
+
+    private void OnWindowCreated(string windowId)
+    {
+        AddWindowEntry($"Window created: {windowId}");
+    }
+
+    private void OnWindowClosed(string windowId)
+    {
+        AddWindowEntry($"Window closed: {windowId}");
+    }
+
+    private void OnWindowMessageReceived(string targetWindowId, string messageType, object? payload)
+    {
+        if (targetWindowId != CheapAvaloniaBlazor.Constants.Window.MainWindowId && targetWindowId != "*") return;
+        AddWindowEntry($"Message [{messageType}]: {payload}");
+    }
+
+    private void AddWindowEntry(string text)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _windowEvents.Insert(0, $"[{timestamp}] {text}");
+        if (_windowEvents.Count > 50) _windowEvents.RemoveAt(_windowEvents.Count - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearWindowLog()
+    {
+        _windowEvents.Clear();
+    }
+
+    private void OnThemeChanged(CheapAvaloniaBlazor.Models.SystemTheme newTheme)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        _themeEvents.Insert(0, $"[{timestamp}] OS theme → {newTheme}");
+
+        if (_themeEvents.Count > 20)
+            _themeEvents.RemoveAt(_themeEvents.Count - 1);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnFilesDropped(IReadOnlyList<CheapAvaloniaBlazor.Models.DroppedFileInfo> files)
+    {
+        _droppedFiles.InsertRange(0, files);
+        if (_droppedFiles.Count > 50) _droppedFiles.RemoveRange(50, _droppedFiles.Count - 50);
+        _isDragOver = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDragEnter()
+    {
+        _isDragOver = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDragLeave()
+    {
+        _isDragOver = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearDroppedFiles()
+    {
+        _droppedFiles.Clear();
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes >= 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
+        if (bytes >= 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} MB";
+        if (bytes >= 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes} B";
+    }
+
+    public void Dispose()
+    {
+        LifecycleService.Minimized -= OnLifecycleMinimized;
+        LifecycleService.Maximized -= OnLifecycleMaximized;
+        LifecycleService.Restored -= OnLifecycleRestored;
+        LifecycleService.Activated -= OnLifecycleActivated;
+        LifecycleService.Deactivated -= OnLifecycleDeactivated;
+
+        ThemeService.ThemeChanged -= OnThemeChanged;
+
+        HotkeyService.HotkeyPressed -= OnHotkeyPressed;
+
+        MenuBarService.MenuItemClicked -= OnMenuItemClicked;
+
+        WindowService.WindowCreated -= OnWindowCreated;
+        WindowService.WindowClosed -= OnWindowClosed;
+        WindowService.MessageReceived -= OnWindowMessageReceived;
+
+        DragDropService.FilesDropped -= OnFilesDropped;
+        DragDropService.DragEnter -= OnDragEnter;
+        DragDropService.DragLeave -= OnDragLeave;
+
+        // Unregister hotkeys registered by this component
+        foreach (var hotkeyId in _registeredHotkeyIds)
+        {
+            HotkeyService.UnregisterHotkey(hotkeyId);
+        }
+        _registeredHotkeyIds.Clear();
+    }
+}
