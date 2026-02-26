@@ -1,5 +1,6 @@
 ﻿using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Utilities;
+using CheapHelpers.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;

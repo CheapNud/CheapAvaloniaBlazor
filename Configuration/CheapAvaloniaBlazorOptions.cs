@@ -161,7 +161,7 @@ public class CheapAvaloniaBlazorOptions
     /// <summary>
     /// File name for the settings JSON file (default: "settings.json")
     /// </summary>
-    public string SettingsFileName { get; set; } = Constants.Settings.DefaultFileName;
+    public string SettingsFileName { get; set; } = "settings.json";
 
     /// <summary>
     /// Automatically save settings after every Set/Delete/SetSection/UpdateSection call

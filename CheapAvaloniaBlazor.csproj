@@ -49,6 +49,9 @@
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.22.0" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <!-- Shared settings service (ISettingsService, FileSettingsService) -->
+    <ProjectReference Include="..\CheapHelpers\CheapHelpers\CheapHelpers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

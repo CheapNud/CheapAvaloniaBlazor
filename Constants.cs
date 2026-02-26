@@ -247,14 +247,6 @@ public static class Constants
     }
 
     /// <summary>
-    /// Settings persistence constants
-    /// </summary>
-    public static class Settings
-    {
-        public const string DefaultFileName = "settings.json";
-    }
-
-    /// <summary>
     /// Desktop notification related constants
     /// </summary>
     public static class Notifications
