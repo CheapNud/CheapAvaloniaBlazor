@@ -40,13 +40,13 @@
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="11.3.11" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.11" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.11" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.11" />
-    <PackageReference Include="MudBlazor" Version="8.15.0" />
+    <PackageReference Include="Avalonia" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
+    <PackageReference Include="MudBlazor" Version="9.0.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
-    <PackageReference Include="Tmds.DBus.Protocol" Version="0.22.0" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.90.3" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
