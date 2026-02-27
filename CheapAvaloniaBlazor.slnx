@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/samples/">
+    <Project Path="samples/DesktopFeatures/DesktopFeatures.csproj" />
+    <Project Path="samples/MinimalApp/MinimalApp.csproj" />
+  </Folder>
+  <Project Path="CheapAvaloniaBlazor.csproj" />
+</Solution>
