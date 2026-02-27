@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>2.1.1</Version>
+    <Version>3.0.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 2.0.0 - BREAKING: Migrated from legacy Blazor Server to modern Blazor Web App pattern. Consumers must rename App.razor to Routes.razor and create a new App.razor as the HTML document root. Removed _Host.cshtml, AddRazorSupportForMvc, WithRenderMode(), blazor.server.js. Now uses AddRazorComponents/MapRazorComponents with blazor.web.js. See installation.md migration guide for details.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.0.0 - BREAKING: Settings service extracted to CheapHelpers package. ISettingsService moved to CheapHelpers.Settings namespace. Updated dependencies: MudBlazor 9.0.0, Avalonia 11.3.12, Tmds.DBus.Protocol 0.90.3.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -40,15 +40,18 @@
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="11.3.11" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.11" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.11" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.11" />
-    <PackageReference Include="MudBlazor" Version="8.15.0" />
+    <PackageReference Include="Avalonia" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
+    <PackageReference Include="MudBlazor" Version="9.0.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
-    <PackageReference Include="Tmds.DBus.Protocol" Version="0.22.0" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.90.3" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <!-- Shared settings service (ISettingsService, FileSettingsService) -->
+    <PackageReference Include="CheapHelpers" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

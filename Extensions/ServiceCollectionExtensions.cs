@@ -1,5 +1,6 @@
 ﻿using CheapAvaloniaBlazor.Configuration;
 using CheapAvaloniaBlazor.Services;
+using CheapHelpers.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CheapAvaloniaBlazor.Extensions;
@@ -39,7 +40,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PhotinoMessageHandler>();
         services.AddSingleton<ISystemTrayService, SystemTrayService>();
         services.AddSingleton<INotificationService, NotificationService>();
-        services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddFileSettingsService(settingsOpts =>
+        {
+            settingsOpts.AppName = options.SettingsAppName ?? options.DefaultWindowTitle;
+            settingsOpts.Folder = options.SettingsFolder;
+            settingsOpts.FileName = options.SettingsFileName;
+            settingsOpts.AutoSave = options.AutoSaveSettings;
+        });
         services.AddSingleton<IAppLifecycleService, AppLifecycleService>();
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
