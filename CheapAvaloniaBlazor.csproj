@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 2.0.0 - BREAKING: Migrated from legacy Blazor Server to modern Blazor Web App pattern. Consumers must rename App.razor to Routes.razor and create a new App.razor as the HTML document root. Removed _Host.cshtml, AddRazorSupportForMvc, WithRenderMode(), blazor.server.js. Now uses AddRazorComponents/MapRazorComponents with blazor.web.js. See installation.md migration guide for details.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.0.0 - BREAKING: Settings service extracted to CheapHelpers package. ISettingsService moved to CheapHelpers.Settings namespace. Updated dependencies: MudBlazor 9.0.0, Avalonia 11.3.12, Tmds.DBus.Protocol 0.90.3.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -51,7 +51,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <!-- Shared settings service (ISettingsService, FileSettingsService) -->
-    <ProjectReference Include="..\CheapHelpers\CheapHelpers\CheapHelpers.csproj" />
+    <PackageReference Include="CheapHelpers" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>
