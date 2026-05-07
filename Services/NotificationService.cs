@@ -81,7 +81,7 @@ public class NotificationService : INotificationService
 
         _overlayWindow = new Window
         {
-            SystemDecorations = SystemDecorations.None,
+            WindowDecorations = WindowDecorations.None,
             TransparencyLevelHint = [WindowTransparencyLevel.Transparent],
             Background = null,
             ShowInTaskbar = false,

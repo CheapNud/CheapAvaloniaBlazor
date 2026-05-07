@@ -18,7 +18,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
     private readonly ILogger _logger;
     private readonly object _lock = new();
 
-    private Connection? _connection;
+    private DBusConnection? _connection;
     private string? _sessionHandle;
     private IDisposable? _activatedSubscription;
 
@@ -173,14 +173,14 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
 
     private bool InitializeSession()
     {
-        var sessionAddress = Address.Session;
+        var sessionAddress = DBusAddress.Session;
         if (sessionAddress is null)
         {
             _logger.LogDebug("D-Bus: No session bus address available");
             return false;
         }
 
-        _connection = new Connection(sessionAddress);
+        _connection = new DBusConnection(sessionAddress);
         _connection.ConnectAsync().GetAwaiter().GetResult();
 
         _logger.LogDebug("D-Bus: Connected to session bus");
@@ -238,14 +238,16 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = requestPath
             },
             (MessageValueReader<CreateSessionResponse>)ReadResponse,
-            (Exception? ex, CreateSessionResponse resp, object? rs, object? hs) =>
+            (Notification<CreateSessionResponse> notification) =>
             {
-                if (ex is not null)
-                    responseSource.TrySetException(ex);
-                else
-                    responseSource.TrySetResult(resp);
+                if (notification.Exception is not null)
+                    responseSource.TrySetException(notification.Exception);
+                else if (notification.HasValue)
+                    responseSource.TrySetResult(notification.Value);
             },
-            ObserverFlags.None).GetAwaiter().GetResult();
+            emitOnCapturedContext: false,
+            ObserverFlags.None,
+            state: null!).GetAwaiter().GetResult();
 
         try
         {
@@ -309,16 +311,16 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = PortalPath
             },
             (MessageValueReader<ActivatedSignal>)ReadActivated,
-            (Exception? ex, ActivatedSignal signal, object? rs, object? hs) =>
+            (Notification<ActivatedSignal> notification) =>
             {
-                if (ex is not null || _disposed) return;
+                if (_disposed || notification.Exception is not null || !notification.HasValue) return;
 
                 try
                 {
                     int hotkeyId;
                     lock (_lock)
                     {
-                        if (!_reverseMap.TryGetValue(signal.ShortcutId, out hotkeyId))
+                        if (!_reverseMap.TryGetValue(notification.Value.ShortcutId, out hotkeyId))
                             return;
                     }
 
@@ -329,7 +331,9 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                     _logger.LogError(activatedEx, "D-Bus: Error handling Activated signal");
                 }
             },
-            ObserverFlags.None).GetAwaiter().GetResult();
+            emitOnCapturedContext: false,
+            ObserverFlags.None,
+            state: null!).GetAwaiter().GetResult();
     }
 
     private void RebindAllShortcuts()
@@ -370,14 +374,16 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = requestPath
             },
             (MessageValueReader<uint>)ReadBindResponse,
-            (Exception? ex, uint responseCode, object? rs, object? hs) =>
+            (Notification<uint> notification) =>
             {
-                if (ex is not null)
-                    responseSource.TrySetException(ex);
-                else
-                    responseSource.TrySetResult(responseCode);
+                if (notification.Exception is not null)
+                    responseSource.TrySetException(notification.Exception);
+                else if (notification.HasValue)
+                    responseSource.TrySetResult(notification.Value);
             },
-            ObserverFlags.None).GetAwaiter().GetResult();
+            emitOnCapturedContext: false,
+            ObserverFlags.None,
+            state: null!).GetAwaiter().GetResult();
 
         try
         {
