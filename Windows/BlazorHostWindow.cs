@@ -195,6 +195,12 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         var messageHandler = CheapAvaloniaBlazorRuntime.GetRequiredService<PhotinoMessageHandler>();
         messageHandler.AttachToWindow(photinoWindow);
 
+        // Attach cookie service so it can read cookies from the WebView
+        if (CheapAvaloniaBlazorRuntime.GetRequiredService<ICookieService>() is CookieService cookieService)
+        {
+            cookieService.AttachToWindow(photinoWindow);
+        }
+
         // Wire up lifecycle service to Photino window events
         var lifecycleService = CheapAvaloniaBlazorRuntime.GetRequiredService<IAppLifecycleService>()
             as AppLifecycleService;
