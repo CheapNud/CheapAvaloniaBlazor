@@ -246,8 +246,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                     responseSource.TrySetResult(notification.Value);
             },
             emitOnCapturedContext: false,
-            ObserverFlags.None,
-            state: null!).GetAwaiter().GetResult();
+            ObserverFlags.None).GetAwaiter().GetResult();
 
         try
         {
@@ -332,8 +331,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 }
             },
             emitOnCapturedContext: false,
-            ObserverFlags.None,
-            state: null!).GetAwaiter().GetResult();
+            ObserverFlags.None).GetAwaiter().GetResult();
     }
 
     private void RebindAllShortcuts()
@@ -382,8 +380,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                     responseSource.TrySetResult(notification.Value);
             },
             emitOnCapturedContext: false,
-            ObserverFlags.None,
-            state: null!).GetAwaiter().GetResult();
+            ObserverFlags.None).GetAwaiter().GetResult();
 
         try
         {
