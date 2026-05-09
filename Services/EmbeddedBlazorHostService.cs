@@ -352,6 +352,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             var dragDropService = CheapAvaloniaBlazorRuntime.GetRequiredService<IDragDropService>();
             services.AddSingleton(dragDropService);
 
+            var cookieService = CheapAvaloniaBlazorRuntime.GetRequiredService<ICookieService>();
+            services.AddSingleton(cookieService);
+
             // Add the DesktopInteropService
             _logger.LogDebug("Adding DesktopInteropService...");
             services.AddScoped<IDesktopInteropService, DesktopInteropService>();

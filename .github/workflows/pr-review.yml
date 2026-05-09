@@ -53,6 +53,7 @@ jobs:
         echo "✅ Successfully fetched PR details and diff"
 
     - name: Validate diff size
+      id: validate
       run: |
         set -e
 
@@ -67,12 +68,15 @@ jobs:
 
         if [ $DIFF_SIZE -eq 0 ]; then
           echo "::warning::Diff is empty, skipping review"
-          exit 0
+          echo "SKIP=true" >> $GITHUB_OUTPUT
+        else
+          echo "SKIP=false" >> $GITHUB_OUTPUT
         fi
 
         echo "✅ Diff size validated"
 
     - name: Review with Claude
+      if: steps.validate.outputs.SKIP != 'true'
       id: claude-review
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -176,6 +180,7 @@ jobs:
         echo "✅ Review completed successfully"
 
     - name: Find existing review comment
+      if: steps.validate.outputs.SKIP != 'true'
       id: find-comment
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -199,6 +204,7 @@ jobs:
         fi
 
     - name: Post or update review comment
+      if: steps.validate.outputs.SKIP != 'true'
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -240,7 +246,7 @@ jobs:
         fi
 
     - name: Upload review artifact
-      if: always()
+      if: always() && steps.validate.outputs.SKIP != 'true'
       uses: actions/upload-artifact@v4
       with:
         name: claude-review-${{ github.event.pull_request.number }}
@@ -248,6 +254,4 @@ jobs:
           pr-details.json
           pr-diff.txt
           claude-review.md
-          claude-response.json
-          review-request.json
         retention-days: 30

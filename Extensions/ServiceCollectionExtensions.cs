@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMenuBarService, MenuBarService>();
         services.AddSingleton<IWindowService, WindowService>();
         services.AddSingleton<IDragDropService, DragDropService>();
+        services.AddSingleton<ICookieService, CookieService>();
 
         // Scoped services are fine - each Blazor circuit gets its own instance anyway
         services.AddScoped<IDesktopInteropService, DesktopInteropService>();
