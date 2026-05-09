@@ -18,7 +18,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
     private readonly ILogger _logger;
     private readonly object _lock = new();
 
-    private Connection? _connection;
+    private DBusConnection? _connection;
     private string? _sessionHandle;
     private IDisposable? _activatedSubscription;
 
@@ -53,7 +53,9 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
 
         try
         {
-            IsSupported = InitializeSession();
+            // Run on a free thread-pool thread so we don't deadlock if the constructor
+            // is invoked under a captured SynchronizationContext (e.g. Avalonia's UI dispatcher).
+            IsSupported = Task.Run(InitializeSessionAsync).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -79,7 +81,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
 
         try
         {
-            RebindAllShortcuts();
+            Task.Run(RebindAllShortcutsAsync).GetAwaiter().GetResult();
             return true;
         }
         catch (Exception ex)
@@ -117,7 +119,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
 
         try
         {
-            RebindAllShortcuts();
+            Task.Run(RebindAllShortcutsAsync).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -140,7 +142,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
 
         try
         {
-            RebindAllShortcuts();
+            Task.Run(RebindAllShortcutsAsync).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -159,7 +161,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
         {
             try
             {
-                CloseSession();
+                Task.Run(CloseSessionAsync).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -171,21 +173,21 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
         _connection = null;
     }
 
-    private bool InitializeSession()
+    private async Task<bool> InitializeSessionAsync()
     {
-        var sessionAddress = Address.Session;
+        var sessionAddress = DBusAddress.Session;
         if (sessionAddress is null)
         {
             _logger.LogDebug("D-Bus: No session bus address available");
             return false;
         }
 
-        _connection = new Connection(sessionAddress);
-        _connection.ConnectAsync().GetAwaiter().GetResult();
+        _connection = new DBusConnection(sessionAddress);
+        await _connection.ConnectAsync().ConfigureAwait(false);
 
         _logger.LogDebug("D-Bus: Connected to session bus");
 
-        _sessionHandle = CreateSession();
+        _sessionHandle = await CreateSessionAsync().ConfigureAwait(false);
         if (_sessionHandle is null)
         {
             _logger.LogDebug("D-Bus: CreateSession failed — GlobalShortcuts portal not available");
@@ -194,7 +196,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             return false;
         }
 
-        SubscribeActivated();
+        await SubscribeActivatedAsync().ConfigureAwait(false);
 
         _logger.LogDebug("D-Bus: GlobalShortcuts session created: {Session}", _sessionHandle);
         return true;
@@ -203,7 +205,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
     // Response signal data extracted by the reader delegate
     private sealed record CreateSessionResponse(uint ResponseCode, string? SessionHandle);
 
-    private string? CreateSession()
+    private async Task<string?> CreateSessionAsync()
     {
         var senderName = _connection!.UniqueName!.Replace(".", "_").Replace(":", "");
         var sessionToken = $"cheapblazor_hotkey_{Environment.ProcessId}_{Environment.TickCount64}";
@@ -229,7 +231,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             return new CreateSessionResponse(responseCode, sessionPath);
         }
 
-        var signalSubscription = _connection.AddMatchAsync(
+        using var signalSubscription = await _connection.AddMatchAsync(
             new MatchRule
             {
                 Type = MessageType.Signal,
@@ -238,32 +240,34 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = requestPath
             },
             (MessageValueReader<CreateSessionResponse>)ReadResponse,
-            (Exception? ex, CreateSessionResponse resp, object? rs, object? hs) =>
+            (Notification<CreateSessionResponse> notification) =>
             {
-                if (ex is not null)
-                    responseSource.TrySetException(ex);
-                else
-                    responseSource.TrySetResult(resp);
+                if (notification.Exception is not null)
+                    responseSource.TrySetException(notification.Exception);
+                else if (notification.HasValue)
+                    responseSource.TrySetResult(notification.Value);
             },
-            ObserverFlags.None).GetAwaiter().GetResult();
+            emitOnCapturedContext: false,
+            ObserverFlags.None).ConfigureAwait(false);
 
         try
         {
-            _connection.CallMethodAsync(CreateSessionMessage(requestToken, sessionToken)).GetAwaiter().GetResult();
+            await _connection.CallMethodAsync(CreateSessionMessage(requestToken, sessionToken)).ConfigureAwait(false);
 
-            if (!responseSource.Task.Wait(TimeSpan.FromSeconds(10)))
+            try
+            {
+                var response = await responseSource.Task.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                return response.ResponseCode == 0 ? response.SessionHandle : null;
+            }
+            catch (TimeoutException)
+            {
                 return null;
-
-            var response = responseSource.Task.Result;
-            return response.ResponseCode == 0 ? response.SessionHandle : null;
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "D-Bus: CreateSession threw");
             return null;
-        }
-        finally
-        {
-            signalSubscription.Dispose();
         }
     }
 
@@ -290,7 +294,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
     // Activated signal data: (session_handle, shortcut_id, timestamp, options)
     private sealed record ActivatedSignal(string SessionHandle, string ShortcutId);
 
-    private void SubscribeActivated()
+    private async Task SubscribeActivatedAsync()
     {
         static ActivatedSignal ReadActivated(Message message, object? state)
         {
@@ -300,7 +304,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             return new ActivatedSignal(sessionHandle, shortcutId);
         }
 
-        _activatedSubscription = _connection!.AddMatchAsync(
+        _activatedSubscription = await _connection!.AddMatchAsync(
             new MatchRule
             {
                 Type = MessageType.Signal,
@@ -309,16 +313,16 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = PortalPath
             },
             (MessageValueReader<ActivatedSignal>)ReadActivated,
-            (Exception? ex, ActivatedSignal signal, object? rs, object? hs) =>
+            (Notification<ActivatedSignal> notification) =>
             {
-                if (ex is not null || _disposed) return;
+                if (_disposed || notification.Exception is not null || !notification.HasValue) return;
 
                 try
                 {
                     int hotkeyId;
                     lock (_lock)
                     {
-                        if (!_reverseMap.TryGetValue(signal.ShortcutId, out hotkeyId))
+                        if (!_reverseMap.TryGetValue(notification.Value.ShortcutId, out hotkeyId))
                             return;
                     }
 
@@ -329,10 +333,11 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                     _logger.LogError(activatedEx, "D-Bus: Error handling Activated signal");
                 }
             },
-            ObserverFlags.None).GetAwaiter().GetResult();
+            emitOnCapturedContext: false,
+            ObserverFlags.None).ConfigureAwait(false);
     }
 
-    private void RebindAllShortcuts()
+    private async Task RebindAllShortcutsAsync()
     {
         if (_connection is null || _sessionHandle is null) return;
 
@@ -361,7 +366,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             return reader.ReadUInt32();
         }
 
-        var signalSubscription = _connection.AddMatchAsync(
+        using var signalSubscription = await _connection.AddMatchAsync(
             new MatchRule
             {
                 Type = MessageType.Signal,
@@ -370,28 +375,28 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = requestPath
             },
             (MessageValueReader<uint>)ReadBindResponse,
-            (Exception? ex, uint responseCode, object? rs, object? hs) =>
+            (Notification<uint> notification) =>
             {
-                if (ex is not null)
-                    responseSource.TrySetException(ex);
-                else
-                    responseSource.TrySetResult(responseCode);
+                if (notification.Exception is not null)
+                    responseSource.TrySetException(notification.Exception);
+                else if (notification.HasValue)
+                    responseSource.TrySetResult(notification.Value);
             },
-            ObserverFlags.None).GetAwaiter().GetResult();
+            emitOnCapturedContext: false,
+            ObserverFlags.None).ConfigureAwait(false);
 
+        await _connection.CallMethodAsync(CreateBindMessage(requestToken, shortcuts)).ConfigureAwait(false);
+
+        // Wait for portal response (user may need to confirm in a dialog)
         try
         {
-            _connection.CallMethodAsync(CreateBindMessage(requestToken, shortcuts)).GetAwaiter().GetResult();
-
-            // Wait for portal response (user may need to confirm in a dialog)
-            responseSource.Task.Wait(TimeSpan.FromSeconds(30));
-
-            if (responseSource.Task.IsCompletedSuccessfully && responseSource.Task.Result != 0)
-                _logger.LogWarning("D-Bus: BindShortcuts returned response code {Code}", responseSource.Task.Result);
+            var responseCode = await responseSource.Task.WaitAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+            if (responseCode != 0)
+                _logger.LogWarning("D-Bus: BindShortcuts returned response code {Code}", responseCode);
         }
-        finally
+        catch (TimeoutException)
         {
-            signalSubscription.Dispose();
+            _logger.LogWarning("D-Bus: BindShortcuts timed out after 30 seconds");
         }
     }
 
@@ -433,7 +438,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
         return writer.CreateMessage();
     }
 
-    private void CloseSession()
+    private async Task CloseSessionAsync()
     {
         if (_connection is null || _sessionHandle is null) return;
 
@@ -447,6 +452,6 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             flags: MessageFlags.None);
 
         var closeMsg = writer.CreateMessage();
-        _connection.CallMethodAsync(closeMsg).GetAwaiter().GetResult();
+        await _connection.CallMethodAsync(closeMsg).ConfigureAwait(false);
     }
 }

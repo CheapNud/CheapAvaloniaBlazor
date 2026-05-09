@@ -342,7 +342,7 @@ public class SystemTrayService : ISystemTrayService
         // Handle toggle state for checkable items
         if (definition.IsCheckable)
         {
-            menuItem.ToggleType = NativeMenuItemToggleType.CheckBox;
+            menuItem.ToggleType = MenuItemToggleType.CheckBox;
             menuItem.IsChecked = definition.IsChecked;
         }
 
