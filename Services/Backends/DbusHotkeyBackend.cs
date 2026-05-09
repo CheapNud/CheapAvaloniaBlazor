@@ -231,7 +231,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             return new CreateSessionResponse(responseCode, sessionPath);
         }
 
-        var signalSubscription = await _connection.AddMatchAsync(
+        using var signalSubscription = await _connection.AddMatchAsync(
             new MatchRule
             {
                 Type = MessageType.Signal,
@@ -264,13 +264,10 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 return null;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "D-Bus: CreateSession threw");
             return null;
-        }
-        finally
-        {
-            signalSubscription.Dispose();
         }
     }
 
@@ -369,7 +366,7 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             return reader.ReadUInt32();
         }
 
-        var signalSubscription = await _connection.AddMatchAsync(
+        using var signalSubscription = await _connection.AddMatchAsync(
             new MatchRule
             {
                 Type = MessageType.Signal,
@@ -388,25 +385,18 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
             emitOnCapturedContext: false,
             ObserverFlags.None).ConfigureAwait(false);
 
+        await _connection.CallMethodAsync(CreateBindMessage(requestToken, shortcuts)).ConfigureAwait(false);
+
+        // Wait for portal response (user may need to confirm in a dialog)
         try
         {
-            await _connection.CallMethodAsync(CreateBindMessage(requestToken, shortcuts)).ConfigureAwait(false);
-
-            // Wait for portal response (user may need to confirm in a dialog)
-            try
-            {
-                var responseCode = await responseSource.Task.WaitAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
-                if (responseCode != 0)
-                    _logger.LogWarning("D-Bus: BindShortcuts returned response code {Code}", responseCode);
-            }
-            catch (TimeoutException)
-            {
-                _logger.LogWarning("D-Bus: BindShortcuts timed out after 30 seconds");
-            }
+            var responseCode = await responseSource.Task.WaitAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+            if (responseCode != 0)
+                _logger.LogWarning("D-Bus: BindShortcuts returned response code {Code}", responseCode);
         }
-        finally
+        catch (TimeoutException)
         {
-            signalSubscription.Dispose();
+            _logger.LogWarning("D-Bus: BindShortcuts timed out after 30 seconds");
         }
     }
 
