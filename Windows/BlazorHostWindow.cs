@@ -68,7 +68,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             CanResize = false;
             ShowInTaskbar = true;
             Opacity = 1;
-            SystemDecorations = Avalonia.Controls.SystemDecorations.None;
+            WindowDecorations = Avalonia.Controls.WindowDecorations.None;
 
             // Set splash content
             Content = splashConfig.CustomContentFactory?.Invoke() ?? splashConfig.CreateDefaultContent();
@@ -90,7 +90,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             CanResize = false;
             ShowInTaskbar = false;
             Opacity = 0;
-            SystemDecorations = Avalonia.Controls.SystemDecorations.None;
+            WindowDecorations = Avalonia.Controls.WindowDecorations.None;
             TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };
 
             _logger?.LogVerbose("Avalonia window configured as hidden (no decorations, transparent, off-screen)");
@@ -287,7 +287,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         Position = new Avalonia.PixelPoint(Constants.Defaults.OffScreenPosition, Constants.Defaults.OffScreenPosition);
         ShowInTaskbar = false;
         Opacity = 0;
-        SystemDecorations = Avalonia.Controls.SystemDecorations.None;
+        WindowDecorations = Avalonia.Controls.WindowDecorations.None;
         TransparencyLevelHint = new[] { Avalonia.Controls.WindowTransparencyLevel.Transparent };
 
         // Clear content to free memory
