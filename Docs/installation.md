@@ -13,9 +13,9 @@ Before getting started, ensure your system meets these requirements.
 | Requirement | Minimum | Recommended | Status |
 |---|---|---|---|
 | **.NET Runtime** | 10.0 | Latest 10.0+ | Required |
-| **Windows** | 10 | 11 | ✅ Fully Tested |
-| **Linux** | Ubuntu 20.04+ | Ubuntu 22.04+ | ⚠️ Untested |
-| **macOS** | 10.15+ | Latest | ⚠️ Untested |
+| **Windows** | 10 | 11 | âœ… Fully Tested |
+| **Linux** | Ubuntu 20.04+ | Ubuntu 22.04+ | âš ï¸ Untested |
+| **macOS** | 10.15+ | Latest | âš ï¸ Untested |
 
 ### Development Requirements
 
@@ -121,7 +121,7 @@ Both commands should complete **without errors**. If you see errors, check the t
 #### Step 1: Create New Project
 
 1. Open **Visual Studio 2022**
-2. Click **File** → **New** → **Project**
+2. Click **File** â†’ **New** â†’ **Project**
 3. Search for **"Console App"** (.NET)
 4. Select **"Console App"** template
 5. Click **Next**
@@ -161,12 +161,12 @@ Visual Studio will:
 #### Step 5: Verify Installation
 
 After installation completes:
-1. Right-click **Project** → **Build Project**
+1. Right-click **Project** â†’ **Build Project**
 2. Check **Output** window for build success
 3. Look for message: **"Build succeeded"**
 
 **Common Issues During Installation:**
-- If NuGet fails to restore, try: **Tools** → **Options** → **NuGet Package Manager** → **Clear All NuGet Cache(s)**
+- If NuGet fails to restore, try: **Tools** â†’ **Options** â†’ **NuGet Package Manager** â†’ **Clear All NuGet Cache(s)**
 - If build fails, ensure you selected **.NET 10.0** framework in Step 3
 
 ---
@@ -220,7 +220,7 @@ Edit `MyDesktopApp.csproj` to use Razor SDK:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.1" />
   </ItemGroup>
 </Project>
 ```
@@ -260,10 +260,10 @@ When you run `dotnet add package CheapAvaloniaBlazor`, you get:
 
 ```
 C:\Users\...\MyDesktopApp\.nuget\packages
-├── avalonia/               (Desktop framework)
-├── mudbla zor/             (UI components)
-├── photino.net/            (WebView hosting)
-└── [dependencies]/         (Supporting packages)
+â”œâ”€â”€ avalonia/               (Desktop framework)
+â”œâ”€â”€ mudbla zor/             (UI components)
+â”œâ”€â”€ photino.net/            (WebView hosting)
+â””â”€â”€ [dependencies]/         (Supporting packages)
 ```
 
 **Total Size:** ~200-300 MB (first installation only, cached for future projects)
@@ -418,7 +418,7 @@ dotnet --version
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.1" />
   </ItemGroup>
 </Project>
 ```
@@ -483,7 +483,7 @@ dotnet build
 
 1. Ensure **.NET 10.0 SDK is installed** (not just Runtime)
 2. Restart Visual Studio completely
-3. Go to **Tools** → **Options** → **Projects and Solutions** → **.NET Core**
+3. Go to **Tools** â†’ **Options** â†’ **Projects and Solutions** â†’ **.NET Core**
 4. Enable experimental features if disabled
 5. Close and reopen Visual Studio
 
@@ -502,7 +502,7 @@ dotnet new console -n MyDesktopApp
 **Solutions:**
 
 **Visual Studio:**
-1. Go to **Debug** → **Edit and Continue**
+1. Go to **Debug** â†’ **Edit and Continue**
 2. Enable **"Hot Reload on File Save"**
 3. Ensure project targets .NET 10.0
 4. Restart debugger
@@ -861,10 +861,10 @@ Version 2.0.0 migrates from the legacy Blazor Server pattern to the modern Blazo
 
 #### What Changed Internally
 
-- `AddServerSideBlazor()` → `AddRazorComponents().AddInteractiveServerComponents()`
-- `MapBlazorHub()` + `MapFallbackToPage()` → `MapRazorComponents<App>().AddInteractiveServerRenderMode()`
-- `blazor.server.js` → `blazor.web.js`
-- `_Host.cshtml` (Razor Page) → `App.razor` (Razor component as HTML document root)
+- `AddServerSideBlazor()` â†’ `AddRazorComponents().AddInteractiveServerComponents()`
+- `MapBlazorHub()` + `MapFallbackToPage()` â†’ `MapRazorComponents<App>().AddInteractiveServerRenderMode()`
+- `blazor.server.js` â†’ `blazor.web.js`
+- `_Host.cshtml` (Razor Page) â†’ `App.razor` (Razor component as HTML document root)
 - Razor Pages middleware removed entirely
 
 ---

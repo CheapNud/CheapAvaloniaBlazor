@@ -90,13 +90,14 @@ dotnet add package CheapAvaloniaBlazor
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="2.1.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.1" />
   </ItemGroup>
 </Project>
 ```
 
 **2. Replace `Program.cs`:**
 ```csharp
+using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Hosting;
 
 namespace MyDesktopApp;

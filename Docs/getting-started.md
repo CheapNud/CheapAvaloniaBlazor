@@ -58,7 +58,7 @@ Open your `.csproj` file and modify it:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="2.0.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.1" />
   </ItemGroup>
 </Project>
 ```
@@ -75,6 +75,7 @@ The `Program.cs` file is your application's entry point. This is where you confi
 Replace your `Program.cs` with:
 
 ```csharp
+using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Hosting;
 
 namespace MyDesktopApp;
@@ -105,6 +106,7 @@ class Program
 
 **Why Each Part Matters:**
 
+- `using CheapAvaloniaBlazor.Extensions;` - Required for the `AddMudBlazor()` extension method
 - `[STAThread]` - Required on Windows for COM interop (file dialogs, notifications)
 - `new HostBuilder()` - Creates the application builder using ASP.NET Core's dependency injection
 - `.WithTitle()` - Sets the window title bar text
@@ -291,7 +293,11 @@ The `_Imports.razor` file provides using statements that are automatically avail
 @using MudBlazor
 @using CheapAvaloniaBlazor
 @using CheapAvaloniaBlazor.Services
+@using MyDesktopApp.Components
+@using MyDesktopApp.Shared
 ```
+
+> **Important:** The last two lines import your own project's namespaces. The folder structure determines the namespace: `MainLayout` lives in `MyDesktopApp.Shared` (Shared folder) while `Routes` lives in `MyDesktopApp.Components` (Components folder). Without these imports, `Routes.razor` cannot resolve `MainLayout` and the build fails with a confusing CS1662 error pointing at the Razor-generated code. If you named your project something other than "MyDesktopApp", adjust these namespaces accordingly.
 
 **What Each Using Does:**
 
@@ -306,6 +312,8 @@ The `_Imports.razor` file provides using statements that are automatically avail
 - `MudBlazor` - Material Design components
 - `CheapAvaloniaBlazor` - Core desktop functionality
 - `CheapAvaloniaBlazor.Services` - `IDesktopInteropService` for file dialogs, notifications, etc.
+- `MyDesktopApp.Components` - Your project's `Routes` component (referenced from `App.razor`)
+- `MyDesktopApp.Shared` - Your project's `MainLayout` component (referenced from `Routes.razor`)
 
 ### Step 8: Create Your First Page (Pages/Index.razor)
 

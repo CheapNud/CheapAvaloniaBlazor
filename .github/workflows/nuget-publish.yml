@@ -73,6 +73,9 @@ jobs:
     - name: Pack NuGet package
       run: dotnet pack CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ./nupkgs
 
+    - name: Pack template package
+      run: dotnet pack templates/CheapAvaloniaBlazor.Templates.csproj --configuration ${{ env.CONFIGURATION }} --output ./nupkgs
+
     - name: Upload NuGet package
       uses: actions/upload-artifact@v4
       with:
