@@ -115,7 +115,7 @@ jobs:
 
   pack:
     name: Pack NuGet Package
-    needs: template-smoke-test
+    needs: build-and-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
