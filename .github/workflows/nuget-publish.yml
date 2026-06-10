@@ -61,8 +61,11 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     # The pack job only runs on push/dispatch; PRs need their own nupkgs.
+    - name: Build library
+      run: dotnet build CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }}
+
     - name: Pack library
-      run: dotnet pack CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --output ./nupkgs
+      run: dotnet pack CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ./nupkgs
 
     - name: Pack templates
       run: dotnet pack templates/CheapAvaloniaBlazor.Templates.csproj --configuration ${{ env.CONFIGURATION }} --output ./nupkgs
