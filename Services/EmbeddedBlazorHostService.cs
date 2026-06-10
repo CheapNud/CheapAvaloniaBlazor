@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -23,6 +24,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
     private readonly DiagnosticLogger _diagnosticLogger;
     private CancellationTokenSource? _hostCts;
     private Type? _appType;
+    private string? _effectiveWwwRootPath;
 
     public bool IsRunning { get; private set; }
     public string BaseUrl => $"{(_options.UseHttps ? Constants.Defaults.HttpsScheme : Constants.Defaults.HttpScheme)}://{Constants.Defaults.LocalhostAddress}:{_options.Port}";
@@ -130,6 +132,10 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                         $"ContentRoot resolved to '{wwwrootPath}' which is outside the application base directory '{appBase}'. " +
                         "This may indicate a path traversal attempt.");
                 }
+
+                // Remember the validated path so ConfigurePipeline can serve it explicitly —
+                // see the static files comment there for why the default web root can't be trusted.
+                _effectiveWwwRootPath = wwwrootPath;
 
                 _diagnosticLogger.LogDiagnostic("Extracting JavaScript bridge to: {WwwrootPath}", wwwrootPath);
 
@@ -394,6 +400,25 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // that are copied to wwwroot/_framework/ during build
             _logger.LogDebug("Adding static files middleware...");
             app.UseStaticFiles();
+
+            // The parameterless UseStaticFiles() above serves from the web root that
+            // CreateBuilder() resolved at construction time: {current working directory}/wwwroot.
+            // Assigning ContentRootPath AFTER CreateBuilder() (as StartAsync does) does NOT
+            // rebuild the WebRootFileProvider, so when the app is launched from any directory
+            // other than the output folder (dotnet run from a repo root, a shortcut, CI), that
+            // provider points at a folder that doesn't exist and the extracted files
+            // (blazor.web.js, cheap-blazor-interop.js) 404 — the classic white-screen.
+            // NuGet _content assets keep working through the static web assets manifest, which
+            // masks the problem. Serve the effective wwwroot with an explicitly rooted provider
+            // so the launch directory is irrelevant.
+            if (_effectiveWwwRootPath != null && Directory.Exists(_effectiveWwwRootPath))
+            {
+                _logger.LogDebug("Adding CWD-independent static files middleware for: {WwwRoot}", _effectiveWwwRootPath);
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(_effectiveWwwRootPath)
+                });
+            }
 
             _logger.LogDebug("Adding routing...");
             app.UseRouting();
