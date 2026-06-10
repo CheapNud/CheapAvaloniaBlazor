@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-06-10
+  Last updated: 2026-06-11
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -30,9 +30,11 @@ _Nothing blocking._
 
 ## Planned
 
-- [ ] (2026-06-10) Template smoke tests in CI — install packed nupkg, scaffold both templates, build against local source [plan]
+- [ ] (2026-06-11) Fix empty favicon.ico (0 bytes) in both template content dirs — regenerate samples/TemplateApp after [bug]
+  - `templates/content/CheapBlazorApp/wwwroot/favicon.ico` and `CheapBlazorApp-Full` variant
+- [x] (2026-06-10 → 2026-06-11) Template smoke tests in CI — install packed nupkg, scaffold both templates, build against local source [plan]
   - Runs on PRs too (pack inside the job; existing pack job is push-only)
-- [ ] (2026-06-10) `samples/TemplateApp` — checked-in `dotnet new cheapblazor` output, CI diffs scaffold against it to prevent drift [plan]
+- [x] (2026-06-10 → 2026-06-11) `samples/TemplateApp` — checked-in `dotnet new cheapblazor` output, CI diffs scaffold against it to prevent drift [plan]
 - [ ] (2026-06-10) README slim-down to ~100-line landing page, feature deep-dives move to Docs/ [plan]
 - [ ] (2026-06-10) Wiki sync — mirror top-level `Docs/*.md` to GitHub wiki on master push, `Docs/README.md` as Home [plan]
 - [ ] (2026-06-10) Add `PackageReadmeFile` to templates csproj — nuget.org warns readme missing [bug]
