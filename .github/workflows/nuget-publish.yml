@@ -81,7 +81,7 @@ jobs:
         diff -ru --strip-trailing-cr \
           -I 'PackageReference Include="CheapAvaloniaBlazor"' \
           -x bin -x obj \
-          work/TemplateApp samples/TemplateApp
+          samples/TemplateApp work/TemplateApp
 
     # Source mapping forces the library to restore from the freshly-packed
     # nupkg, not nuget.org, so PRs test template/library compatibility
