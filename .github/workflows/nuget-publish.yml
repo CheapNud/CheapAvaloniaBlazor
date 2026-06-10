@@ -47,9 +47,75 @@ jobs:
           **/obj/**
         retention-days: 1
 
+  template-smoke-test:
+    name: Template Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    # The pack job only runs on push/dispatch; PRs need their own nupkgs.
+    - name: Pack library
+      run: dotnet pack CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --output ./nupkgs
+
+    - name: Pack templates
+      run: dotnet pack templates/CheapAvaloniaBlazor.Templates.csproj --configuration ${{ env.CONFIGURATION }} --output ./nupkgs
+
+    - name: Install templates from local package
+      run: dotnet new install ./nupkgs/CheapAvaloniaBlazor.Templates.*.nupkg
+
+    - name: Scaffold templates
+      run: |
+        mkdir -p work
+        dotnet new cheapblazor -n TemplateApp -o work/TemplateApp
+        dotnet new cheapblazor-full -n SmokeFull -o work/SmokeFull
+
+    - name: Diff scaffold against checked-in sample
+      run: |
+        diff -ru --strip-trailing-cr \
+          -I 'PackageReference Include="CheapAvaloniaBlazor"' \
+          -x bin -x obj \
+          work/TemplateApp samples/TemplateApp
+
+    # Source mapping forces the library to restore from the freshly-packed
+    # nupkg, not nuget.org, so PRs test template/library compatibility
+    # against the PR's code, not the last release.
+    - name: Point scaffolded apps at the locally-packed library
+      run: |
+        cat > work/NuGet.config <<EOF
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <packageSources>
+            <clear />
+            <add key="local" value="${{ github.workspace }}/nupkgs" />
+            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+          </packageSources>
+          <packageSourceMapping>
+            <packageSource key="local">
+              <package pattern="CheapAvaloniaBlazor" />
+            </packageSource>
+            <packageSource key="nuget.org">
+              <package pattern="*" />
+            </packageSource>
+          </packageSourceMapping>
+        </configuration>
+        EOF
+
+    - name: Build scaffolded minimal app
+      run: dotnet build work/TemplateApp/TemplateApp.csproj --configuration ${{ env.CONFIGURATION }}
+
+    - name: Build scaffolded full app
+      run: dotnet build work/SmokeFull/SmokeFull.csproj --configuration ${{ env.CONFIGURATION }}
+
   pack:
     name: Pack NuGet Package
-    needs: build-and-test
+    needs: template-smoke-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
