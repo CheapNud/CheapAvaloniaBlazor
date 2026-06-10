@@ -90,7 +90,7 @@ dotnet add package CheapAvaloniaBlazor
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.2" />
   </ItemGroup>
 </Project>
 ```

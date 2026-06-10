@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>3.1.1</Version>
+    <Version>3.1.2</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.1.1 - New ICookieService for WebView cookie extraction (stub returning empty until Photino.NET exposes a cookie manager). Updated dependencies: Avalonia 12.0.2, MudBlazor 9.4.0, Tmds.DBus.Protocol 0.93.0. DBus hotkey backend refactored to proper async with ConfigureAwait(false), wrapped in Task.Run at the sync interface boundary.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.1.2 - CheapAvaloniaBlazor.Templates is now published to NuGet (dotnet new cheapblazor / cheapblazor-full). Fixed getting started guide: missing usings and namespace imports, stale package versions. Updated dependencies: Avalonia 12.0.4, MudBlazor 9.5.0, Tmds.DBus.Protocol 0.94.1.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -40,13 +40,13 @@
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="12.0.2" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.0.2" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.2" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.2" />
-    <PackageReference Include="MudBlazor" Version="9.4.0" />
+    <PackageReference Include="Avalonia" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.4" />
+    <PackageReference Include="MudBlazor" Version="9.5.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
-    <PackageReference Include="Tmds.DBus.Protocol" Version="0.93.0" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
