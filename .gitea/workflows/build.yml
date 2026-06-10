@@ -30,10 +30,14 @@ jobs:
           restore-keys: nuget-
 
       - name: Restore
-        run: dotnet restore CheapAvaloniaBlazor.slnx
+        run: |
+          dotnet restore samples/DesktopFeatures/DesktopFeatures.csproj
+          dotnet restore samples/MinimalApp/MinimalApp.csproj
 
       - name: Build
-        run: dotnet build CheapAvaloniaBlazor.slnx --no-restore --configuration Release
+        run: |
+          dotnet build samples/DesktopFeatures/DesktopFeatures.csproj --no-restore --configuration Release
+          dotnet build samples/MinimalApp/MinimalApp.csproj --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test CheapAvaloniaBlazor.slnx --no-build --configuration Release --verbosity normal
+        run: dotnet test CheapAvaloniaBlazor.csproj --no-build --configuration Release --verbosity normal
