@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-03-17
+  Last updated: 2026-06-10
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -30,6 +30,12 @@ _Nothing blocking._
 
 ## Planned
 
+- [ ] (2026-06-10) Template smoke tests in CI — install packed nupkg, scaffold both templates, build against local source [plan]
+  - Runs on PRs too (pack inside the job; existing pack job is push-only)
+- [ ] (2026-06-10) `samples/TemplateApp` — checked-in `dotnet new cheapblazor` output, CI diffs scaffold against it to prevent drift [plan]
+- [ ] (2026-06-10) README slim-down to ~100-line landing page, feature deep-dives move to Docs/ [plan]
+- [ ] (2026-06-10) Wiki sync — mirror top-level `Docs/*.md` to GitHub wiki on master push, `Docs/README.md` as Home [plan]
+- [ ] (2026-06-10) Add `PackageReadmeFile` to templates csproj — nuget.org warns readme missing [bug]
 - [ ] (2026-03-17) Fork Photino.NET under CheapNud → CheapPhotino [plan]
   - Add `GetCookiesAsync` (cookie manager) + native `ExecuteScriptAsync`
   - See `TODO_PHOTINO_FORK.md` for native C++ changes per platform
@@ -68,6 +74,10 @@ Desktop apps need Development mode for `UseStaticWebAssets()` to resolve NuGet s
 
 ## Done
 
+- [x] (2026-06-10 → 2026-06-10) v3.1.2 release — templates package now published to NuGet for the first time (closes #38) [bug]
+- [x] (2026-06-10 → 2026-06-10) CI packs `CheapAvaloniaBlazor.Templates` alongside the library in nuget-publish.yml [bug]
+- [x] (2026-06-10 → 2026-06-10) Getting started guide fixes — missing `CheapAvaloniaBlazor.Extensions` using (#40), missing project namespace imports causing CS1662 (#41), stale version pins in README/getting-started/installation (#39) [bug]
+- [x] (2026-06-10 → 2026-06-10) Dependency updates — Avalonia 12.0.4, MudBlazor 9.5.0, Tmds.DBus.Protocol 0.94.1 [user]
 - [x] (2026-02-08 → 2026-02-08) System tray support (v2.1.0) [plan]
 - [x] (2026-02-08 → 2026-02-08) Dual-channel notifications (v2.1.0) [plan]
 - [x] (2026-02-08 → 2026-02-08) Settings persistence helper (v2.1.0) [plan]
