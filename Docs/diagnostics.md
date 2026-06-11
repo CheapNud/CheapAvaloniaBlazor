@@ -763,6 +763,66 @@ fail: CheapAvaloniaBlazor.Hosting.HostBuilder[0]
 
 ---
 
+## Common Issues & Solutions
+
+**Build Errors**
+```bash
+# Ensure correct .NET version
+dotnet --version  # Should be 10.0+
+
+# Clear and restore packages
+dotnet clean
+dotnet restore
+dotnet build
+```
+
+**Window Doesn't Appear**
+- Check if port 5000/5001 is available
+- Verify no firewall blocking local connections
+- Look for exceptions in console output
+- Try different port: `builder.UsePort(8080)`
+
+**MudBlazor Styles Missing**
+- Verify CSS reference in `App.razor`:
+  ```html
+  <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+  ```
+- Check browser dev tools for 404 errors
+- Ensure `AddMudBlazor()` is called in HostBuilder
+
+**Black Screen / `blazor.web.js` 404**
+- Run `dotnet restore` to ensure `Microsoft.AspNetCore.App.Internal.Assets` is in the NuGet cache
+- If using `Sdk.Razor`: the library extracts `blazor.web.js` at runtime from the NuGet cache — check startup logs for extraction messages
+- If using `Sdk.Web`: verify `MapStaticAssets()` is in the pipeline (called by `UseCheapBlazorDesktop()`)
+- Clear the WebView2 cache if you see stale behavior: delete `%LocalAppData%\Photino\EBWebView\Default\Cache\`
+
+**Platform Compatibility Issues**
+- **Linux/macOS**: Currently untested - if you encounter issues, please report them!
+- **Windows**: Fully tested and supported
+- Dependencies (Avalonia, Photino) should work cross-platform, but integration not verified
+
+**File Dialog Not Working**
+- File dialogs use Avalonia StorageProvider (working since v1.0.67)
+- Ensure you're using latest version: `dotnet add package CheapAvaloniaBlazor`
+- Check `IDesktopInteropService` injection
+
+**Taskbar Icon Stays Visible When Minimized to Tray**
+- This happens when `EnableDevTools` is true - the DevTools window keeps the taskbar icon alive
+- This is a Photino/WebView2 limitation, not a CheapAvaloniaBlazor bug
+- Disable `EnableDevTools` for production or when testing tray behavior
+
+## Debug Mode
+
+```csharp
+var builder = new HostBuilder()
+    .WithTitle("My App")
+    .EnableConsoleLogging()    // Show console window for logging
+    .EnableDevTools()          // Enable F12 developer tools
+    .EnableContextMenu()       // Enable right-click menu (default: true)
+    .EnableDiagnostics()       // Comprehensive diagnostic logging
+    .AddMudBlazor();
+```
+
 ## Related Resources
 
 - [CheapAvaloniaBlazor README](../README.md#diagnostics--logging)
