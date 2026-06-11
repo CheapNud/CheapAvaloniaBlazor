@@ -1,0 +1,44 @@
+name: Wiki Sync
+
+on:
+  push:
+    branches: [ master ]
+    paths: [ 'Docs/**' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync Docs to Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Checkout wiki
+      run: git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
+
+    - name: Mirror docs to wiki
+      run: |
+        find wiki -maxdepth 1 -name '*.md' -delete
+        cp Docs/*.md wiki/
+        mv wiki/README.md wiki/Home.md
+        # Wiki pages are extensionless: rewrite (./foo.md) and (foo.md) links
+        sed -i -E 's/\(\.\/([A-Za-z0-9._-]+)\.md\)/(\1)/g' wiki/*.md
+        sed -i -E 's/\(([A-Za-z0-9._-]+)\.md\)/(\1)/g' wiki/*.md
+
+    - name: Push wiki
+      run: |
+        cd wiki
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "Wiki already up to date"
+        else
+          git commit -m "Sync docs from repository"
+          git push
+        fi
