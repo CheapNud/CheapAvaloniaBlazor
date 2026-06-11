@@ -59,6 +59,10 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="CheapAvaloniaBlazor.Tests" />
+  </ItemGroup>
+
   <!-- The JS bridge is a plain static web asset: the SDK includes wwwroot\*.js as Content and
        packs it under staticwebassets/, served at _content/CheapAvaloniaBlazor/. The EmbeddedResource
        copy (and its runtime extractor) existed only because Build/CheapAvaloniaBlazor.props used to
