@@ -12,41 +12,34 @@
   -->
   <Target Name="CopyBlazorFrameworkFilesFromLibrary" AfterTargets="Build" Condition="'$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))">
     <PropertyGroup>
-      <!-- Try to find the internal assets package - match the major.minor version -->
-      <BlazorInternalAssetsPattern>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/$([System.Text.RegularExpressions.Regex]::Match('$(TargetFrameworkVersion)', '^\d+\.\d+').Value).*/_framework/</BlazorInternalAssetsPattern>
+      <!-- "v11.0" -> "11.0". Scope the cache glob to the app's own framework version: the NuGet
+           cache is machine-global, and an unscoped **-glob copies every cached version with
+           alphabetical-last winning (so a cached 9.x would beat 10.x). Within the same
+           major.minor multiple patches can still match; the runtime extractor's staleness
+           check settles that at startup. Note: TargetFrameworkVersion carries a leading "v",
+           so the regex must not be anchored. -->
+      <_BlazorTfmMajorMinor>$([System.Text.RegularExpressions.Regex]::Match('$(TargetFrameworkVersion)', '\d+\.\d+').Value)</_BlazorTfmMajorMinor>
       <DestinationFrameworkPath>$(OutputPath)wwwroot/_framework/</DestinationFrameworkPath>
     </PropertyGroup>
 
-    <!-- Find the actual path using wildcard -->
     <ItemGroup>
-      <BlazorInternalAssetsDirs Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/" />
-      <BlazorInternalAssetsDirsSorted Include="@(BlazorInternalAssetsDirs)" Condition="$([System.String]::new('%(Identity)').Contains('$([System.Text.RegularExpressions.Regex]::Match($(TargetFrameworkVersion), ^\d+\.\d+).Value)'))" />
-    </ItemGroup>
-
-    <!-- Use the latest matching version's files -->
-    <PropertyGroup>
-      <BlazorAssetsPath>@(BlazorInternalAssetsDirs->Reverse()->GetPathsOfAllDirectoriesAbove())</BlazorAssetsPath>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <BlazorFrameworkFiles Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/**/_framework/blazor.web.js" />
+      <BlazorFrameworkFiles Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/$(_BlazorTfmMajorMinor).*/_framework/blazor.web.js" />
     </ItemGroup>
 
     <Message Text="CheapAvaloniaBlazor: Looking for Blazor framework files..." Importance="normal" Condition="'@(BlazorFrameworkFiles)' != ''" />
     <MakeDir Directories="$(DestinationFrameworkPath)" Condition="'@(BlazorFrameworkFiles)' != ''" />
 
-    <!-- Copy only the first match (latest version) for each file -->
     <Copy SourceFiles="@(BlazorFrameworkFiles)"
           DestinationFolder="$(DestinationFrameworkPath)"
           SkipUnchangedFiles="true"
           Condition="'@(BlazorFrameworkFiles)' != ''" />
 
     <Message Text="CheapAvaloniaBlazor: Copied Blazor framework files to $(DestinationFrameworkPath)" Importance="high" Condition="'@(BlazorFrameworkFiles)' != ''" />
-    <!-- Not a hard failure: UseStaticWebAssets() in EmbeddedBlazorHostService serves blazor.web.js
-         from the NuGet cache at runtime (Development environment). dotnet publish handles it for deployments.
-         This copy is a convenience for running from build output directly. Common cause: dotnet build without restore
-         on a fresh CI runner where Microsoft.AspNetCore.App.Internal.Assets hasn't been restored yet. -->
-    <Warning Text="CheapAvaloniaBlazor: blazor.web.js not found in NuGet cache (Microsoft.AspNetCore.App.Internal.Assets). Run 'dotnet restore' first, or the app will rely on UseStaticWebAssets() to serve it at runtime." Condition="'@(BlazorFrameworkFiles)' == ''" />
+    <!-- Not a hard failure: the runtime BlazorFrameworkExtractor serves blazor.web.js from the
+         NuGet cache at startup. dotnet publish handles it for deployments. This copy is a
+         convenience for running from build output directly. Common causes: dotnet build without
+         restore on a fresh CI runner, or no cached Internal.Assets version matching the app's framework. -->
+    <Warning Text="CheapAvaloniaBlazor: blazor.web.js $(_BlazorTfmMajorMinor).* not found in NuGet cache (Microsoft.AspNetCore.App.Internal.Assets). Run 'dotnet restore' first, or the app will rely on runtime extraction to serve it." Condition="'@(BlazorFrameworkFiles)' == ''" />
   </Target>
 
   <!-- Only create wwwroot if it doesn't exist, no copying -->
