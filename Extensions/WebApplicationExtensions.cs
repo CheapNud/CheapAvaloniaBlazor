@@ -5,10 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Primitives;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace CheapAvaloniaBlazor.Extensions;
@@ -117,13 +114,15 @@ public static class WebApplicationExtensions
 
 
     /// <summary>
-    /// Configure static files including embedded resources
+    /// Configure static files for the consuming project's wwwroot
     /// </summary>
-    // Add this temporarily to your WebApplicationExtensions.cs ConfigureStaticFiles method
+    // The JS bridge needs no special serving here: it ships as a static web asset and serves
+    // at _content/CheapAvaloniaBlazor/cheap-blazor-interop.js through MapStaticAssets, exactly
+    // like MudBlazor's _content files. The embedded-resource providers, manual MapGet fallback
+    // and runtime extractor that used to live here existed only because the package's build
+    // props clobbered the SDK-generated static web assets import (see Build/CheapAvaloniaBlazor.props).
     private static void ConfigureStaticFiles(WebApplication app, CheapAvaloniaBlazorOptions options)
     {
-        var loggerFactory = app.Services.GetRequiredService<Services.IDiagnosticLoggerFactory>();
-        var logger = loggerFactory.CreateLogger(nameof(WebApplicationExtensions));
         var isDevelopment = app.Environment.IsDevelopment();
 
         // Serve wwwroot files from consuming project.
@@ -142,139 +141,11 @@ public static class WebApplicationExtensions
             }
         });
 
-        // Get the assembly containing embedded resources
-        var assembly = typeof(WebApplicationExtensions).Assembly;
-
-        // DEBUG: Show what's actually embedded (remove after testing)
-        if (app.Environment.IsDevelopment())
-        {
-            DebugEmbeddedResources(assembly, logger);
-        }
-
-        // SOLUTION 1: Standard embedded file provider (most common case)
-        try
-        {
-            var embeddedProvider = new EmbeddedFileProvider(assembly, Constants.Paths.EmbeddedResourceNamespace);
-
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = embeddedProvider,
-                RequestPath = Constants.Endpoints.ContentPath,
-                OnPrepareResponse = ctx =>
-                {
-                    if (isDevelopment && Constants.Http.NoCacheJsFiles.Any(f =>
-                        ctx.File.Name.Equals(f, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        ctx.Context.Response.Headers.CacheControl = "no-cache";
-                    }
-                }
-            });
-
-            logger.LogVerbose("✅ Standard EmbeddedFileProvider configured successfully");
-        }
-        catch (Exception ex)
-        {
-            logger.LogVerbose($"❌ Standard EmbeddedFileProvider failed: {ex.Message}");
-
-            // SOLUTION 2: Fallback - try without namespace prefix
-            try
-            {
-                var fallbackProvider = new EmbeddedFileProvider(assembly);
-
-                app.UseStaticFiles(new StaticFileOptions
-                {
-                    FileProvider = new PrefixedEmbeddedFileProvider(fallbackProvider, Constants.Paths.EmbeddedResourceNamespace),
-                    RequestPath = Constants.Endpoints.ContentPath
-                });
-
-                logger.LogVerbose("✅ Fallback EmbeddedFileProvider configured successfully");
-            }
-            catch (Exception fallbackEx)
-            {
-                logger.LogVerbose($"❌ Fallback EmbeddedFileProvider also failed: {fallbackEx.Message}");
-
-                // SOLUTION 3: Manual resource serving as last resort
-                ConfigureManualResourceServing(app, assembly, logger);
-            }
-        }
-
         // Custom static file options if provided
         if (options.CustomStaticFileOptions != null)
         {
             app.UseStaticFiles(options.CustomStaticFileOptions);
         }
-    }
-
-    private static void DebugEmbeddedResources(Assembly assembly, Services.DiagnosticLogger logger)
-    {
-        logger.LogVerbose("🔍 === EMBEDDED RESOURCES DEBUG ===");
-        logger.LogVerbose($"Assembly: {assembly.FullName}");
-
-        var resources = assembly.GetManifestResourceNames();
-        logger.LogVerbose($"Found {resources.Length} embedded resources:");
-
-        foreach (var resource in resources.OrderBy(r => r))
-        {
-            logger.LogVerbose($"  📄 {resource}");
-        }
-
-        // Look for our specific JS file
-        var jsFiles = resources.Where(r => r.Contains(Constants.Resources.JavaScriptBridgeResourcePattern)).ToArray();
-        if (jsFiles.Any())
-        {
-            logger.LogVerbose("🎯 Found JS files:");
-            foreach (var js in jsFiles)
-            {
-                logger.LogVerbose($"  ⚡ {js}");
-            }
-        }
-        else
-        {
-            logger.LogVerbose($"❌ No {Constants.Resources.JavaScriptBridgeFileName} files found in embedded resources!");
-        }
-
-        logger.LogVerbose("🔍 === END DEBUG ===");
-    }
-
-    private static void ConfigureManualResourceServing(WebApplication app, Assembly assembly, Services.DiagnosticLogger logger)
-    {
-        logger.LogVerbose("🔧 Configuring manual resource serving...");
-
-        // Manual endpoint for serving the JS file
-        app.MapGet(Constants.Endpoints.JavaScriptBridgeEndpoint, async context =>
-        {
-            try
-            {
-                var resourceName = assembly.GetManifestResourceNames()
-                    .FirstOrDefault(r => r.Contains(Constants.Resources.JavaScriptBridgeResourcePattern));
-
-                if (resourceName == null)
-                {
-                    context.Response.StatusCode = Constants.Http.StatusCodeNotFound;
-                    await context.Response.WriteAsync("JS file not found in embedded resources");
-                    return;
-                }
-
-                using var stream = assembly.GetManifestResourceStream(resourceName);
-                if (stream == null)
-                {
-                    context.Response.StatusCode = Constants.Http.StatusCodeNotFound;
-                    await context.Response.WriteAsync("Could not load JS stream");
-                    return;
-                }
-
-                context.Response.ContentType = Constants.Http.ContentTypeJavaScript;
-                await stream.CopyToAsync(context.Response.Body);
-
-                logger.LogVerbose($"✅ Manually served JS file: {resourceName}");
-            }
-            catch (Exception ex)
-            {
-                logger.LogVerbose($"❌ Manual serving failed: {ex.Message}");
-                context.Response.StatusCode = Constants.Http.StatusCodeInternalServerError;
-                await context.Response.WriteAsync($"Error serving JS file: {ex.Message}");
-            }
-        });
     }
 
     /// <summary>
@@ -311,78 +182,6 @@ public static class WebApplicationExtensions
     }
 
     // Note: RunAsDesktopAsync method removed - use Avalonia-based approach with BlazorHostWindow instead
-}
-
-public class PrefixedEmbeddedFileProvider : IFileProvider
-{
-    private readonly IFileProvider _provider;
-    private readonly string _prefix;
-
-    public PrefixedEmbeddedFileProvider(IFileProvider provider, string prefix)
-    {
-        _provider = provider;
-        _prefix = prefix.TrimEnd('/') + "/";
-    }
-
-    public IFileInfo GetFileInfo(string subpath)
-    {
-        var prefixedPath = _prefix + subpath.TrimStart('/');
-
-        // Try to find the file with the prefixed path
-        var resources = ((EmbeddedFileProvider)_provider).GetFileInfo(prefixedPath);
-        if (resources.Exists)
-            return resources;
-
-        // Fallback: try to find any resource that ends with the filename
-        if (_provider is EmbeddedFileProvider embeddedProvider)
-        {
-            var assembly = embeddedProvider.GetType()
-                .GetField(Constants.Reflection.AssemblyFieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
-                .GetValue(embeddedProvider) as Assembly;
-
-            if (assembly != null)
-            {
-                var fileName = Path.GetFileName(subpath);
-                var matchingResource = assembly.GetManifestResourceNames()
-                    .FirstOrDefault(r => r.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
-
-                if (matchingResource != null)
-                {
-                    var stream = assembly.GetManifestResourceStream(matchingResource);
-                    if (stream != null)
-                    {
-                        return new EmbeddedResourceFileInfo(matchingResource, stream, DateTimeOffset.UtcNow);
-                    }
-                }
-            }
-        }
-
-        return new NotFoundFileInfo(subpath);
-    }
-
-    public IDirectoryContents GetDirectoryContents(string subpath) => _provider.GetDirectoryContents(subpath);
-    public IChangeToken Watch(string filter) => _provider.Watch(filter);
-}
-
-// Helper file info class
-public class EmbeddedResourceFileInfo : IFileInfo
-{
-    private readonly Stream _stream;
-
-    public EmbeddedResourceFileInfo(string name, Stream stream, DateTimeOffset lastModified)
-    {
-        Name = Path.GetFileName(name);
-        _stream = stream;
-        LastModified = lastModified;
-        Length = stream.Length;
-    }
-
-    public bool Exists => true;
-    public bool IsDirectory => false;
-    public DateTimeOffset LastModified { get; }
-    public long Length { get; }
-    public string Name { get; }
-    public string PhysicalPath => null;
-
-    public Stream CreateReadStream() => _stream;
+    // Note: PrefixedEmbeddedFileProvider / EmbeddedResourceFileInfo removed - the JS bridge is a
+    // static web asset now, no embedded-resource serving needed
 }

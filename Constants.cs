@@ -12,7 +12,6 @@ public static class Constants
     {
         public const string ComponentsDirectory = "Components";
         public const string WwwRoot = "wwwroot";
-        public const string EmbeddedResourceNamespace = "CheapAvaloniaBlazor.wwwroot";
     }
 
     /// <summary>
@@ -20,19 +19,10 @@ public static class Constants
     /// </summary>
     public static class Endpoints
     {
-        public const string ContentPath = "/_content/CheapAvaloniaBlazor";
         public const string ErrorPage = "/Error";
         public const string TestEndpoint = "/_content/CheapAvaloniaBlazor/test";
+        // Served by the static web assets manifest (staticwebassets/ + props imports in the nupkg)
         public const string JavaScriptBridgeEndpoint = "/_content/CheapAvaloniaBlazor/cheap-blazor-interop.js";
-    }
-
-    /// <summary>
-    /// JavaScript and resource file names
-    /// </summary>
-    public static class Resources
-    {
-        public const string JavaScriptBridgeFileName = "cheap-blazor-interop.js";
-        public const string JavaScriptBridgeResourcePattern = "cheap-blazor-interop";
     }
 
     /// <summary>
@@ -226,7 +216,6 @@ public static class Constants
     /// </summary>
     public static class Reflection
     {
-        public const string AssemblyFieldName = "_assembly";
         public const string UnknownVersion = "unknown";
     }
 

@@ -59,11 +59,10 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Explicitly include JavaScript bridge as EmbeddedResource -->
-    <!-- SDK automatically includes wwwroot\*.js as Content, so we only add EmbeddedResource -->
-    <EmbeddedResource Include="wwwroot\cheap-blazor-interop.js" />
-  </ItemGroup>
+  <!-- The JS bridge is a plain static web asset: the SDK includes wwwroot\*.js as Content and
+       packs it under staticwebassets/, served at _content/CheapAvaloniaBlazor/. The EmbeddedResource
+       copy (and its runtime extractor) existed only because Build/CheapAvaloniaBlazor.props used to
+       drop the SDK-generated static web assets import. -->
 
   <ItemGroup>
     <!-- Build targets for consuming projects -->
