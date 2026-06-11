@@ -1290,7 +1290,7 @@ Check:
 
 ## See Also
 
-- [README - Getting Started](../README.md)
-- [API Documentation](api.md)
-- [Component Development Guide](components.md)
-- [Deployment Guide](deployment.md)
+- [Getting Started](getting-started.md)
+- [Features Guide](features.md)
+- [Desktop Interop API](desktop-interop.md)
+- [Diagnostics & Debugging](diagnostics.md)

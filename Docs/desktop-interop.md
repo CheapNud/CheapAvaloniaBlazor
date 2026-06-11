@@ -1119,6 +1119,5 @@ Inject in Blazor components:
 ## Related Resources
 
 - [Avalonia Documentation](https://docs.avaloniaui.net)
-- [Blazor Integration Guide](../README.md)
-- [File System Operations Pattern](../examples/file-operations.md)
-- [Window Management Pattern](../examples/window-management.md)
+- [Getting Started](getting-started.md)
+- [Features Guide](features.md)

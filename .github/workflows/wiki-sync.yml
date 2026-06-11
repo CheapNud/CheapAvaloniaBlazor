@@ -27,8 +27,8 @@ jobs:
         cp Docs/*.md wiki/
         mv wiki/README.md wiki/Home.md
         # Wiki pages are extensionless: rewrite (./foo.md) and (foo.md) links
-        sed -i -E 's/\(\.\/([A-Za-z0-9._-]+)\.md\)/(\1)/g' wiki/*.md
-        sed -i -E 's/\(([A-Za-z0-9._-]+)\.md\)/(\1)/g' wiki/*.md
+        sed -i -E 's/\(\.\/([A-Za-z0-9._-]+)\.md(#[A-Za-z0-9_-]*)?\)/(\1\2)/g' wiki/*.md
+        sed -i -E 's/\(([A-Za-z0-9._-]+)\.md(#[A-Za-z0-9_-]*)?\)/(\1\2)/g' wiki/*.md
 
     - name: Push wiki
       run: |

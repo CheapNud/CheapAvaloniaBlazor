@@ -825,9 +825,9 @@ var builder = new HostBuilder()
 
 ## Related Resources
 
-- [CheapAvaloniaBlazor README](../README.md#diagnostics--logging)
-- [Configuration Options](../Configuration/CheapAvaloniaBlazorOptions.cs)
-- [DiagnosticLogger Source](../Services/DiagnosticLogger.cs)
-- [HostBuilder Source](../Hosting/HostBuilder.cs)
+- [Diagnostics & Logging feature overview](features.md#diagnostics--logging)
+- [Configuration Options](https://github.com/CheapNud/CheapAvaloniaBlazor/blob/master/Configuration/CheapAvaloniaBlazorOptions.cs)
+- [DiagnosticLogger Source](https://github.com/CheapNud/CheapAvaloniaBlazor/blob/master/Services/DiagnosticLogger.cs)
+- [HostBuilder Source](https://github.com/CheapNud/CheapAvaloniaBlazor/blob/master/Hosting/HostBuilder.cs)
 - [Microsoft Logging Documentation](https://learn.microsoft.com/en-us/dotnet/core/extensions/logging)
 - [Blazor Server Troubleshooting](https://learn.microsoft.com/en-us/aspnet/core/blazor/troubleshoot)

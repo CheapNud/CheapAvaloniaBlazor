@@ -677,13 +677,13 @@ builder.RunApp(args);
 
 Once installation is verified, proceed with:
 
-1. **Read Quick Start Guide**: Follow the setup steps in main README.md
+1. **Read Quick Start Guide**: Follow the [Getting Started guide](getting-started.md)
 2. **Create Project Structure**: Set up Blazor components and pages
 3. **Add Desktop Features**: Use `IDesktopInteropService` for file dialogs, notifications
 4. **Configure UI**: Set up MudBlazor layout and components
 5. **Build & Deploy**: Package your application for distribution
 
-See the main README.md for detailed guides on each step.
+See the [Getting Started guide](getting-started.md) for detailed guidance on each step.
 
 ---
 
@@ -692,7 +692,7 @@ See the main README.md for detailed guides on each step.
 ### Troubleshooting Resources
 
 - **Installation Issues**: Check the Troubleshooting section above
-- **Build Errors**: See the "Common Issues & Solutions" in main README.md
+- **Build Errors**: See [Diagnostics & Debugging](diagnostics.md)
 - **API Questions**: Review inline code comments and API documentation
 - **General Help**: Check project discussions or create an issue
 
@@ -748,7 +748,7 @@ After basic installation, explore advanced features:
 - **Splash Screen**: `builder.WithSplashScreen(...)`
 - **Window Configuration**: `builder.WithSize()`, `builder.WithPosition()`
 
-See main README.md **Advanced Configuration** section for details.
+See the [Advanced Configuration guide](advanced-configuration.md) for details.
 
 ---
 
