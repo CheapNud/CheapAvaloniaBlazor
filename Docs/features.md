@@ -405,4 +405,3 @@ new HostBuilder()
 ```
 
 **Full guide:** See **[Diagnostics & Debugging](diagnostics.md)** for DiagnosticLogger usage and troubleshooting scenarios.
-

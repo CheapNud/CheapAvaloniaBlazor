@@ -18,17 +18,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Fails if the wiki was never initialized — create the first wiki page manually once.
     - name: Checkout wiki
-      run: git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
+      run: git clone "https://x-access-token:${WIKI_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki
+      env:
+        WIKI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Mirror docs to wiki
       run: |
         find wiki -maxdepth 1 -name '*.md' -delete
         cp Docs/*.md wiki/
-        mv wiki/README.md wiki/Home.md
-        # Wiki pages are extensionless: rewrite (./foo.md) and (foo.md) links
-        sed -i -E 's/\(\.\/([A-Za-z0-9._-]+)\.md(#[A-Za-z0-9_-]*)?\)/(\1\2)/g' wiki/*.md
-        sed -i -E 's/\(([A-Za-z0-9._-]+)\.md(#[A-Za-z0-9_-]*)?\)/(\1\2)/g' wiki/*.md
+        if [ -f wiki/README.md ]; then
+          mv wiki/README.md wiki/Home.md
+        fi
+        # Wiki pages are extensionless: rewrite ](./foo.md) and ](foo.md) links
+        sed -i -E 's/\]\(\.\/([A-Za-z0-9._-]+)\.md(#[A-Za-z0-9_-]*)?\)/](\1\2)/g' wiki/*.md
+        sed -i -E 's/\]\(([A-Za-z0-9._-]+)\.md(#[A-Za-z0-9_-]*)?\)/](\1\2)/g' wiki/*.md
 
     - name: Push wiki
       run: |
