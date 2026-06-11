@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace CheapAvaloniaBlazor.Utilities;
 
 /// <summary>
@@ -40,18 +38,27 @@ public static class BlazorFrameworkExtractor
             return _extractedPath;
         }
 
-        // Already present on disk (MSBuild target or previous run)
-        if (File.Exists(targetPath))
-        {
-            _extractedPath = targetPath;
-            _extracted = true;
-            logger.LogVerbose("blazor.web.js already exists at: {Path}", targetPath);
-            return targetPath;
-        }
-
         try
         {
             var sourcePath = FindBlazorWebJs(logger);
+
+            // Present on disk (MSBuild target or previous run) and still matching the cache
+            // source — use it. A bare exists-check is not enough: after a .NET update the old
+            // copy would be served forever, so compare against the resolved source first.
+            if (File.Exists(targetPath))
+            {
+                if (sourcePath == null || !IsTargetStale(sourcePath, targetPath))
+                {
+                    _extractedPath = targetPath;
+                    _extracted = true;
+                    logger.LogVerbose("blazor.web.js already exists at: {Path}", targetPath);
+                    return targetPath;
+                }
+
+                logger.LogInformation("blazor.web.js at {Target} is stale compared to {Source} - refreshing",
+                    targetPath, sourcePath);
+            }
+
             if (sourcePath == null)
             {
                 logger.LogError("Could not find blazor.web.js in NuGet cache. " +
@@ -78,6 +85,26 @@ public static class BlazorFrameworkExtractor
     }
 
     /// <summary>
+    /// True when the extracted copy no longer matches the NuGet cache source.
+    /// File.Copy preserves the source timestamp, so an up-to-date copy has the same
+    /// length and an equal-or-newer write time; a freshly restored .NET update has a
+    /// newer write time (and usually a different length) and wins.
+    /// </summary>
+    internal static bool IsTargetStale(string sourcePath, string targetPath)
+    {
+        var sourceInfo = new FileInfo(sourcePath);
+        var targetInfo = new FileInfo(targetPath);
+
+        if (!targetInfo.Exists)
+            return true;
+
+        if (sourceInfo.Length != targetInfo.Length)
+            return true;
+
+        return sourceInfo.LastWriteTimeUtc > targetInfo.LastWriteTimeUtc;
+    }
+
+    /// <summary>
     /// Searches the NuGet package cache for blazor.web.js from the internal assets package.
     /// </summary>
     private static string? FindBlazorWebJs(Services.DiagnosticLogger logger)
@@ -98,14 +125,12 @@ public static class BlazorFrameworkExtractor
             return null;
         }
 
-        // Find the highest version directory that contains blazor.web.js.
-        // Sort by parsed Version (semantic) so 10.0.2 > 9.0.10 — string sort gets this wrong.
-        var versionDirs = Directory.GetDirectories(packageDir)
-            .Select(d => new { Path = d, Version = ParseVersion(System.IO.Path.GetFileName(d)) })
-            .Where(x => x.Version is not null)
-            .OrderByDescending(x => x.Version)
-            .Select(x => x.Path)
-            .ToArray();
+        // Prefer the cache version matching the runtime the app is actually on — the cache is
+        // machine-global, so "highest version" can hand a net10 app a preview-12 script from an
+        // unrelated project. Within the matching major take the highest; only fall back to other
+        // majors when the runtime's own assets aren't restored.
+        var runtimeMajor = Environment.Version.Major;
+        var versionDirs = OrderVersionDirectories(Directory.GetDirectories(packageDir), runtimeMajor);
 
         foreach (var versionDir in versionDirs)
         {
@@ -115,6 +140,13 @@ public static class BlazorFrameworkExtractor
 
             if (File.Exists(candidate))
             {
+                var candidateVersion = ParseVersion(Path.GetFileName(versionDir));
+                if (candidateVersion?.Major != runtimeMajor)
+                {
+                    logger.LogVerbose("No blazor.web.js for runtime major {RuntimeMajor} in cache - falling back to {Version}",
+                        runtimeMajor, Path.GetFileName(versionDir));
+                }
+
                 logger.LogVerbose("Found blazor.web.js at: {Path}", candidate);
                 return candidate;
             }
@@ -125,10 +157,27 @@ public static class BlazorFrameworkExtractor
     }
 
     /// <summary>
+    /// Orders version directories so the preferred (runtime) major comes first, highest version
+    /// within it; non-matching majors follow, highest first, as a fallback. Non-version
+    /// directory names are dropped. Sorts by parsed Version so 10.0.2 > 9.0.10 — string
+    /// sort gets this wrong.
+    /// </summary>
+    internal static IReadOnlyList<string> OrderVersionDirectories(IEnumerable<string> directories, int preferredMajor)
+    {
+        return directories
+            .Select(directory => new { Path = directory, Version = ParseVersion(System.IO.Path.GetFileName(directory)) })
+            .Where(entry => entry.Version is not null)
+            .OrderByDescending(entry => entry.Version!.Major == preferredMajor)
+            .ThenByDescending(entry => entry.Version)
+            .Select(entry => entry.Path)
+            .ToList();
+    }
+
+    /// <summary>
     /// Parses a version string, stripping NuGet pre-release suffixes (e.g. "10.0.2-preview.1" → 10.0.2).
     /// Returns null for non-version directory names.
     /// </summary>
-    private static Version? ParseVersion(string versionString)
+    internal static Version? ParseVersion(string versionString)
     {
         // Strip pre-release suffix: "10.0.2-preview.1" → "10.0.2"
         var dashIndex = versionString.IndexOf('-');
