@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>CheapAvaloniaBlazor.Templates</PackageId>
-    <Version>3.1.2</Version>
+    <Version>3.2.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Project templates for CheapAvaloniaBlazor desktop apps. Install with: dotnet new install CheapAvaloniaBlazor.Templates</Description>

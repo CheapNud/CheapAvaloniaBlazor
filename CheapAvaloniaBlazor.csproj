@@ -8,16 +8,16 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>3.1.2</Version>
+    <Version>3.2.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
-    <Description>Stable Blazor desktop framework with professional splash screen, embedded JavaScript bridge, and clean file management</Description>
+    <Description>Stable Blazor desktop framework with professional splash screen, static-web-asset JavaScript bridge, and clean file management</Description>
     <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.1.2 - CheapAvaloniaBlazor.Templates is now published to NuGet (dotnet new cheapblazor / cheapblazor-full). Fixed getting started guide: missing usings and namespace imports, stale package versions. Updated dependencies: Avalonia 12.0.4, MudBlazor 9.5.0, Tmds.DBus.Protocol 0.94.1.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.2.0 - The JS bridge now serves as a real static web asset at _content/CheapAvaloniaBlazor/cheap-blazor-interop.js: the packaged build props previously dropped the SDK-generated static web assets registration (NU5118), so that path returned 404 from packaged consumers. JavaScriptBridgeExtractor and the embedded-resource serving fallbacks are removed; public classes PrefixedEmbeddedFileProvider and EmbeddedResourceFileInfo are gone and the extracted root-path copy (/cheap-blazor-interop.js) no longer exists - reference the _content path, which all templates and docs already use (breaking). blazor.web.js extraction now picks the cache version matching the app's runtime and refreshes stale copies after a .NET update. Static files serve correctly regardless of the launch working directory. New xUnit test suite guards the packaging wiring.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
