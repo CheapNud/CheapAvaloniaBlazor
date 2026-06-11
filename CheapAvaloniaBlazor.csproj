@@ -31,11 +31,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Exclude samples and templates folders from library compilation -->
-    <Compile Remove="samples\**;templates\**" />
-    <Content Remove="samples\**;templates\**" />
-    <EmbeddedResource Remove="samples\**;templates\**" />
-    <None Remove="samples\**;templates\**" />
+    <!-- Exclude samples, templates and tests folders from library compilation -->
+    <Compile Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
+    <Content Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
+    <EmbeddedResource Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
+    <None Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

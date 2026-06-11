@@ -10,4 +10,5 @@
     <Project Path="samples/TemplateApp/TemplateApp.csproj" />
   </Folder>
   <Project Path="CheapAvaloniaBlazor.csproj" />
+  <Project Path="CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj" />
 </Solution>
