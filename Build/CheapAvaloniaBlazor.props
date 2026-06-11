@@ -1,5 +1,15 @@
 <!-- Build/CheapAvaloniaBlazor.props -->
 <Project>
+  <!-- This hand-written file occupies the build/<PackageId>.props slot in the nupkg, which
+       silently drops the SDK-generated props (NU5118 at pack time) that would normally import
+       the static web assets registration. Without these imports consumers never learn about
+       staticwebassets/cheap-blazor-interop.js and _content/CheapAvaloniaBlazor/* 404s.
+       The files only exist inside the packaged build folder, hence the Exists guards. -->
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props')" />
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props')" />
+
   <PropertyGroup>
     <!-- Enable Razor component discovery in consuming projects -->
     <!-- AddRazorSupportForMvc removed in 2.0.0: no longer needed with modern Blazor Web App pattern

@@ -118,8 +118,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             _logger.LogInformation("Created WebApplication builder with environment: {Environment}, ContentRoot: {ContentRoot}",
                 builder.Environment.EnvironmentName, effectiveContentRoot);
 
-            // Extract JavaScript bridge from embedded resources to physical wwwroot
-            // This ensures the JS file is always available for serving (workaround for NuGet static assets issue)
+            // Prepare the physical wwwroot for framework assets. The JS bridge itself needs no
+            // extraction anymore: it ships as a static web asset and serves at
+            // _content/CheapAvaloniaBlazor/cheap-blazor-interop.js via the package's props imports.
             try
             {
                 var wwwrootPath = Path.GetFullPath(Path.Combine(effectiveContentRoot, Constants.Paths.WwwRoot));
@@ -137,12 +138,6 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 // see the static files comment there for why the default web root can't be trusted.
                 _effectiveWwwRootPath = wwwrootPath;
 
-                _diagnosticLogger.LogDiagnostic("Extracting JavaScript bridge to: {WwwrootPath}", wwwrootPath);
-
-                var extractedPath = JavaScriptBridgeExtractor.ExtractJavaScriptBridge(wwwrootPath, _diagnosticLogger);
-
-                _diagnosticLogger.LogDiagnostic("JavaScript bridge extraction completed: {ExtractedPath}", extractedPath);
-
                 // Extract blazor.web.js from NuGet cache to wwwroot/_framework/.
                 // Non-Web-SDK projects (like desktop apps) don't get this file in their static web assets
                 // manifest, so UseStaticWebAssets() can't serve it. UseStaticFiles() serves it from disk.
@@ -150,8 +145,8 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             }
             catch (Exception ex)
             {
-                _diagnosticLogger.LogError(ex, "Failed to extract JavaScript bridge - application may not function correctly");
-                // Don't throw - let the app start anyway, manual serving might work
+                _diagnosticLogger.LogError(ex, "Failed to prepare wwwroot framework assets - application may not function correctly");
+                // Don't throw - let the app start anyway, the static web assets manifest may still serve
             }
 
             // Configure services

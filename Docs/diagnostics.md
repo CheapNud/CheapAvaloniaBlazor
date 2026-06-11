@@ -604,8 +604,6 @@ dbug: CheapAvaloniaBlazor.Services.EmbeddedBlazorHostService[0]
       - Mudblazor services configured
 info: CheapAvaloniaBlazor.Hosting.HostBuilder[0]
       Blazor host started successfully
-dbug: CheapAvaloniaBlazor.Services.JavaScriptBridgeExtractor[0]
-      JavaScript bridge ready for interop
 ```
 
 ### Diagnostic Trace During Operation
