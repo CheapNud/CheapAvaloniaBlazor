@@ -53,7 +53,21 @@ public class HostBuilder
     /// </summary>
     private void ConfigureDefaultServices()
     {
-        // Add logging
+        // Logging is registered lazily in BuildAvaloniaApp()/Build<T>() instead of here, so that
+        // fluent options set after construction (e.g. EnableConsoleLogging()) are respected.
+        // Registering it in the constructor captured EnableConsoleLogging while it was still false,
+        // so AddConsole() was never actually wired up.
+
+        // Add CheapAvaloniaBlazor core services
+        _services.AddCheapAvaloniaBlazor(_options);
+    }
+
+    /// <summary>
+    /// Register logging providers based on the current options. Called just before the
+    /// service provider is built so fluent configuration has already been applied.
+    /// </summary>
+    private void AddLoggingDeferred()
+    {
         _services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Information);
@@ -65,9 +79,6 @@ public class HostBuilder
 
             logging.AddDebug();
         });
-
-        // Add CheapAvaloniaBlazor core services
-        _services.AddCheapAvaloniaBlazor(_options);
     }
 
     /// <summary>
@@ -532,6 +543,19 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Specify the root Blazor application component type explicitly (typically your <c>App</c>).
+    /// When set, the host uses it directly for MapRazorComponents&lt;TApp&gt; instead of the
+    /// reflection-based entry-assembly scan, which breaks silently if the App component can't be found.
+    /// </summary>
+    /// <typeparam name="TApp">The top-level Razor component (usually <c>App</c>)</typeparam>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithAppComponent<TApp>() where TApp : Microsoft.AspNetCore.Components.IComponent
+    {
+        _options.AppComponentType = typeof(TApp);
+        return this;
+    }
+
+    /// <summary>
     /// Build the window with default type
     /// </summary>
     /// <returns>A configured BlazorHostWindow</returns>
@@ -584,14 +608,22 @@ public class HostBuilder
         var serviceProvider = ConfigureServices();
 
         // FIXED: Use traditional Avalonia App with proper AXAML structure
-        return AppBuilder.Configure(() =>
+        var appBuilder = AppBuilder.Configure(() =>
         {
             var app = new AvaloniaApp();
             app.Initialize(_options, serviceProvider);
             return app;
         })
-        .UsePlatformDetect()
-        .UseWin32()
+        .UsePlatformDetect();
+
+        // UsePlatformDetect() already selects the Win32 backend on Windows. Calling UseWin32()
+        // unconditionally reinstated it on Linux/macOS too, crashing those platforms.
+        if (OperatingSystem.IsWindows())
+        {
+            appBuilder = appBuilder.UseWin32();
+        }
+
+        return appBuilder
         .UseSkia()
         .LogToTrace();
     }
@@ -606,6 +638,7 @@ public class HostBuilder
             }
         };
 
+        AddLoggingDeferred();
         var serviceProvider = _services.BuildServiceProvider();
         CheapAvaloniaBlazorRuntime.Initialize(serviceProvider);
         _serviceProviderConfiguration?.Invoke(serviceProvider);
@@ -634,6 +667,7 @@ public class HostBuilder
         };
 
         // Build the service provider
+        AddLoggingDeferred();
         var serviceProvider = _services.BuildServiceProvider();
 
         // Initialize the runtime with the service provider

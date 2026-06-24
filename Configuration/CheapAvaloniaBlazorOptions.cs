@@ -40,6 +40,13 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public string? WebRoot { get; set; }
 
+    /// <summary>
+    /// The root Blazor application component type (typically <c>App</c> in the consumer project).
+    /// When set, the embedded host uses it directly for MapRazorComponents&lt;TApp&gt;, avoiding the
+    /// reflection-based discovery. Set via <c>HostBuilder.WithAppComponent&lt;TApp&gt;()</c>.
+    /// </summary>
+    public Type? AppComponentType { get; set; }
+
     // Window Options
     /// <summary>
     /// Default window title

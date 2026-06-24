@@ -1,5 +1,4 @@
 ﻿using CheapAvaloniaBlazor.Models;
-using CheapAvaloniaBlazor.Services;
 using Microsoft.JSInterop;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
@@ -7,6 +6,8 @@ using Avalonia;
 using Avalonia.Controls;
 using System.Text.Json;
 using CheapAvaloniaBlazor;
+
+namespace CheapAvaloniaBlazor.Services;
 
 public class DesktopInteropService : IDesktopInteropService
 {

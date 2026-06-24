@@ -16,7 +16,7 @@ using System.Reflection;
 
 namespace CheapAvaloniaBlazor.Services;
 
-public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
+public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, IDisposable
 {
     private WebApplication? _app;
     private readonly CheapAvaloniaBlazorOptions _options;
@@ -240,7 +240,8 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                     // Increase timeouts for embedded scenarios where the WebView might be slower
                     circuitOptions.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10);
                     circuitOptions.JSInteropDefaultCallTimeout = TimeSpan.FromMinutes(2);
-                    circuitOptions.DetailedErrors = true;
+                    // Detailed errors expose full stack traces in the circuit; only when diagnostics are on.
+                    circuitOptions.DetailedErrors = _options.EnableDiagnostics;
                 });
 
             // Add circuit error handler to capture detailed exceptions
@@ -253,8 +254,10 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
             // Add comprehensive diagnostics
             _diagnosticLogger.LogDiagnosticVerbose(Constants.Diagnostics.RazorComponentsAdded);
 
-            // Find and store the App component type for use in ConfigurePipeline (MapRazorComponents<App>)
-            _appType = Utilities.BlazorComponentMapper.DiscoverAppType();
+            // Find and store the App component type for use in ConfigurePipeline (MapRazorComponents<App>).
+            // Prefer the explicitly supplied type (WithAppComponent<TApp>()); fall back to the
+            // reflection-based entry-assembly scan when the consumer hasn't provided one.
+            _appType = _options.AppComponentType ?? Utilities.BlazorComponentMapper.DiscoverAppType();
 
             if (_appType != null)
             {
@@ -429,34 +432,39 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
                 _options.ConfigurePipeline.Invoke(app);
             }
 
-            // Add diagnostic middleware to log all requests
-            app.Use(async (context, next) =>
+            // Diagnostic request logging — only when diagnostics are explicitly enabled.
+            // Blazor Server emits dozens of SignalR requests per second; logging every one at
+            // Information floods structured log sinks in all configurations.
+            if (_options.EnableDiagnostics)
             {
-                _logger.LogInformation($"{Constants.Diagnostics.Prefix} HTTP {{Method}} {{Path}} from {{RemoteIP}}",
-                    context.Request.Method,
-                    context.Request.Path,
-                    context.Connection.RemoteIpAddress);
+                app.Use(async (context, next) =>
+                {
+                    _logger.LogInformation($"{Constants.Diagnostics.Prefix} HTTP {{Method}} {{Path}} from {{RemoteIP}}",
+                        context.Request.Method,
+                        context.Request.Path,
+                        context.Connection.RemoteIpAddress);
 
-                // Log headers that might be relevant to Blazor
-                if (context.Request.Headers.ContainsKey(Constants.Http.ConnectionHeader))
-                {
-                    _logger.LogInformation($"{Constants.Diagnostics.Prefix} Connection header: {{Connection}}",
-                        context.Request.Headers[Constants.Http.ConnectionHeader]);
-                }
+                    // Log headers that might be relevant to Blazor
+                    if (context.Request.Headers.ContainsKey(Constants.Http.ConnectionHeader))
+                    {
+                        _logger.LogInformation($"{Constants.Diagnostics.Prefix} Connection header: {{Connection}}",
+                            context.Request.Headers[Constants.Http.ConnectionHeader]);
+                    }
 
-                try
-                {
-                    await next();
-                    _logger.LogInformation($"{Constants.Diagnostics.Prefix} Response {{StatusCode}} for {{Path}}",
-                        context.Response.StatusCode, context.Request.Path);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"{Constants.Diagnostics.Prefix} Exception during request {{Path}}: {{Message}}",
-                        context.Request.Path, ex.Message);
-                    throw;
-                }
-            });
+                    try
+                    {
+                        await next();
+                        _logger.LogInformation($"{Constants.Diagnostics.Prefix} Response {{StatusCode}} for {{Path}}",
+                            context.Response.StatusCode, context.Request.Path);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"{Constants.Diagnostics.Prefix} Exception during request {{Path}}: {{Message}}",
+                            context.Request.Path, ex.Message);
+                        throw;
+                    }
+                });
+            }
 
             // Map static assets including _framework/blazor.web.js.
             // Required in .NET 9+ where framework JS is served via endpoint routing, not UseStaticFiles.
@@ -543,6 +551,20 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
         _logger.LogWarning("WaitForStartupAsync cancelled");
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        // StopAsync already stops and disposes _app when running.
+        if (IsRunning)
+        {
+            await StopAsync();
+        }
+
+        _hostCts?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    // Retained for DI containers that only dispose via IDisposable. Prefer DisposeAsync.
+    // ponytail: sync-over-async block kept only as the last-resort fallback path.
     public void Dispose()
     {
         if (IsRunning)
@@ -551,7 +573,6 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IDisposable
         }
 
         _hostCts?.Dispose();
-        _app?.DisposeAsync().GetAwaiter().GetResult();
     }
 
     private int FindAvailablePort(int startPort)
