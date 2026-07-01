@@ -27,7 +27,8 @@ public partial class AvaloniaApp : Application
         _logger = loggerFactory.CreateLogger<AvaloniaApp>();
 
         _logger.LogVerbose("=== AVALONIA APP INITIALIZE CALLED ===");
-        AvaloniaXamlLoader.Load(this);
+        // XAML is loaded by the framework-invoked parameterless Initialize() override.
+        // Loading again here applied the resource dictionary twice (duplicate styles/resources).
         _logger.LogVerbose("=== AVALONIA APP INITIALIZE COMPLETED ===");
     }
 
