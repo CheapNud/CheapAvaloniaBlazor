@@ -66,8 +66,16 @@ public class HostBuilder
     /// Register logging providers based on the current options. Called just before the
     /// service provider is built so fluent configuration has already been applied.
     /// </summary>
+    private bool _loggingRegistered;
+
     private void AddLoggingDeferred()
     {
+        if (_loggingRegistered)
+        {
+            return;
+        }
+        _loggingRegistered = true;
+
         _services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Information);

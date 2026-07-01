@@ -553,26 +553,38 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
 
     public async ValueTask DisposeAsync()
     {
-        // StopAsync already stops and disposes _app when running.
+        // StopAsync stops and disposes _app when running; a host that was built but
+        // never started still owns sockets and loggers and must be disposed here.
         if (IsRunning)
         {
             await StopAsync();
+        }
+        else if (_app != null)
+        {
+            await _app.DisposeAsync();
+            _app = null;
         }
 
         _hostCts?.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    // Retained for DI containers that only dispose via IDisposable. Prefer DisposeAsync.
-    // ponytail: sync-over-async block kept only as the last-resort fallback path.
+    // Retained for DI containers that only dispose via IDisposable. Prefer DisposeAsync;
+    // this path blocks on the async shutdown as a last resort.
     public void Dispose()
     {
         if (IsRunning)
         {
             StopAsync().GetAwaiter().GetResult();
         }
+        else if (_app != null)
+        {
+            _app.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(Constants.Defaults.ServerShutdownTimeoutSeconds));
+            _app = null;
+        }
 
         _hostCts?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private int FindAvailablePort(int startPort)

@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-06-11
+  Last updated: 2026-07-01
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -44,6 +44,7 @@ _Nothing blocking._
 - [ ] (2026-03-17) Wire `ICookieService` to Photino cookie manager after fork [plan]
   - `Services/CookieService.cs` — currently returns empty, waiting for Photino API
   - See `TODO_COOKIE_SERVICE.md` for architecture
+- [ ] (2026-07-01) Cross-platform launch validation — Linux/macOS first-boot smoke (UsePlatformDetect path, no Win32 override) [plan]
 - [ ] (2026-02-08) Linux hotkey testing: verify D-Bus portal on KDE/GNOME/Hyprland [plan]
 - [ ] (2026-02-08) Linux hotkey testing: verify X11 backend on X11 sessions [plan]
 - [ ] (2026-02-08) Linux hotkey testing: verify D-Bus → X11 fallback chain [plan]
