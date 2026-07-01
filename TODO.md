@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-06-11
+  Last updated: 2026-07-01
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -35,8 +35,10 @@ _Nothing blocking._
 - [x] (2026-06-10 → 2026-06-11) Template smoke tests in CI — install packed nupkg, scaffold both templates, build against local source [plan]
   - Runs on PRs too (pack inside the job; existing pack job is push-only)
 - [x] (2026-06-10 → 2026-06-11) `samples/TemplateApp` — checked-in `dotnet new cheapblazor` output, CI diffs scaffold against it to prevent drift [plan]
-- [ ] (2026-06-10) README slim-down to ~100-line landing page, feature deep-dives move to Docs/ [plan]
-- [ ] (2026-06-10) Wiki sync — mirror top-level `Docs/*.md` to GitHub wiki on master push, `Docs/README.md` as Home [plan]
+- [x] (2026-06-10 → 2026-07-01) README slim-down to ~100-line landing page, feature deep-dives move to Docs/ [plan]
+  - New Docs/features.md + Docs/architecture.md; troubleshooting folded into diagnostics.md
+- [x] (2026-06-10 → 2026-07-01) Wiki sync — mirror top-level `Docs/*.md` to GitHub wiki on master push, `Docs/README.md` as Home [plan]
+  - wiki-sync.yml; wiki is a read-only mirror, edit Docs/ via PR
 - [ ] (2026-06-10) Add `PackageReadmeFile` to templates csproj — nuget.org warns readme missing [bug]
 - [ ] (2026-03-17) Fork Photino.NET under CheapNud → CheapPhotino [plan]
   - Add `GetCookiesAsync` (cookie manager) + native `ExecuteScriptAsync`
