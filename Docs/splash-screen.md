@@ -810,7 +810,6 @@ splash.FontSize       // Wrong name
 
 ## See Also
 
-- [Main README](../README.md)
-- [Configuration Guide](../Docs/configuration.md)
-- [HostBuilder Documentation](../Docs/hostbuilder.md)
+- [Getting Started](getting-started.md)
+- [Advanced Configuration](advanced-configuration.md)
 - [Avalonia Documentation](https://docs.avaloniaui.net/)

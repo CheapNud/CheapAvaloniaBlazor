@@ -10,7 +10,7 @@ Before you begin, ensure you have the following installed:
 - **Visual Studio 2022** (17.8+) or **Visual Studio Code** with C# extensions
 - Basic knowledge of C# and web development concepts
 
-For detailed installation instructions, see [Installation Guide](./installation.md) (coming soon).
+For detailed installation instructions, see [Installation Guide](./installation.md).
 
 ---
 
@@ -58,7 +58,7 @@ Open your `.csproj` file and modify it:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.1.2" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.2.0" />
   </ItemGroup>
 </Project>
 ```
@@ -609,8 +609,8 @@ dotnet add package CheapAvaloniaBlazor
 
 ## What's Next?
 
-- Explore [Advanced Configuration](./advanced-configuration.md) (coming soon)
-- Learn about [Desktop Interop Features](./desktop-interop.md) (coming soon)
+- Explore [Advanced Configuration](./advanced-configuration.md)
+- Learn about [Desktop Interop Features](./desktop-interop.md)
 - Build real-world examples with databases and APIs
 - Share your creations with the community!
 
