@@ -30,8 +30,8 @@ _Nothing blocking._
 
 ## Planned
 
-- [ ] (2026-07-02) Templates nupkg nests payload at `content/content/...` (doubled folder) — harmless, `dotnet new install` works, but consider flattening [audit]
-  - Caused by `ContentTargetFolders=content` combining with the repo's `content/` source dir
+- [x] (2026-07-02 → 2026-07-02) Templates nupkg nests payload at `content/content/...` (doubled folder) — harmless, `dotnet new install` works, but consider flattening [audit]
+  - Caused by `ContentTargetFolders=content` combining with the repo's `content/` source dir; fixed with `ContentTargetFolders=.`
 - [x] (2026-06-11 → 2026-07-02) Fix empty favicon.ico (0 bytes) in both template content dirs — regenerate samples/TemplateApp after [bug]
   - `templates/content/CheapBlazorApp/wwwroot/favicon.ico` and `CheapBlazorApp-Full` variant
 - [x] (2026-06-10 → 2026-06-11) Template smoke tests in CI — install packed nupkg, scaffold both templates, build against local source [plan]
