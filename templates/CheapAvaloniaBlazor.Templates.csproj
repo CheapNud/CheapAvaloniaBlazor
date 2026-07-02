@@ -8,6 +8,7 @@
     <PackageTags>dotnet-new;templates;blazor;avalonia;photino;desktop;mudblazor;cross-platform</PackageTags>
     <PackageProjectUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/CheapNud/CheapAvaloniaBlazor</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
@@ -25,5 +26,6 @@
   <ItemGroup>
     <Content Include="content/**" Exclude="content/**/bin/**;content/**/obj/**" />
     <Compile Remove="content/**" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

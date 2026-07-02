@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-07-01
+  Last updated: 2026-07-02
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -30,7 +30,9 @@ _Nothing blocking._
 
 ## Planned
 
-- [ ] (2026-06-11) Fix empty favicon.ico (0 bytes) in both template content dirs — regenerate samples/TemplateApp after [bug]
+- [ ] (2026-07-02) Templates nupkg nests payload at `content/content/...` (doubled folder) — harmless, `dotnet new install` works, but consider flattening [audit]
+  - Caused by `ContentTargetFolders=content` combining with the repo's `content/` source dir
+- [x] (2026-06-11 → 2026-07-02) Fix empty favicon.ico (0 bytes) in both template content dirs — regenerate samples/TemplateApp after [bug]
   - `templates/content/CheapBlazorApp/wwwroot/favicon.ico` and `CheapBlazorApp-Full` variant
 - [x] (2026-06-10 → 2026-06-11) Template smoke tests in CI — install packed nupkg, scaffold both templates, build against local source [plan]
   - Runs on PRs too (pack inside the job; existing pack job is push-only)
@@ -39,7 +41,7 @@ _Nothing blocking._
   - New Docs/features.md + Docs/architecture.md; troubleshooting folded into diagnostics.md
 - [x] (2026-06-10 → 2026-07-01) Wiki sync — mirror top-level `Docs/*.md` to GitHub wiki on master push, `Docs/README.md` as Home [plan]
   - wiki-sync.yml; wiki is a read-only mirror, edit Docs/ via PR
-- [ ] (2026-06-10) Add `PackageReadmeFile` to templates csproj — nuget.org warns readme missing [bug]
+- [x] (2026-06-10 → 2026-07-02) Add `PackageReadmeFile` to templates csproj — nuget.org warns readme missing [bug]
 - [ ] (2026-03-17) Fork Photino.NET under CheapNud → CheapPhotino [plan]
   - Add `GetCookiesAsync` (cookie manager) + native `ExecuteScriptAsync`
   - See `TODO_PHOTINO_FORK.md` for native C++ changes per platform
