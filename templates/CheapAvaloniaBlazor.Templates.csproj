@@ -17,7 +17,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <ContentTargetFolders>content</ContentTargetFolders>
+    <ContentTargetFolders>.</ContentTargetFolders>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <!-- Required: include .template.config directories (dotfiles excluded by default) -->
     <NoDefaultExcludes>true</NoDefaultExcludes>
