@@ -52,15 +52,27 @@ jobs:
     - name: Launch and probe
       run: |
         Xvfb :99 -screen 0 1280x1024x24 &
+
+        # Wait for the X socket before pointing the app at the display
+        for i in $(seq 1 20); do
+          [ -e /tmp/.X11-unix/X99 ] && break
+          sleep 0.5
+        done
+        if [ ! -e /tmp/.X11-unix/X99 ]; then
+          echo "::error::Xvfb did not come up"
+          exit 1
+        fi
         export DISPLAY=:99
 
         dotnet samples/MinimalApp/bin/Release/net10.0/MinimalApp.dll > app.log 2>&1 &
         APP_PID=$!
 
-        # The host binds 5000 by default but scans upward when the port is taken
+        # The host binds 5000 by default but scans upward when the port is taken.
+        # Prints the winning port on success.
         probe() {
           for port in 5000 5001 5002; do
-            if curl -sf -o /dev/null "http://localhost:${port}/"; then
+            if curl -sf --max-time 5 -o /dev/null "http://localhost:${port}/"; then
+              echo "$port"
               return 0
             fi
           done
@@ -69,8 +81,8 @@ jobs:
 
         SERVER_UP=0
         for i in $(seq 1 90); do
-          if probe; then
-            echo "Blazor host responded after ~${i}s"
+          if PORT=$(probe); then
+            echo "Blazor host responded on port ${PORT} after ~${i}s"
             SERVER_UP=1
             break
           fi
