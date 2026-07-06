@@ -41,6 +41,14 @@ public static class PlatformHelper
                 "e.g. 'sudo apt install libwebkit2gtk-4.1-0'.");
         }
 
+        // Photino.Native links libnotify directly — without it the dlopen of Photino.Native.so
+        // fails at window creation with a misleading "Unable to load Photino.Native" error.
+        if (!CanLoadAnyNativeLibrary("libnotify.so.4", "libnotify.so"))
+        {
+            issues.Add("libnotify not found (libnotify.so.4) — required by Photino.Native. " +
+                "Install it with your package manager, e.g. 'sudo apt install libnotify4'.");
+        }
+
         var glibcVersion = GetGlibcVersion();
         if (glibcVersion is not null && glibcVersion < MinimumGlibcVersion)
         {

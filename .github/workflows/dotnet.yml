@@ -46,7 +46,7 @@ jobs:
     - name: Install native dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-0 xvfb
+        sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-0 libnotify4 xvfb
     - name: Build MinimalApp
       run: dotnet build samples/MinimalApp/MinimalApp.csproj -c Release
     - name: Launch and probe
