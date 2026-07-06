@@ -111,5 +111,6 @@ jobs:
         fi
 
         echo "App is alive with a native window — smoke test passed"
-        kill "$APP_PID"
+        # Guarded so a race with process exit can't fail an already-passed test
+        kill "$APP_PID" 2>/dev/null || true
         cat app.log
