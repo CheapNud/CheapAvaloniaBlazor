@@ -24,8 +24,9 @@ internal sealed class WindowsModalBackend : IModalBackend
         _logger = logger;
     }
 
-    public void DisableParentWindow(IntPtr parentHandle)
+    public void DisableParentWindow(ModalWindowRef parent, ModalWindowRef modal)
     {
+        var parentHandle = parent.Handle;
         if (parentHandle == IntPtr.Zero) return;
 
         if (!IsWindow(parentHandle))
@@ -44,8 +45,9 @@ internal sealed class WindowsModalBackend : IModalBackend
         _logger.LogDebug("Disabled parent window {Handle} for modal", parentHandle);
     }
 
-    public void EnableParentWindow(IntPtr parentHandle)
+    public void EnableParentWindow(ModalWindowRef parent)
     {
+        var parentHandle = parent.Handle;
         if (parentHandle == IntPtr.Zero) return;
 
         if (!IsWindow(parentHandle))
@@ -67,8 +69,9 @@ internal sealed class WindowsModalBackend : IModalBackend
         _logger.LogDebug("Re-enabled parent window {Handle} after modal", parentHandle);
     }
 
-    public void PostCloseMessage(IntPtr windowHandle)
+    public void PostCloseMessage(ModalWindowRef window)
     {
+        var windowHandle = window.Handle;
         if (windowHandle == IntPtr.Zero) return;
 
         if (!IsWindow(windowHandle))

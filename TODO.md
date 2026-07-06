@@ -55,7 +55,8 @@ _Nothing blocking._
 - [ ] (2026-02-08) Linux hotkey testing: verify D-Bus → X11 fallback chain [plan]
 - [ ] (2026-02-08) Linux GTK menu bar integration [plan]
 - [ ] (2026-02-08) macOS native menu bar integration [plan]
-- [ ] (2026-02-08) Linux/macOS modal behavior (GTK/Cocoa parent disable) [plan]
+- [ ] (2026-02-08) macOS modal behavior (Cocoa parent disable) [plan]
+  - Linux GTK parent disable landed 2026-07-07 (LinuxModalBackend, title-matched toplevels — needs desktop validation)
 - [ ] (2026-02-08) Window positioning relative to parent (center-on-parent calculation) [plan]
 - [ ] (2026-02-08) File path extraction via native backend (Win32 IDropTarget / DragAcceptFiles) [plan]
 

@@ -13,16 +13,18 @@ internal interface IModalBackend : IDisposable
 
     /// <summary>
     /// Disable the parent window so it cannot receive input while the modal is open.
+    /// The modal window reference is provided because some backends (GTK) need it to
+    /// tell the two windows apart; the Win32 backend ignores it.
     /// </summary>
-    void DisableParentWindow(IntPtr parentHandle);
+    void DisableParentWindow(ModalWindowRef parent, ModalWindowRef modal);
 
     /// <summary>
     /// Re-enable the parent window after the modal is closed.
     /// </summary>
-    void EnableParentWindow(IntPtr parentHandle);
+    void EnableParentWindow(ModalWindowRef parent);
 
     /// <summary>
-    /// Post a close message to a window in a thread-safe manner.
+    /// Request a window close in a thread-safe manner.
     /// </summary>
-    void PostCloseMessage(IntPtr windowHandle);
+    void PostCloseMessage(ModalWindowRef window);
 }
