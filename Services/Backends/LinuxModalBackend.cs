@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
+using Photino.NET;
 
 namespace CheapAvaloniaBlazor.Services.Backends;
 
@@ -9,13 +10,25 @@ namespace CheapAvaloniaBlazor.Services.Backends;
 /// are located by title in the process-wide GTK toplevel list — all Photino windows live on
 /// the single in-process GTK main loop. Parent disabling maps to gtk_widget_set_sensitive,
 /// the closest GTK equivalent of Win32 EnableWindow.
+/// Title matching happens ONLY at disable time; the matched widget pointers are remembered
+/// per parent so re-enabling works even if the parent's title changes while the modal is open.
+/// Known limitation: a parent and modal sharing the same title cannot be told apart — the
+/// parent is left enabled (fail open) in that case.
 /// </summary>
 [SupportedOSPlatform("linux")]
 internal sealed class LinuxModalBackend : IModalBackend
 {
+    // Photino truncates Linux titles to 31 chars natively; its managed setter mirrors that,
+    // but normalize both sides anyway in case a future Photino version diverges.
+    private const int GtkTitleMaxLength = 31;
+
     private readonly ILogger _logger;
 
-    public bool IsSupported => true;
+    // Widget pointers disabled per parent window. Only touched on the GTK thread
+    // (inside PhotinoWindow.Invoke), so no locking is needed.
+    private readonly Dictionary<PhotinoWindow, List<IntPtr>> _disabledByParent = [];
+
+    public bool IsSupported => OperatingSystem.IsLinux();
 
     public LinuxModalBackend(ILogger logger)
     {
@@ -27,10 +40,87 @@ internal sealed class LinuxModalBackend : IModalBackend
     }
 
     public void DisableParentWindow(ModalWindowRef parent, ModalWindowRef modal)
-        => SetParentSensitivity(parent, modal, sensitive: false);
+    {
+        var parentWindow = parent.Window;
+        if (parentWindow is null) return;
+        var modalWindow = modal.Window;
+
+        // All GTK calls (and the title reads) run on the GTK main loop; PhotinoWindow.Invoke
+        // executes synchronously on it, so titles cannot go stale between read and apply.
+        parentWindow.Invoke(() =>
+        {
+            try
+            {
+                var parentTitle = NormalizeTitle(parentWindow.Title);
+                var modalTitle = NormalizeTitle(modalWindow?.Title);
+
+                if (parentTitle == modalTitle)
+                {
+                    // Titles are the only way to tell Photino's GTK toplevels apart. With
+                    // identical titles the parent cannot be distinguished from the modal, so
+                    // fail open (parent stays interactive) rather than risk freezing the modal.
+                    _logger.LogWarning("Modal and parent share the title '{Title}' — parent will not be disabled. " +
+                        "Give the modal window a distinct title to get modal behavior on Linux.", parentTitle);
+                    return;
+                }
+
+                var matches = FindToplevelsByTitle(parentTitle);
+                if (matches.Count == 0)
+                {
+                    _logger.LogWarning("No GTK toplevel titled '{Title}' found to disable", parentTitle);
+                    return;
+                }
+
+                foreach (var widget in matches)
+                {
+                    gtk_widget_set_sensitive(widget, false);
+                }
+
+                // Remember exactly what was disabled — EnableParentWindow re-enables these
+                // pointers instead of re-matching by (possibly changed) title.
+                _disabledByParent[parentWindow] = matches;
+                _logger.LogDebug("Disabled {Count} GTK toplevel(s) titled '{Title}' for modal", matches.Count, parentTitle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "GTK parent disable failed");
+            }
+        });
+    }
 
     public void EnableParentWindow(ModalWindowRef parent)
-        => SetParentSensitivity(parent, modal: default, sensitive: true);
+    {
+        var parentWindow = parent.Window;
+        if (parentWindow is null) return;
+
+        parentWindow.Invoke(() =>
+        {
+            try
+            {
+                if (!_disabledByParent.Remove(parentWindow, out var disabledWidgets))
+                    return; // nothing was disabled for this parent (e.g. title-collision fail-open)
+
+                // Guard against stale pointers: the parent could have been destroyed via the
+                // window manager while disabled. Only touch widgets that are still toplevels.
+                var liveToplevels = ListToplevels();
+                var enabledCount = 0;
+                foreach (var widget in disabledWidgets)
+                {
+                    if (liveToplevels.Contains(widget))
+                    {
+                        gtk_widget_set_sensitive(widget, true);
+                        enabledCount++;
+                    }
+                }
+
+                _logger.LogDebug("Re-enabled {Count} GTK toplevel(s) after modal", enabledCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "GTK parent enable failed");
+            }
+        });
+    }
 
     public void PostCloseMessage(ModalWindowRef window)
     {
@@ -48,65 +138,30 @@ internal sealed class LinuxModalBackend : IModalBackend
         }
     }
 
-    public void Dispose() { }
-
-    private void SetParentSensitivity(ModalWindowRef parent, ModalWindowRef modal, bool sensitive)
+    public void Dispose()
     {
-        var parentWindow = parent.Window;
-        if (parentWindow is null) return;
-
-        string parentTitle;
-        string? modalTitle;
-        try
-        {
-            // Photino truncates Linux titles to 31 chars on the managed side too,
-            // so the managed title always equals the GTK title.
-            parentTitle = parentWindow.Title;
-            modalTitle = modal.Window?.Title;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not read window titles for modal sensitivity change");
-            return;
-        }
-
-        if (!sensitive && parentTitle == modalTitle)
-        {
-            // Titles are the only way to tell Photino's GTK toplevels apart. With identical
-            // titles the parent cannot be distinguished from the modal, so fail open (parent
-            // stays interactive) rather than risk freezing the modal itself.
-            _logger.LogWarning("Modal and parent share the title '{Title}' — parent will not be disabled. " +
-                "Give the modal window a distinct title to get modal behavior on Linux.", parentTitle);
-            return;
-        }
-
-        // All GTK calls must run on the GTK main loop; PhotinoWindow.Invoke schedules onto it.
-        parentWindow.Invoke(() =>
-        {
-            try
-            {
-                var matches = ApplySensitivityByTitle(parentTitle, sensitive);
-                if (matches == 0)
-                {
-                    _logger.LogWarning("No GTK toplevel titled '{Title}' found to {Action}",
-                        parentTitle, sensitive ? "enable" : "disable");
-                }
-                else
-                {
-                    _logger.LogDebug("{Action} {Count} GTK toplevel(s) titled '{Title}' for modal",
-                        sensitive ? "Enabled" : "Disabled", matches, parentTitle);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "GTK sensitivity change failed for '{Title}'", parentTitle);
-            }
-        });
+        _disabledByParent.Clear();
     }
 
-    private static int ApplySensitivityByTitle(string title, bool sensitive)
+    private static string? NormalizeTitle(string? title)
+        => title is { Length: > GtkTitleMaxLength } ? title[..GtkTitleMaxLength] : title;
+
+    private static List<IntPtr> FindToplevelsByTitle(string? title)
     {
-        var matchCount = 0;
+        var matches = new List<IntPtr>();
+        foreach (var widget in ListToplevels())
+        {
+            var widgetTitle = NormalizeTitle(Marshal.PtrToStringUTF8(gtk_window_get_title(widget)));
+            if (widgetTitle == title)
+                matches.Add(widget);
+        }
+
+        return matches;
+    }
+
+    private static List<IntPtr> ListToplevels()
+    {
+        var widgets = new List<IntPtr>();
         var toplevels = gtk_window_list_toplevels();
         try
         {
@@ -114,14 +169,7 @@ internal sealed class LinuxModalBackend : IModalBackend
             {
                 var entry = Marshal.PtrToStructure<GListNode>(node);
                 if (entry.Data != IntPtr.Zero)
-                {
-                    var widgetTitle = Marshal.PtrToStringUTF8(gtk_window_get_title(entry.Data));
-                    if (widgetTitle == title)
-                    {
-                        gtk_widget_set_sensitive(entry.Data, sensitive);
-                        matchCount++;
-                    }
-                }
+                    widgets.Add(entry.Data);
                 node = entry.Next;
             }
         }
@@ -131,7 +179,7 @@ internal sealed class LinuxModalBackend : IModalBackend
                 g_list_free(toplevels);
         }
 
-        return matchCount;
+        return widgets;
     }
 
     [StructLayout(LayoutKind.Sequential)]
