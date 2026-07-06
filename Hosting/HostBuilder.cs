@@ -609,9 +609,17 @@ public class HostBuilder
         }
     }
 
+    private const string SkipStartupChecksEnvVar = "CHEAPBLAZOR_SKIP_STARTUP_CHECKS";
+
     private static void ValidateLinuxEnvironment()
     {
         if (!OperatingSystem.IsLinux()) return;
+
+        // Escape hatch: the probes are heuristics (soname layouts vary across distros) and a
+        // false negative here would block an otherwise-working app. Containers and exotic
+        // setups can bypass the checks entirely.
+        var skipChecks = Environment.GetEnvironmentVariable(SkipStartupChecksEnvVar);
+        if (skipChecks is "1" || string.Equals(skipChecks, "true", StringComparison.OrdinalIgnoreCase)) return;
 
         var issues = PlatformHelper.GetLinuxStartupIssues();
         if (issues.Count == 0) return;
@@ -622,7 +630,8 @@ public class HostBuilder
         }
 
         throw new PlatformNotSupportedException(
-            "The Linux environment is missing components required to start the app: " + string.Join(" ", issues));
+            "The Linux environment is missing components required to start the app: " + string.Join(" ", issues) +
+            $" If this detection is wrong for your system, set {SkipStartupChecksEnvVar}=1 to bypass these checks.");
     }
 
     /// <summary>
