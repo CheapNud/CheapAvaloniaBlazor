@@ -3,6 +3,7 @@ using System.Net;
 using Avalonia.Threading;
 using CheapAvaloniaBlazor.Models;
 using CheapAvaloniaBlazor.Services.Backends;
+using CheapAvaloniaBlazor.Utilities;
 using Microsoft.Extensions.Logging;
 using Photino.NET;
 
@@ -70,7 +71,7 @@ public sealed class WindowService : IWindowService
     internal void RegisterMainWindow(PhotinoWindow photinoWindow)
     {
         _mainPhotinoWindow = photinoWindow;
-        _mainWindowHandle = photinoWindow.WindowHandle;
+        _mainWindowHandle = photinoWindow.GetWindowHandleOrZero();
         _mainWindowReady.TrySetResult();
         _logger.LogInformation("Main window registered with handle {Handle}", _mainWindowHandle);
     }
@@ -402,7 +403,7 @@ public sealed class WindowService : IWindowService
                         // Capture handle when native window is created (fires during WaitForClose → Photino_ctor)
                         childWindow.RegisterWindowCreatedHandler((s, e) =>
                         {
-                            windowInfo.WindowHandle = childWindow.WindowHandle;
+                            windowInfo.WindowHandle = childWindow.GetWindowHandleOrZero();
                             windowInfo.PhotinoWindow = childWindow;
                             handleReady.Set();
                         });
@@ -447,7 +448,9 @@ public sealed class WindowService : IWindowService
             throw;
         }
 
-        if (windowInfo.WindowHandle == IntPtr.Zero)
+        // Only Windows exposes a native handle (Photino limitation) — on other platforms
+        // Zero is expected and the window is driven through its PhotinoWindow reference.
+        if (OperatingSystem.IsWindows() && windowInfo.WindowHandle == IntPtr.Zero)
         {
             _logger.LogError("Child window '{WindowId}' was created but handle is not available", windowId);
             CleanupPartialWindow(windowInfo);

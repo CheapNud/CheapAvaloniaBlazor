@@ -2,7 +2,8 @@ namespace CheapBlazorApp.Models;
 
 /// <summary>
 /// Application settings that persist between sessions.
-/// Stored as JSON in %LocalAppData%\CheapBlazorApp\settings.json
+/// Stored as JSON in %LocalAppData%\CheapBlazorApp\settings.json on Windows,
+/// ~/.local/share/CheapBlazorApp/settings.json on Linux
 /// </summary>
 public class AppSettings
 {

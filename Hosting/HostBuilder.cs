@@ -591,6 +591,10 @@ public class HostBuilder
             Utilities.ConsoleHelper.SuppressConsole();
         }
 
+        // Fail fast with actionable messages when the Linux environment can't host a window —
+        // otherwise missing WebKitGTK/GTK/display surfaces as an obscure native crash later.
+        ValidateLinuxEnvironment();
+
         try
         {
             // FIXED: Use traditional Avalonia App structure for proper platform initialization
@@ -603,6 +607,31 @@ public class HostBuilder
             Console.Error.WriteLine($"Fatal error during application startup: {ex}");
             throw;
         }
+    }
+
+    private const string SkipStartupChecksEnvVar = "CHEAPBLAZOR_SKIP_STARTUP_CHECKS";
+
+    private static void ValidateLinuxEnvironment()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+
+        // Escape hatch: the probes are heuristics (soname layouts vary across distros) and a
+        // false negative here would block an otherwise-working app. Containers and exotic
+        // setups can bypass the checks entirely.
+        var skipChecks = Environment.GetEnvironmentVariable(SkipStartupChecksEnvVar);
+        if (skipChecks is "1" || string.Equals(skipChecks, "true", StringComparison.OrdinalIgnoreCase)) return;
+
+        var issues = PlatformHelper.GetLinuxStartupIssues();
+        if (issues.Count == 0) return;
+
+        foreach (var issue in issues)
+        {
+            Console.Error.WriteLine($"CheapAvaloniaBlazor startup check failed: {issue}");
+        }
+
+        throw new PlatformNotSupportedException(
+            "The Linux environment is missing components required to start the app: " + string.Join(" ", issues) +
+            $" If this detection is wrong for your system, set {SkipStartupChecksEnvVar}=1 to bypass these checks.");
     }
 
     /// <summary>

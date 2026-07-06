@@ -4,6 +4,67 @@ namespace CheapAvaloniaBlazor;
 
 public static class PlatformHelper
 {
+    private static readonly Version MinimumGlibcVersion = new(2, 38);
+
+    /// <summary>
+    /// Collects fatal environment problems that would prevent the Photino window from
+    /// opening on Linux. Returns an empty list on a healthy system, and always on non-Linux
+    /// platforms. Each entry is a human-readable description including an install hint.
+    /// </summary>
+    public static IReadOnlyList<string> GetLinuxStartupIssues()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return [];
+
+        var issues = new List<string>();
+
+        var display = Environment.GetEnvironmentVariable("DISPLAY");
+        var waylandDisplay = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
+        if (string.IsNullOrEmpty(display) && string.IsNullOrEmpty(waylandDisplay))
+        {
+            issues.Add("No display server detected (neither DISPLAY nor WAYLAND_DISPLAY is set). " +
+                "Run inside a desktop session, or use Xvfb for headless environments.");
+        }
+
+        // Probe via the dynamic loader rather than hardcoded paths so distro layout doesn't matter.
+        // The versioned .so.N names are what runtime packages actually install; the bare .so
+        // symlinks only ship with -dev packages.
+        if (!CanLoadAnyNativeLibrary("libgtk-3.so.0", "libgtk-3.so"))
+        {
+            issues.Add("GTK 3 not found (libgtk-3.so.0). Install it with your package manager, " +
+                "e.g. 'sudo apt install libgtk-3-0'.");
+        }
+
+        if (!CanLoadAnyNativeLibrary("libwebkit2gtk-4.1.so.0", "libwebkit2gtk-4.0.so.37"))
+        {
+            issues.Add("WebKitGTK not found (libwebkit2gtk-4.1.so.0). Install it with your package manager, " +
+                "e.g. 'sudo apt install libwebkit2gtk-4.1-0'.");
+        }
+
+        var glibcVersion = GetGlibcVersion();
+        if (glibcVersion is not null && glibcVersion < MinimumGlibcVersion)
+        {
+            issues.Add($"GLIBC {glibcVersion} is older than {MinimumGlibcVersion} required by Photino.Native. " +
+                "Upgrade to a distribution release that ships a newer glibc (e.g. Ubuntu 24.04+, Debian 13+).");
+        }
+
+        return issues;
+    }
+
+    private static bool CanLoadAnyNativeLibrary(params ReadOnlySpan<string> libraryNames)
+    {
+        foreach (var libraryName in libraryNames)
+        {
+            if (NativeLibrary.TryLoad(libraryName, out var libraryHandle))
+            {
+                NativeLibrary.Free(libraryHandle);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static bool IsPhotinoNetSupported()
     {
         try

@@ -117,7 +117,7 @@ await Settings.UpdateSectionAsync<AppSettings>(s => s.IsDarkMode = false);
 await Settings.SetSectionAsync(new AppSettings { IsDarkMode = true });
 ```
 
-Settings are stored at `%LocalAppData%/{appName}/settings.json`. Configure the location with `WithSettingsFolder()` or `WithSettingsFileName()`.
+Settings are stored at `%LocalAppData%/{appName}/settings.json` on Windows and `~/.local/share/{appName}/settings.json` on Linux. Configure the location with `WithSettingsFolder()` or `WithSettingsFileName()`.
 
 ## App Lifecycle Events (v2.1.0)
 Subscribe to native window lifecycle events from Blazor components. Track window state and react to minimize, maximize, restore, and focus changes.
