@@ -30,3 +30,87 @@ jobs:
         dotnet build samples/MinimalApp/MinimalApp.csproj --no-restore
     - name: Test
       run: dotnet test CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --verbosity normal
+
+  linux-smoke:
+    # First-boot smoke test: launch MinimalApp under Xvfb and verify the embedded
+    # Blazor server comes up and the process survives native window creation.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: Install native dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-0 libnotify4 xvfb
+    - name: Build MinimalApp
+      run: dotnet build samples/MinimalApp/MinimalApp.csproj -c Release
+    - name: Launch and probe
+      run: |
+        Xvfb :99 -screen 0 1280x1024x24 &
+
+        # Wait for the X socket before pointing the app at the display
+        for i in $(seq 1 20); do
+          [ -e /tmp/.X11-unix/X99 ] && break
+          sleep 0.5
+        done
+        if [ ! -e /tmp/.X11-unix/X99 ]; then
+          echo "::error::Xvfb did not come up"
+          exit 1
+        fi
+        export DISPLAY=:99
+
+        dotnet samples/MinimalApp/bin/Release/net10.0/MinimalApp.dll > app.log 2>&1 &
+        APP_PID=$!
+
+        # The host binds 5000 by default but scans upward when the port is taken.
+        # Prints the winning port on success.
+        probe() {
+          for port in 5000 5001 5002; do
+            if curl -sf --max-time 5 -o /dev/null "http://localhost:${port}/"; then
+              echo "$port"
+              return 0
+            fi
+          done
+          return 1
+        }
+
+        SERVER_UP=0
+        for i in $(seq 1 90); do
+          if PORT=$(probe); then
+            echo "Blazor host responded on port ${PORT} after ~${i}s"
+            SERVER_UP=1
+            break
+          fi
+          if ! kill -0 "$APP_PID" 2>/dev/null; then
+            echo "::error::App process exited before the server came up"
+            cat app.log
+            exit 1
+          fi
+          sleep 1
+        done
+
+        if [ "$SERVER_UP" -ne 1 ]; then
+          echo "::error::Server did not respond within 90s"
+          cat app.log
+          kill "$APP_PID" 2>/dev/null || true
+          exit 1
+        fi
+
+        # Native window creation happens after the server is ready — give it time
+        # to crash if it's going to, then require the process to still be alive.
+        sleep 10
+        if ! kill -0 "$APP_PID" 2>/dev/null; then
+          echo "::error::App crashed after server startup (likely during window creation)"
+          cat app.log
+          exit 1
+        fi
+
+        echo "App is alive with a native window — smoke test passed"
+        # Guarded so a race with process exit can't fail an already-passed test
+        kill "$APP_PID" 2>/dev/null || true
+        cat app.log
