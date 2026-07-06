@@ -218,16 +218,16 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             photinoWindow.WindowFocusOut += (s, e) => lifecycleService.OnDeactivated();
         }
 
-        // Initialize native menu bar after native window is created (Windows only).
-        // WindowHandle is not available until WaitForClose() creates the native window,
-        // so we use RegisterWindowCreatedHandler which fires after the HWND exists.
-        // (RegisterWindowCreatingHandler fires BEFORE creation — too early, handle not available yet.)
+        // Initialize native menu bar after native window is created (Windows and Linux).
+        // The native window does not exist until WaitForClose() creates it,
+        // so we use RegisterWindowCreatedHandler which fires after creation.
+        // (RegisterWindowCreatingHandler fires BEFORE creation — too early.)
         var menuBarService = CheapAvaloniaBlazorRuntime.GetRequiredService<IMenuBarService>() as MenuBarService;
         if (menuBarService is not null)
         {
             photinoWindow.RegisterWindowCreatedHandler((s, e) =>
             {
-                menuBarService.Initialize(photinoWindow.GetWindowHandleOrZero(), _options?.MenuBarItems);
+                menuBarService.Initialize(photinoWindow, _options?.MenuBarItems);
             });
         }
 

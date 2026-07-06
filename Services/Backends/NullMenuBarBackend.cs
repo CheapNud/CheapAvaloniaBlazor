@@ -1,9 +1,10 @@
 using CheapAvaloniaBlazor.Models;
+using Photino.NET;
 
 namespace CheapAvaloniaBlazor.Services.Backends;
 
 /// <summary>
-/// No-op backend for platforms where native menu bars are not supported (Linux, macOS).
+/// No-op backend for platforms where native menu bars are not supported (macOS).
 /// </summary>
 internal sealed class NullMenuBarBackend : IMenuBarBackend
 {
@@ -13,7 +14,7 @@ internal sealed class NullMenuBarBackend : IMenuBarBackend
     public event Action<string>? MenuItemClicked;
 #pragma warning restore CS0067
 
-    public void Initialize(IntPtr windowHandle, IEnumerable<MenuItemDefinition> menus) { }
+    public void Initialize(PhotinoWindow window, IEnumerable<MenuItemDefinition> menus) { }
 
     public void SetMenuBar(IEnumerable<MenuItemDefinition> menus) { }
 
