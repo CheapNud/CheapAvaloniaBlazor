@@ -2,7 +2,8 @@ namespace DesktopFeatures.Models;
 
 /// <summary>
 /// Application settings that persist between sessions.
-/// Stored as JSON in %LocalAppData%\DesktopFeatures\settings.json
+/// Stored as JSON in %LocalAppData%\DesktopFeatures\settings.json on Windows,
+/// ~/.local/share/DesktopFeatures/settings.json on Linux
 /// </summary>
 public class AppSettings
 {

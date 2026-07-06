@@ -82,7 +82,7 @@ public class PhotinoMessageHandler : IDisposable
     {
         if (_window == null) return false;
 
-        var handle = _window.WindowHandle;
+        var handle = _window.GetWindowHandleOrZero();
         return WindowHelper.HideWindow(handle);
     }
 
@@ -95,7 +95,7 @@ public class PhotinoMessageHandler : IDisposable
     {
         if (_window == null) return false;
 
-        var handle = _window.WindowHandle;
+        var handle = _window.GetWindowHandleOrZero();
         return WindowHelper.ShowAndActivateWindow(handle);
     }
 

@@ -227,7 +227,7 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
         {
             photinoWindow.RegisterWindowCreatedHandler((s, e) =>
             {
-                menuBarService.Initialize(photinoWindow.WindowHandle, _options?.MenuBarItems);
+                menuBarService.Initialize(photinoWindow.GetWindowHandleOrZero(), _options?.MenuBarItems);
             });
         }
 
