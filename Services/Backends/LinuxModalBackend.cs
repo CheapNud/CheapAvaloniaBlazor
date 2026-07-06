@@ -24,8 +24,12 @@ internal sealed class LinuxModalBackend : IModalBackend
 
     private readonly ILogger _logger;
 
-    // Widget pointers disabled per parent window. Only touched on the GTK thread
-    // (inside PhotinoWindow.Invoke), so no locking is needed.
+    // Widget pointers disabled per parent window. Only touched on the GTK thread, so no
+    // locking is needed: PhotinoWindow.Invoke runs the callback directly when already on
+    // the window's thread and otherwise dispatches through Photino_Invoke onto the single
+    // GTK main loop — every access is serialized on that one thread.
+    // Entries are removed on enable and the map is cleared in Dispose, so a parent
+    // reference is only retained while its modal is actually open.
     private readonly Dictionary<PhotinoWindow, List<IntPtr>> _disabledByParent = [];
 
     public bool IsSupported => OperatingSystem.IsLinux();
