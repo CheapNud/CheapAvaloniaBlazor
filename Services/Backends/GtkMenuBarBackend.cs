@@ -34,7 +34,7 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
 
     private readonly Dictionary<IntPtr, MenuItemDefinition> _widgetToDefinition = [];
     private readonly Dictionary<string, IntPtr> _stringIdToWidget = [];
-    private readonly List<(IntPtr Widget, ulong HandlerId)> _signalConnections = [];
+    private readonly List<(IntPtr Widget, nuint HandlerId)> _signalConnections = [];
 
     private int _disposed; // 0 = not disposed, 1 = disposed (Interlocked)
     private bool _suppressActivate;
@@ -86,6 +86,11 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
                     return;
                 }
 
+                // Photino adds the WebKit webview directly to the window; log the actual child
+                // type so a future Photino layout change is diagnosable from logs.
+                _logger.LogDebug("GtkMenuBarBackend: reparenting window child of type {GType}",
+                    Marshal.PtrToStringUTF8(g_type_name_from_instance(webview)) ?? "<unknown>");
+
                 _menuBar = gtk_menu_bar_new();
                 BuildMenuShell(_menuBar, menus);
 
@@ -112,7 +117,11 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
     public void SetMenuBar(IEnumerable<MenuItemDefinition> menus)
     {
         if (Volatile.Read(ref _disposed) != 0) return;
-        if (_window is null || _contentBox == IntPtr.Zero) return;
+        if (_window is null || _contentBox == IntPtr.Zero)
+        {
+            _logger.LogDebug("GtkMenuBarBackend: SetMenuBar skipped — menu bar was never attached (Initialize failed or not called)");
+            return;
+        }
 
         _window.Invoke(() =>
         {
@@ -273,8 +282,9 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
     /// <summary>
     /// Win32 mnemonics use '&amp;' ("&amp;&amp;" = literal ampersand); GTK uses '_'
     /// ("__" = literal underscore). Definitions are written Win32-style.
+    /// Internal for unit testing (platform-independent string logic).
     /// </summary>
-    private static string ConvertMnemonics(string text)
+    internal static string ConvertMnemonics(string text)
     {
         var converted = text.Replace("_", "__");
         converted = converted.Replace("&&", "\0");
@@ -282,10 +292,16 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
         return converted.Replace("\0", "&");
     }
 
+    // Photino truncates Linux titles to 31 chars natively; its managed setter mirrors that,
+    // but normalize both comparison sides anyway in case a future Photino version diverges.
+    private const int GtkTitleMaxLength = 31;
+
+    private static string? NormalizeTitle(string? title)
+        => title is { Length: > GtkTitleMaxLength } ? title[..GtkTitleMaxLength] : title;
+
     /// <summary>
     /// Locates the Photino GtkWindow. Photino exposes no native pointers on Linux, so when
-    /// several toplevels exist they are told apart by title (Photino keeps managed and GTK
-    /// titles identical — it truncates to 31 chars on both sides).
+    /// several toplevels exist they are told apart by (31-char-normalized) title.
     /// </summary>
     private IntPtr FindGtkToplevel(PhotinoWindow window)
     {
@@ -310,10 +326,10 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
         if (candidates.Count == 1)
             return candidates[0];
 
-        var title = window.Title;
+        var title = NormalizeTitle(window.Title);
         foreach (var candidate in candidates)
         {
-            if (Marshal.PtrToStringUTF8(gtk_window_get_title(candidate)) == title)
+            if (NormalizeTitle(Marshal.PtrToStringUTF8(gtk_window_get_title(candidate))) == title)
                 return candidate;
         }
 
@@ -471,13 +487,21 @@ internal sealed class GtkMenuBarBackend : IMenuBarBackend
     [DllImport("libgobject-2.0.so.0")]
     private static extern void g_object_unref(IntPtr instance);
 
+    // gulong is pointer-sized on both LP64 (64-bit) and ILP32 (32-bit ARM) Linux,
+    // so nuint is the correct marshaling type — ulong would misread on 32-bit.
     [DllImport("libgobject-2.0.so.0")]
-    private static extern ulong g_signal_connect_data(IntPtr instance,
+    private static extern nuint g_signal_connect_data(IntPtr instance,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string detailedSignal,
         IntPtr handler, IntPtr data, IntPtr destroyData, int connectFlags);
 
     [DllImport("libgobject-2.0.so.0")]
-    private static extern void g_signal_handler_disconnect(IntPtr instance, ulong handlerId);
+    private static extern void g_signal_handler_disconnect(IntPtr instance, nuint handlerId);
+
+    /// <summary>
+    /// Returns the type name of a GObject instance (borrowed string, do not free).
+    /// </summary>
+    [DllImport("libgobject-2.0.so.0")]
+    private static extern IntPtr g_type_name_from_instance(IntPtr instance);
 
     [DllImport("libglib-2.0.so.0")]
     private static extern void g_list_free(IntPtr list);
