@@ -53,7 +53,9 @@ _Nothing blocking._
 - [ ] (2026-02-08) Linux hotkey testing: verify D-Bus portal on KDE/GNOME/Hyprland [plan]
 - [ ] (2026-02-08) Linux hotkey testing: verify X11 backend on X11 sessions [plan]
 - [ ] (2026-02-08) Linux hotkey testing: verify D-Bus → X11 fallback chain [plan]
-- [ ] (2026-02-08) Linux GTK menu bar integration [plan]
+- [ ] (2026-07-07) Validate GTK modal + menu bar backends on a real Linux desktop (implemented blind on Windows) [plan]
+- [x] (2026-02-08 → 2026-07-07) Linux GTK menu bar integration [plan]
+  - GtkMenuBarBackend reparents Photino's webview into a GtkBox with a gtk_menu_bar above it
 - [ ] (2026-02-08) macOS native menu bar integration [plan]
 - [ ] (2026-02-08) macOS modal behavior (Cocoa parent disable) [plan]
   - Linux GTK parent disable landed 2026-07-07 (LinuxModalBackend, title-matched toplevels — needs desktop validation)

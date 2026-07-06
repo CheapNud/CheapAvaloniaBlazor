@@ -1,10 +1,12 @@
 using CheapAvaloniaBlazor.Models;
+using Photino.NET;
 
 namespace CheapAvaloniaBlazor.Services.Backends;
 
 /// <summary>
 /// Platform-specific backend for native menu bar rendering.
 /// Windows: Win32 CreateMenu + WndProc subclassing.
+/// Linux: GTK 3 menu bar packed above the webview.
 /// Other platforms: NullMenuBarBackend (no-op).
 /// </summary>
 internal interface IMenuBarBackend : IDisposable
@@ -15,11 +17,13 @@ internal interface IMenuBarBackend : IDisposable
     bool IsSupported { get; }
 
     /// <summary>
-    /// Attach the menu bar to the window and build the initial menus
+    /// Attach the menu bar to the window and build the initial menus.
+    /// Backends extract what they need from the PhotinoWindow — the HWND on Windows,
+    /// the GTK toplevel on Linux (Photino exposes no native handles there).
     /// </summary>
-    /// <param name="windowHandle">Native window handle (HWND on Windows)</param>
+    /// <param name="window">The Photino window to attach to (native window already created)</param>
     /// <param name="menus">Top-level menu definitions (typically submenus like File, Edit, Help)</param>
-    void Initialize(IntPtr windowHandle, IEnumerable<MenuItemDefinition> menus);
+    void Initialize(PhotinoWindow window, IEnumerable<MenuItemDefinition> menus);
 
     /// <summary>
     /// Replace the entire menu bar with new definitions

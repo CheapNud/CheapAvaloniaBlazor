@@ -49,7 +49,8 @@ public class MenuItemDefinition
     public Action? OnClick { get; set; }
 
     /// <summary>
-    /// Asynchronous click handler
+    /// Asynchronous click handler. Runs fire-and-forget on a thread pool thread —
+    /// marshal any UI work yourself (e.g. via InvokeAsync in Blazor components).
     /// </summary>
     public Func<Task>? OnClickAsync { get; set; }
 

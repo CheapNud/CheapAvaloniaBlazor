@@ -2,12 +2,13 @@ using Avalonia.Threading;
 using CheapAvaloniaBlazor.Models;
 using CheapAvaloniaBlazor.Services.Backends;
 using Microsoft.Extensions.Logging;
+using Photino.NET;
 
 namespace CheapAvaloniaBlazor.Services;
 
 /// <summary>
 /// Cross-platform orchestrator for native menu bars.
-/// Selects the appropriate platform backend (Windows or Null) and relays events.
+/// Selects the appropriate platform backend (Windows, GTK, or Null) and relays events.
 /// </summary>
 public sealed class MenuBarService : IMenuBarService, IDisposable
 {
@@ -31,6 +32,8 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
 
         if (_backend is WindowsMenuBarBackend windowsBackend)
             windowsBackend.AsyncExceptionOccurred += OnAsyncException;
+        if (_backend is GtkMenuBarBackend gtkBackend)
+            gtkBackend.AsyncExceptionOccurred += OnAsyncException;
 
         _logger.LogDebug("MenuBarService initialized with backend {Backend} (supported={Supported})",
             _backend.GetType().Name, _backend.IsSupported);
@@ -38,12 +41,11 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
 
     /// <summary>
     /// Called by BlazorHostWindow after the Photino window is created.
-    /// Attaches the native menu bar to the window handle.
+    /// Attaches the native menu bar to the window.
     /// </summary>
-    internal void Initialize(IntPtr windowHandle, IEnumerable<MenuItemDefinition>? menuItems)
+    internal void Initialize(PhotinoWindow window, IEnumerable<MenuItemDefinition>? menuItems)
     {
         if (_disposed) return;
-        if (windowHandle == IntPtr.Zero) return;
         if (!_backend.IsSupported) return;
 
         lock (_initLock)
@@ -53,12 +55,12 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
             var menus = menuItems ?? _pendingMenuItems;
             if (menus is null) return;
 
-            _backend.Initialize(windowHandle, menus);
+            _backend.Initialize(window, menus);
             _pendingMenuItems = null;
             _initialized = true;
         }
 
-        _logger.LogInformation("Native menu bar initialized on window handle {Handle}", windowHandle);
+        _logger.LogInformation("Native menu bar initialized on the main window");
     }
 
     /// <summary>
@@ -99,14 +101,16 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
 
         if (_backend is WindowsMenuBarBackend windowsBackend)
             windowsBackend.AsyncExceptionOccurred -= OnAsyncException;
+        if (_backend is GtkMenuBarBackend gtkBackend)
+            gtkBackend.AsyncExceptionOccurred -= OnAsyncException;
 
         _backend.Dispose();
     }
 
     private void OnBackendMenuItemClicked(string menuItemId)
     {
-        // Backend fires from Win32 WndProc thread — marshal to Avalonia dispatcher
-        // so Blazor UI subscribers can safely interact with the UI.
+        // Backend fires from a native thread (Win32 WndProc / GTK main loop) — marshal to
+        // the Avalonia dispatcher so Blazor UI subscribers can safely interact with the UI.
         Dispatcher.UIThread.Post(() =>
         {
             try
@@ -129,6 +133,9 @@ public sealed class MenuBarService : IMenuBarService, IDisposable
     {
         if (OperatingSystem.IsWindows())
             return new WindowsMenuBarBackend(logger);
+
+        if (OperatingSystem.IsLinux())
+            return new GtkMenuBarBackend(logger);
 
         return new NullMenuBarBackend();
     }

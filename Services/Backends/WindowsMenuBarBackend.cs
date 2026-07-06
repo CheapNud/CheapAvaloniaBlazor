@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using CheapAvaloniaBlazor.Models;
+using CheapAvaloniaBlazor.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace CheapAvaloniaBlazor.Services.Backends;
@@ -47,9 +48,11 @@ internal sealed class WindowsMenuBarBackend : IMenuBarBackend
     }
 
     [SupportedOSPlatform("windows")]
-    public void Initialize(IntPtr windowHandle, IEnumerable<MenuItemDefinition> menus)
+    public void Initialize(Photino.NET.PhotinoWindow window, IEnumerable<MenuItemDefinition> menus)
     {
         if (Volatile.Read(ref _disposed) != 0) return;
+
+        var windowHandle = window.GetWindowHandleOrZero();
         if (windowHandle == IntPtr.Zero) return;
 
         _windowHandle = windowHandle;
