@@ -99,10 +99,11 @@ public sealed class WindowService : IWindowService
         var windowId = await CreateWindowCoreAsync(options, isModal: true, modalTcs: tcs, cancellationToken: cancellationToken);
 
         // Disable the parent window to create modal behavior
-        var parentHandle = ResolveParentHandle(options.ParentWindowId);
-        if (parentHandle != IntPtr.Zero)
+        var parentRef = ResolveParentRef(options.ParentWindowId);
+        var modalRef = _windows.TryGetValue(windowId, out var modalInfo) ? modalInfo.ToModalRef() : default;
+        if (!parentRef.IsEmpty)
         {
-            _modalBackend.DisableParentWindow(parentHandle);
+            _modalBackend.DisableParentWindow(parentRef, modalRef);
         }
 
         // Register cancellation to prevent indefinite hang if the child window crashes or
@@ -117,12 +118,13 @@ public sealed class WindowService : IWindowService
 
                     if (_windows.TryGetValue(windowId, out var cancelledWindowInfo))
                     {
-                        var cancelParentHandle = ResolveParentHandle(cancelledWindowInfo.ParentWindowId);
-                        if (cancelParentHandle != IntPtr.Zero)
-                            _modalBackend.EnableParentWindow(cancelParentHandle);
+                        var cancelParentRef = ResolveParentRef(cancelledWindowInfo.ParentWindowId);
+                        if (!cancelParentRef.IsEmpty)
+                            _modalBackend.EnableParentWindow(cancelParentRef);
 
-                        if (cancelledWindowInfo.WindowHandle != IntPtr.Zero)
-                            _modalBackend.PostCloseMessage(cancelledWindowInfo.WindowHandle);
+                        var cancelledRef = cancelledWindowInfo.ToModalRef();
+                        if (!cancelledRef.IsEmpty)
+                            _modalBackend.PostCloseMessage(cancelledRef);
                     }
                 }
             })
@@ -137,9 +139,10 @@ public sealed class WindowService : IWindowService
 
         if (_windows.TryGetValue(windowId, out var windowInfo))
         {
-            if (windowInfo.WindowHandle != IntPtr.Zero)
+            var windowRef = windowInfo.ToModalRef();
+            if (!windowRef.IsEmpty)
             {
-                _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
+                _modalBackend.PostCloseMessage(windowRef);
             }
         }
         else
@@ -155,8 +158,9 @@ public sealed class WindowService : IWindowService
     /// _modalCompletions — CompleteModal, OnChildWindowClosed, and the CancellationToken callback.
     /// ConcurrentDictionary.TryRemove is atomic: exactly ONE path wins and executes the
     /// EnableParentWindow + PostCloseMessage cleanup. Losers get false and no-op.
-    /// Post-removal actions (EnableParent, PostClose) use value-type IntPtr copies and
-    /// WindowsModalBackend guards each call with IsWindow, so stale handles are safe.
+    /// Post-removal actions (EnableParent, PostClose) use value-type window refs and the
+    /// backends guard staleness themselves (IsWindow on Win32, try/catch around
+    /// PhotinoWindow.Close on Linux), so stale refs are safe.
     /// </remarks>
     public void CompleteModal(string windowId, ModalResult result)
     {
@@ -176,16 +180,17 @@ public sealed class WindowService : IWindowService
         // We own the cleanup since we successfully removed the TCS
         if (_windows.TryGetValue(windowId, out var windowInfo))
         {
-            var parentHandle = ResolveParentHandle(windowInfo.ParentWindowId);
-            if (parentHandle != IntPtr.Zero)
+            var parentRef = ResolveParentRef(windowInfo.ParentWindowId);
+            if (!parentRef.IsEmpty)
             {
-                _modalBackend.EnableParentWindow(parentHandle);
+                _modalBackend.EnableParentWindow(parentRef);
             }
 
             // Close the modal window
-            if (windowInfo.WindowHandle != IntPtr.Zero)
+            var windowRef = windowInfo.ToModalRef();
+            if (!windowRef.IsEmpty)
             {
-                _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
+                _modalBackend.PostCloseMessage(windowRef);
             }
         }
 
@@ -243,14 +248,15 @@ public sealed class WindowService : IWindowService
         foreach (var kvp in _windows)
         {
             var windowInfo = kvp.Value;
-            if (windowInfo.WindowHandle != IntPtr.Zero)
+            var windowRef = windowInfo.ToModalRef();
+            if (!windowRef.IsEmpty)
             {
-                _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
+                _modalBackend.PostCloseMessage(windowRef);
                 closedCount++;
             }
             else
             {
-                _logger.LogWarning("WindowService Dispose: window '{WindowId}' has no handle — cannot send WM_CLOSE",
+                _logger.LogWarning("WindowService Dispose: window '{WindowId}' has no handle or window reference — cannot request close",
                     windowInfo.WindowId);
             }
             windowInfo.PhotinoWindow = null;
@@ -481,10 +487,10 @@ public sealed class WindowService : IWindowService
             // We own the cleanup since we successfully removed the TCS
             if (_windows.TryGetValue(windowId, out var modalWindowInfo))
             {
-                var parentHandle = ResolveParentHandle(modalWindowInfo.ParentWindowId);
-                if (parentHandle != IntPtr.Zero)
+                var parentRef = ResolveParentRef(modalWindowInfo.ParentWindowId);
+                if (!parentRef.IsEmpty)
                 {
-                    _modalBackend.EnableParentWindow(parentHandle);
+                    _modalBackend.EnableParentWindow(parentRef);
                 }
             }
         }
@@ -514,11 +520,12 @@ public sealed class WindowService : IWindowService
     /// </summary>
     private void CleanupPartialWindow(WindowInfo windowInfo)
     {
-        if (windowInfo.WindowHandle != IntPtr.Zero)
+        var windowRef = windowInfo.ToModalRef();
+        if (!windowRef.IsEmpty)
         {
             _logger.LogDebug("Cleaning up partially-created window '{WindowId}' (handle={Handle})",
                 windowInfo.WindowId, windowInfo.WindowHandle);
-            _modalBackend.PostCloseMessage(windowInfo.WindowHandle);
+            _modalBackend.PostCloseMessage(windowRef);
         }
         windowInfo.PhotinoWindow = null;
     }
@@ -557,20 +564,20 @@ public sealed class WindowService : IWindowService
         return $"{baseUrl}/?{Constants.Window.WindowIdQueryParam}={Uri.EscapeDataString(windowId)}";
     }
 
-    private IntPtr ResolveParentHandle(string? parentWindowId)
+    private ModalWindowRef ResolveParentRef(string? parentWindowId)
     {
         if (string.IsNullOrEmpty(parentWindowId) || parentWindowId == Constants.Window.MainWindowId)
         {
-            return _mainWindowHandle;
+            return new ModalWindowRef(_mainWindowHandle, _mainPhotinoWindow);
         }
 
         if (_windows.TryGetValue(parentWindowId, out var parentInfo))
         {
-            return parentInfo.WindowHandle;
+            return parentInfo.ToModalRef();
         }
 
         _logger.LogWarning("Parent window '{ParentWindowId}' not found, falling back to main window", parentWindowId);
-        return _mainWindowHandle;
+        return new ModalWindowRef(_mainWindowHandle, _mainPhotinoWindow);
     }
 
     /// <summary>
@@ -612,6 +619,9 @@ public sealed class WindowService : IWindowService
         if (OperatingSystem.IsWindows())
             return new WindowsModalBackend(logger);
 
+        if (OperatingSystem.IsLinux())
+            return new LinuxModalBackend(logger);
+
         return new NullModalBackend();
     }
 
@@ -624,5 +634,7 @@ public sealed class WindowService : IWindowService
         public PhotinoWindow? PhotinoWindow { get; set; }
         public bool IsModal { get; set; }
         public string? ParentWindowId { get; set; }
+
+        public ModalWindowRef ToModalRef() => new(WindowHandle, PhotinoWindow);
     }
 }
