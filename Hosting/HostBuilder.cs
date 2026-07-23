@@ -507,7 +507,8 @@ public class HostBuilder
     }
 
     /// <summary>
-    /// Configure the Blazor server pipeline
+    /// Configure the Blazor server pipeline. The action runs after UseRouting and before
+    /// UseAntiforgery, so auth middleware added here lands in the recommended order.
     /// </summary>
     /// <param name="configure">Action to configure the pipeline</param>
     /// <returns>The builder for chaining</returns>

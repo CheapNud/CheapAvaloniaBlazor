@@ -30,7 +30,8 @@ _Nothing blocking._
 
 ## Planned
 
-- [ ] (2026-07-23) pipeline order: the embedded host runs UseAntiforgery before the consumer ConfigurePipeline hook, so consumer auth middleware lands after it (deviates from the recommended order); harmless until an authorized antiforgery-validated form hits odd 400s — reorder or expose an earlier hook (found consuming from CheapFurniturePlanner) [bug]
+- [x] (2026-07-23 → 2026-07-23) pipeline order: the embedded host runs UseAntiforgery before the consumer ConfigurePipeline hook, so consumer auth middleware lands after it (deviates from the recommended order); harmless until an authorized antiforgery-validated form hits odd 400s — reorder or expose an earlier hook (found consuming from CheapFurniturePlanner) [bug]
+  - ConfigurePipeline hook now runs between UseRouting and UseAntiforgery
 - [ ] (2026-07-23) expose a configurable listen address on the HostBuilder (localhost-only today) — the knob that lets a consumer host the same app on a LAN for multi-user (requested by CheapFurniturePlanner's "Mode B") [user]
 - [ ] (2026-07-23) controller discovery: services staged before the real WebApplication builder exists have no IWebHostEnvironment, so a consumer's AddControllers() caches an EMPTY ApplicationPartManager ("No action descriptors found") — consumers must AddApplicationPart explicitly; consider re-seeding parts or documenting loudly (bit CheapFurniturePlanner's login) [bug]
 
