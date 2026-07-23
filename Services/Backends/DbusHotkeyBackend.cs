@@ -1,4 +1,4 @@
-﻿using System.Runtime.Versioning;
+using System.Runtime.Versioning;
 using Avalonia.Input;
 using CheapAvaloniaBlazor.Models;
 using CheapAvaloniaBlazor.Utilities;
