@@ -240,17 +240,15 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = requestPath
             },
             (MessageValueReader<CreateSessionResponse>)ReadResponse,
-            (Exception? exception, CreateSessionResponse response, object? _, object? _) =>
+            (Notification<CreateSessionResponse> notification) =>
             {
-                // Subscription-completion notifications (e.g. observer disposed) arrive as
-                // exceptions here; TrySet* on a completed TCS is a harmless no-op.
-                if (exception is not null)
-                    responseSource.TrySetException(exception);
-                else
-                    responseSource.TrySetResult(response);
+                if (notification.Exception is not null)
+                    responseSource.TrySetException(notification.Exception);
+                else if (notification.HasValue)
+                    responseSource.TrySetResult(notification.Value);
             },
-            ObserverFlags.None,
-            emitOnCapturedContext: false).ConfigureAwait(false);
+            emitOnCapturedContext: false,
+            ObserverFlags.None).ConfigureAwait(false);
 
         try
         {
@@ -315,16 +313,16 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = PortalPath
             },
             (MessageValueReader<ActivatedSignal>)ReadActivated,
-            (Exception? exception, ActivatedSignal signal, object? _, object? _) =>
+            (Notification<ActivatedSignal> notification) =>
             {
-                if (_disposed || exception is not null) return;
+                if (_disposed || notification.Exception is not null || !notification.HasValue) return;
 
                 try
                 {
                     int hotkeyId;
                     lock (_lock)
                     {
-                        if (!_reverseMap.TryGetValue(signal.ShortcutId, out hotkeyId))
+                        if (!_reverseMap.TryGetValue(notification.Value.ShortcutId, out hotkeyId))
                             return;
                     }
 
@@ -335,8 +333,8 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                     _logger.LogError(activatedEx, "D-Bus: Error handling Activated signal");
                 }
             },
-            ObserverFlags.None,
-            emitOnCapturedContext: false).ConfigureAwait(false);
+            emitOnCapturedContext: false,
+            ObserverFlags.None).ConfigureAwait(false);
     }
 
     private async Task RebindAllShortcutsAsync()
@@ -377,15 +375,15 @@ internal sealed class DbusHotkeyBackend : IHotkeyBackend
                 Path = requestPath
             },
             (MessageValueReader<uint>)ReadBindResponse,
-            (Exception? exception, uint responseCode, object? _, object? _) =>
+            (Notification<uint> notification) =>
             {
-                if (exception is not null)
-                    responseSource.TrySetException(exception);
-                else
-                    responseSource.TrySetResult(responseCode);
+                if (notification.Exception is not null)
+                    responseSource.TrySetException(notification.Exception);
+                else if (notification.HasValue)
+                    responseSource.TrySetResult(notification.Value);
             },
-            ObserverFlags.None,
-            emitOnCapturedContext: false).ConfigureAwait(false);
+            emitOnCapturedContext: false,
+            ObserverFlags.None).ConfigureAwait(false);
 
         await _connection.CallMethodAsync(CreateBindMessage(requestToken, shortcuts)).ConfigureAwait(false);
 

@@ -421,16 +421,18 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
             _logger.LogDebug("Adding routing...");
             app.UseRouting();
 
-            // Required by MapRazorComponents
-            _logger.LogDebug("Adding antiforgery middleware...");
-            app.UseAntiforgery();
-
-            // Custom middleware
+            // Custom middleware — before UseAntiforgery so consumer auth middleware
+            // (UseAuthentication/UseAuthorization) lands in the recommended order
+            // (routing → auth → antiforgery → endpoints).
             if (_options.ConfigurePipeline != null)
             {
                 _logger.LogDebug("Invoking user-configured pipeline...");
                 _options.ConfigurePipeline.Invoke(app);
             }
+
+            // Required by MapRazorComponents
+            _logger.LogDebug("Adding antiforgery middleware...");
+            app.UseAntiforgery();
 
             // Diagnostic request logging — only when diagnostics are explicitly enabled.
             // Blazor Server emits dozens of SignalR requests per second; logging every one at
