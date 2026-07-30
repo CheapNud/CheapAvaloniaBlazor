@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-07-23
+  Last updated: 2026-07-31
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -30,6 +30,8 @@ _Nothing blocking._
 
 ## Planned
 
+- [ ] (2026-07-31) Origin check on the Blazor SignalR hub — WebSockets bypass CORS, so a malicious webpage could connect to localhost:{port}/_blazor and puppet the app UI (which fronts desktop interop); reject circuit connections whose Origin isn't our own BaseUrl [audit]
+  - Becomes mandatory before the configurable listen address item ships (LAN exposure widens the audience)
 - [x] (2026-07-23 → 2026-07-23) pipeline order: the embedded host runs UseAntiforgery before the consumer ConfigurePipeline hook, so consumer auth middleware lands after it (deviates from the recommended order); harmless until an authorized antiforgery-validated form hits odd 400s — reorder or expose an earlier hook (found consuming from CheapFurniturePlanner) [bug]
   - ConfigurePipeline hook now runs between UseRouting and UseAntiforgery
 - [ ] (2026-07-23) expose a configurable listen address on the HostBuilder (localhost-only today) — the knob that lets a consumer host the same app on a LAN for multi-user (requested by CheapFurniturePlanner's "Mode B") [user]
