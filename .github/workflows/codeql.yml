@@ -13,6 +13,8 @@ jobs:
   analyze:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    # GitHub-only: skip when the workflow is picked up by the forge
+    if: github.server_url == 'https://github.com'
     permissions:
       actions: read
       contents: read

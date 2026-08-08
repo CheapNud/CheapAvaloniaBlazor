@@ -21,6 +21,8 @@ jobs:
     name: AI Code Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # GitHub-only: skip when the workflow is picked up by the forge
+    if: github.server_url == 'https://github.com'
 
     steps:
     - name: Checkout code

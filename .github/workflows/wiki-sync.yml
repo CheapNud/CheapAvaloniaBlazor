@@ -13,6 +13,8 @@ jobs:
   sync:
     name: Sync Docs to Wiki
     runs-on: ubuntu-latest
+    # GitHub-only: skip when the workflow is picked up by the forge
+    if: github.server_url == 'https://github.com'
 
     steps:
     - name: Checkout code
