@@ -17,8 +17,6 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    # GitHub-only: skip when the workflow is picked up by the forge
-    if: github.server_url == 'https://github.com'
 
     steps:
     - name: Checkout code
@@ -52,8 +50,6 @@ jobs:
   template-smoke-test:
     name: Template Smoke Test
     runs-on: ubuntu-latest
-    # GitHub-only: skip when the workflow is picked up by the forge
-    if: github.server_url == 'https://github.com'
 
     steps:
     - name: Checkout code
@@ -124,7 +120,7 @@ jobs:
     name: Pack NuGet Package
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.server_url == 'https://github.com' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
     - name: Checkout code
@@ -160,7 +156,7 @@ jobs:
     name: Publish to NuGet.org
     needs: pack
     runs-on: ubuntu-latest
-    if: github.server_url == 'https://github.com' && startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
     - name: Download NuGet package
