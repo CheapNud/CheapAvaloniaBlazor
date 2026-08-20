@@ -1,0 +1,43 @@
+name: Publish NuGet
+
+# Release mechanism: push a v*.*.* tag. GitHub is a sync mirror; publishing runs here.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CONFIGURATION: Release
+  NUGET_SOURCE: https://api.nuget.org/v3/index.json
+
+jobs:
+  publish:
+    name: Build, Pack and Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Restore
+        run: dotnet restore CheapAvaloniaBlazor.csproj
+      - name: Build
+        run: dotnet build CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-restore
+      - name: Test
+        run: dotnet test CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --configuration ${{ env.CONFIGURATION }} --verbosity normal
+      # Pack with --no-build after an explicit build: packing this csproj in one go trips
+      # a staticwebassets manifest ordering problem with GeneratePackageOnBuild.
+      - name: Pack library
+        run: dotnet pack CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ./nupkgs
+      - name: Pack templates
+        run: dotnet pack templates/CheapAvaloniaBlazor.Templates.csproj --configuration ${{ env.CONFIGURATION }} --output ./nupkgs
+      - name: Publish to NuGet.org
+        run: |
+          for pkg in ./nupkgs/*.nupkg; do
+            echo "Publishing $pkg"
+            dotnet nuget push "$pkg" --api-key "$NUGET_API_KEY" --source "$NUGET_SOURCE" --skip-duplicate
+          done
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

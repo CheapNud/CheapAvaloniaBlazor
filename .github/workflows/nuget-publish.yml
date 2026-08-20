@@ -151,26 +151,3 @@ jobs:
         name: nuget-package
         path: ./nupkgs/*.nupkg
         retention-days: 90
-
-  publish:
-    name: Publish to NuGet.org
-    needs: pack
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-    - name: Download NuGet package
-      uses: actions/download-artifact@v4
-      with:
-        name: nuget-package
-        path: ./nupkgs
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Publish to NuGet.org
-      run: dotnet nuget push "./nupkgs/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
