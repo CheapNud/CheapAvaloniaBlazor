@@ -11,8 +11,12 @@ namespace CheapAvaloniaBlazor.Services;
 /// </summary>
 public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<UpdateService> logger) : IUpdateService
 {
+    // State is written from the background check and read from Blazor circuits —
+    // guard the trio so a reader never sees a half-published update.
+    private readonly object _stateLock = new();
     private UpdateManager? _updateManager;
     private UpdateInfo? _pendingUpdate;
+    private int _checkInProgress;
 
     public bool UpdateReady { get; private set; }
 
@@ -26,6 +30,13 @@ public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<Up
         if (string.IsNullOrEmpty(repoUrl))
         {
             logger.LogDebug("UpdateService: no update repository configured, skipping check");
+            return;
+        }
+
+        // Re-entrancy guard: a second check while one is running is a no-op
+        if (Interlocked.CompareExchange(ref _checkInProgress, 1, 0) != 0)
+        {
+            logger.LogDebug("UpdateService: check already in progress, skipping");
             return;
         }
 
@@ -50,9 +61,12 @@ public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<Up
             logger.LogInformation("UpdateService: downloading update {Version}", updateInfo.TargetFullRelease?.Version);
             await updateManager.DownloadUpdatesAsync(updateInfo).ConfigureAwait(false);
 
-            _updateManager = updateManager;
-            _pendingUpdate = updateInfo;
-            UpdateReady = true;
+            lock (_stateLock)
+            {
+                _updateManager = updateManager;
+                _pendingUpdate = updateInfo;
+                UpdateReady = true;
+            }
 
             try
             {
@@ -68,18 +82,38 @@ public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<Up
             // Update checking is best-effort — never bother the user about it
             logger.LogDebug(ex, "UpdateService: update check failed");
         }
+        finally
+        {
+            Volatile.Write(ref _checkInProgress, 0);
+        }
     }
 
     public void ApplyAndRestart()
     {
-        if (_updateManager is not null && _pendingUpdate is not null)
+        UpdateManager? updateManager;
+        UpdateInfo? pendingUpdate;
+        lock (_stateLock)
         {
-            _updateManager.ApplyUpdatesAndRestart(_pendingUpdate.TargetFullRelease);
+            updateManager = _updateManager;
+            pendingUpdate = _pendingUpdate;
+        }
+
+        if (updateManager is not null && pendingUpdate?.TargetFullRelease is not null)
+        {
+            updateManager.ApplyUpdatesAndRestart(pendingUpdate.TargetFullRelease);
         }
     }
 
     private static IUpdateSource CreateSource(string repoUrl)
-        => repoUrl.Contains("github.com", StringComparison.OrdinalIgnoreCase)
+    {
+        // Host-based detection, not substring: a forge repo named "github.com-mirror"
+        // must not be mistaken for GitHub.
+        var host = new Uri(repoUrl).Host;
+        var isGitHub = host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".github.com", StringComparison.OrdinalIgnoreCase);
+
+        return isGitHub
             ? new GithubSource(repoUrl, null, false)
             : new GiteaSource(repoUrl, null, false);
+    }
 }

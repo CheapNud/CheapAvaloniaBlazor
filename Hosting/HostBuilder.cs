@@ -517,6 +517,11 @@ public class HostBuilder
     /// <returns>The builder for chaining</returns>
     public HostBuilder WithVelopackUpdates(string repoUrl, bool autoCheck = true)
     {
+        if (!Uri.TryCreate(repoUrl, UriKind.Absolute, out _))
+        {
+            throw new ArgumentException($"'{repoUrl}' is not an absolute repository URL.", nameof(repoUrl));
+        }
+
         _options.UpdateRepoUrl = repoUrl;
         _options.AutoCheckForUpdates = autoCheck;
         return this;
