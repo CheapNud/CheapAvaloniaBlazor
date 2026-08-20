@@ -47,6 +47,7 @@
     <PackageReference Include="MudBlazor" Version="9.7.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.2" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 

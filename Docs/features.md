@@ -119,6 +119,28 @@ await Settings.SetSectionAsync(new AppSettings { IsDarkMode = true });
 
 Settings are stored at `%LocalAppData%/{appName}/settings.json` on Windows and `~/.local/share/{appName}/settings.json` on Linux. Configure the location with `WithSettingsFolder()` or `WithSettingsFileName()`.
 
+## Auto-Updates (Velopack)
+
+Ship updates from a repository's releases. The app checks in the background after startup, downloads silently, and the UI decides when to restart-and-apply.
+
+```csharp
+new HostBuilder()
+    .WithTitle("My App")
+    .WithVelopackUpdates("https://git.example.com/me/my-app")  // Gitea/Forgejo or GitHub repo URL
+    .RunApp(args);
+```
+
+```csharp
+@inject IUpdateService Updates
+
+// e.g. in MainLayout: show a "restart to update" chip when Updates.UpdateReady
+Updates.StateChanged += () => InvokeAsync(StateHasChanged);
+// apply when the user clicks:
+Updates.ApplyAndRestart();
+```
+
+`RunApp()` runs the required Velopack startup hook automatically when updates are configured. Portable/dev runs (not Velopack-installed) skip update checks entirely. Pass `autoCheck: false` to only check when your UI calls `CheckAndDownloadAsync()`. Package your releases with `vpk` and attach them to the repo's releases.
+
 ## App Lifecycle Events (v2.1.0)
 Subscribe to native window lifecycle events from Blazor components. Track window state and react to minimize, maximize, restore, and focus changes.
 

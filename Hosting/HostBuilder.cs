@@ -507,6 +507,22 @@ public class HostBuilder
     }
 
     /// <summary>
+    /// Enable Velopack auto-updates from a repository's releases (Gitea/Forgejo, or GitHub
+    /// when the URL contains github.com). RunApp() runs the Velopack startup hook, and by
+    /// default a background check downloads any newer version after startup; the UI applies
+    /// it via IUpdateService.ApplyAndRestart().
+    /// </summary>
+    /// <param name="repoUrl">Repository URL whose releases feed updates</param>
+    /// <param name="autoCheck">Check and download in the background after startup</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithVelopackUpdates(string repoUrl, bool autoCheck = true)
+    {
+        _options.UpdateRepoUrl = repoUrl;
+        _options.AutoCheckForUpdates = autoCheck;
+        return this;
+    }
+
+    /// <summary>
     /// Configure the Blazor server pipeline. The action runs after UseRouting and before
     /// UseAntiforgery, so auth middleware added here lands in the recommended order.
     /// </summary>
@@ -580,6 +596,13 @@ public class HostBuilder
     /// <param name="args">Command line arguments (from Main method)</param>
     public void RunApp(string[] args)
     {
+        // Velopack must run before anything else: it handles install/update/uninstall
+        // hooks and exits the process early during those lifecycle events.
+        if (_options.UpdateRepoUrl is not null)
+        {
+            Velopack.VelopackApp.Build().Run();
+        }
+
         // Handle console visibility based on logging preference
         if (_options.EnableConsoleLogging)
         {

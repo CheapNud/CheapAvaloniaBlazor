@@ -1,6 +1,6 @@
 <!--
   TODO.md — CheapAvaloniaBlazor project work tracker
-  Last updated: 2026-08-08
+  Last updated: 2026-08-20
 
   RULES FOR AI AGENTS:
   - Update the "Last updated" date above whenever you modify this file
@@ -73,7 +73,8 @@ _Nothing blocking._
 
 ## Future
 
-- [ ] (2026-02-08) Auto-updater — GitHub releases check, background download, apply on restart
+- [x] (2026-02-08 → 2026-08-20) Auto-updater — releases check, background download, apply on restart
+  - Velopack via `WithVelopackUpdates(repoUrl)` + `IUpdateService`; feeds from forge (Gitea source) or GitHub releases
 - [ ] (2026-02-08) Plugin system — interface contract, discovery, lifecycle, sandboxing
 - [ ] (2026-02-08) AOT compilation support — test Native AOT, document trimming requirements
 - [ ] (2026-02-08) Startup performance profiling — cold start time, lazy service init

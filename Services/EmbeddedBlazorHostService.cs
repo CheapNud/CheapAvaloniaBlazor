@@ -341,6 +341,9 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
             var lifecycleService = CheapAvaloniaBlazorRuntime.GetRequiredService<IAppLifecycleService>();
             services.AddSingleton(lifecycleService);
 
+            var updateService = CheapAvaloniaBlazorRuntime.GetRequiredService<IUpdateService>();
+            services.AddSingleton(updateService);
+
             var themeService = CheapAvaloniaBlazorRuntime.GetRequiredService<IThemeService>();
             services.AddSingleton(themeService);
 

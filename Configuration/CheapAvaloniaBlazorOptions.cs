@@ -175,6 +175,20 @@ public class CheapAvaloniaBlazorOptions
     /// </summary>
     public bool AutoSaveSettings { get; set; } = true;
 
+    // Auto-Update Options
+
+    /// <summary>
+    /// Repository URL whose releases feed Velopack updates (Gitea/Forgejo, or GitHub when the
+    /// URL contains github.com). Null disables updates. Set via .WithVelopackUpdates().
+    /// </summary>
+    public string? UpdateRepoUrl { get; set; }
+
+    /// <summary>
+    /// Check for and download updates in the background after startup (default: true when
+    /// UpdateRepoUrl is set). The UI decides when to apply via IUpdateService.ApplyAndRestart().
+    /// </summary>
+    public bool AutoCheckForUpdates { get; set; } = true;
+
     // Menu Bar Options
 
     /// <summary>
