@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
             settingsOpts.AutoSave = options.AutoSaveSettings;
         });
         services.AddSingleton<IAppLifecycleService, AppLifecycleService>();
+        services.AddSingleton<IUpdateService, UpdateService>();
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IMenuBarService, MenuBarService>();

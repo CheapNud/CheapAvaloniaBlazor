@@ -275,6 +275,14 @@ public partial class BlazorHostWindow : Window, IBlazorWindow
             return false; // Allow window to close
         };
 
+        // Kick off the background update check once the app is up. Fire-and-forget:
+        // the service is best-effort and never throws.
+        if (_options?.UpdateRepoUrl is not null && _options.AutoCheckForUpdates)
+        {
+            var updateService = CheapAvaloniaBlazorRuntime.GetRequiredService<IUpdateService>();
+            _ = Task.Run(updateService.CheckAndDownloadAsync);
+        }
+
         _logger?.LogVerbose("About to call WaitForClose - direct approach");
 
         // Direct blocking call - simple and reliable
