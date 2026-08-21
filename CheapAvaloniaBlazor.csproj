@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>3.2.0</Version>
+    <Version>3.3.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, static-web-asset JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.2.0 - The JS bridge now serves as a real static web asset at _content/CheapAvaloniaBlazor/cheap-blazor-interop.js: the packaged build props previously dropped the SDK-generated static web assets registration (NU5118), so that path returned 404 from packaged consumers. JavaScriptBridgeExtractor and the embedded-resource serving fallbacks are removed; public classes PrefixedEmbeddedFileProvider and EmbeddedResourceFileInfo are gone and the extracted root-path copy (/cheap-blazor-interop.js) no longer exists - reference the _content path, which all templates and docs already use (breaking). blazor.web.js extraction now picks the cache version matching the app's runtime and refreshes stale copies after a .NET update. Static files serve correctly regardless of the launch working directory. New xUnit test suite guards the packaging wiring.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.3.0 - Velopack auto-updates: WithVelopackUpdates(repoUrl) checks a Gitea/Forgejo or GitHub releases feed in the background and IUpdateService lets the UI apply on restart. Linux is now a working platform: a first-boot crash (Photino WindowHandle throwing on non-Windows) is fixed, startup validates the environment (display, GTK, WebKitGTK, libnotify, glibc) with actionable install hints and a CHEAPBLAZOR_SKIP_STARTUP_CHECKS escape hatch, modal windows disable their parent via a new GTK backend, and the native menu bar renders through GTK above the webview; a CI smoke test boots the framework on Linux on every change. The ConfigurePipeline hook now runs before UseAntiforgery so consumer auth middleware lands in the recommended order. Dependency updates: Avalonia 12.1.0, MudBlazor 9.7.0, Tmds.DBus.Protocol 0.94.2.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
