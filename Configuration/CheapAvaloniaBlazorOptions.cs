@@ -184,6 +184,13 @@ public class CheapAvaloniaBlazorOptions
     public string? UpdateRepoUrl { get; set; }
 
     /// <summary>
+    /// Access token for a private update feed (read-only repo scope is enough). Null keeps the
+    /// feed anonymous. Treat it as a secret: pass it in from the consumer's own configuration,
+    /// never hardcode it in source. Set via .WithVelopackUpdates(repoUrl, accessToken).
+    /// </summary>
+    public string? UpdateAccessToken { get; set; }
+
+    /// <summary>
     /// Check for and download updates in the background after startup (default: true when
     /// UpdateRepoUrl is set). The UI decides when to apply via IUpdateService.ApplyAndRestart().
     /// </summary>
