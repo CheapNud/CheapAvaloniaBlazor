@@ -36,7 +36,7 @@ jobs:
       run: dotnet build CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-restore
 
     - name: Run tests
-      run: dotnet test CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --configuration ${{ env.CONFIGURATION }} --verbosity normal
+      run: dotnet test --project CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --configuration ${{ env.CONFIGURATION }} --verbosity normal
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4

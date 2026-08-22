@@ -58,7 +58,7 @@ Open your `.csproj` file and modify it:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.3.0" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.3.1" />
   </ItemGroup>
 </Project>
 ```

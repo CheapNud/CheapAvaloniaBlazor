@@ -29,7 +29,7 @@ jobs:
         dotnet build samples/DesktopFeatures/DesktopFeatures.csproj --no-restore
         dotnet build samples/MinimalApp/MinimalApp.csproj --no-restore
     - name: Test
-      run: dotnet test CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --verbosity normal
+      run: dotnet test --project CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --verbosity normal
 
   linux-smoke:
     # First-boot smoke test: launch MinimalApp under Xvfb and verify the embedded

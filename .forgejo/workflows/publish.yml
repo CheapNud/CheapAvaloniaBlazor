@@ -26,7 +26,7 @@ jobs:
       - name: Build
         run: dotnet build CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-restore
       - name: Test
-        run: dotnet test CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --configuration ${{ env.CONFIGURATION }} --verbosity normal
+        run: dotnet test --project CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --configuration ${{ env.CONFIGURATION }} --verbosity normal
       # Pack with --no-build after an explicit build: packing this csproj in one go trips
       # a staticwebassets manifest ordering problem with GeneratePackageOnBuild.
       - name: Pack library
