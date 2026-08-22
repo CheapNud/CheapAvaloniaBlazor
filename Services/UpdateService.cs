@@ -42,7 +42,7 @@ public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<Up
 
         try
         {
-            var updateManager = new UpdateManager(CreateSource(repoUrl));
+            var updateManager = new UpdateManager(CreateSource(repoUrl, options.UpdateAccessToken));
 
             // Portable zip or dev run — Velopack isn't managing this install
             if (!updateManager.IsInstalled)
@@ -104,7 +104,7 @@ public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<Up
         }
     }
 
-    private static IUpdateSource CreateSource(string repoUrl)
+    private static IUpdateSource CreateSource(string repoUrl, string? accessToken)
     {
         // Host-based detection, not substring: a forge repo named "github.com-mirror"
         // must not be mistaken for GitHub.
@@ -112,8 +112,9 @@ public sealed class UpdateService(CheapAvaloniaBlazorOptions options, ILogger<Up
         var isGitHub = host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
             || host.EndsWith(".github.com", StringComparison.OrdinalIgnoreCase);
 
+        // A token makes private feeds work; null keeps the request anonymous.
         return isGitHub
-            ? new GithubSource(repoUrl, null, false)
-            : new GiteaSource(repoUrl, null, false);
+            ? new GithubSource(repoUrl, accessToken, false)
+            : new GiteaSource(repoUrl, accessToken, false);
     }
 }

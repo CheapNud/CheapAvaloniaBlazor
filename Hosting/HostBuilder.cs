@@ -516,6 +516,19 @@ public class HostBuilder
     /// <param name="autoCheck">Check and download in the background after startup</param>
     /// <returns>The builder for chaining</returns>
     public HostBuilder WithVelopackUpdates(string repoUrl, bool autoCheck = true)
+        => WithVelopackUpdates(repoUrl, accessToken: null, autoCheck);
+
+    /// <summary>
+    /// Enable Velopack auto-updates from a PRIVATE repository's releases. Identical to
+    /// <see cref="WithVelopackUpdates(string, bool)"/> but authenticates feed requests with
+    /// an access token (read-only repo scope is enough). The token is a secret — feed it in
+    /// from your own configuration, never hardcode it.
+    /// </summary>
+    /// <param name="repoUrl">Repository URL whose releases feed updates</param>
+    /// <param name="accessToken">Access token for the feed; null keeps it anonymous</param>
+    /// <param name="autoCheck">Check and download in the background after startup</param>
+    /// <returns>The builder for chaining</returns>
+    public HostBuilder WithVelopackUpdates(string repoUrl, string? accessToken, bool autoCheck = true)
     {
         if (!Uri.TryCreate(repoUrl, UriKind.Absolute, out _))
         {
@@ -523,6 +536,7 @@ public class HostBuilder
         }
 
         _options.UpdateRepoUrl = repoUrl;
+        _options.UpdateAccessToken = string.IsNullOrWhiteSpace(accessToken) ? null : accessToken;
         _options.AutoCheckForUpdates = autoCheck;
         return this;
     }

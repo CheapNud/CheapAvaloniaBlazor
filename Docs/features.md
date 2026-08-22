@@ -141,7 +141,9 @@ Updates.ApplyAndRestart();
 
 `RunApp()` runs the required Velopack startup hook automatically when updates are configured. Portable/dev runs (not Velopack-installed) skip update checks entirely. Pass `autoCheck: false` to only check when your UI calls `CheckAndDownloadAsync()`. Package your releases with `vpk` and attach them to the repo's releases.
 
-Auto-update is an attack surface: whoever controls the release feed can push code to every install. Treat the feed repo like production infrastructure and code-sign your packages — Velopack verifies signatures on signed installs. Private update feeds are not supported yet (the source is created without a token).
+Auto-update is an attack surface: whoever controls the release feed can push code to every install. Treat the feed repo like production infrastructure and code-sign your packages — Velopack verifies signatures on signed installs.
+
+Private feeds work by passing an access token (read-only repo scope is enough): `WithVelopackUpdates(repoUrl, accessToken)`. The token is a secret — load it from your app's own configuration (settings store, environment), never hardcode it in source, and remember every install that should receive updates needs it.
 
 ## App Lifecycle Events (v2.1.0)
 Subscribe to native window lifecycle events from Blazor components. Track window state and react to minimize, maximize, restore, and focus changes.

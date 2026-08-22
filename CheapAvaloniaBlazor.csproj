@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>3.3.1</Version>
+    <Version>3.4.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, static-web-asset JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.3.1 - Dependency updates: Avalonia 12.1.1, MudBlazor 9.8.0, Tmds.DBus.Protocol 0.95.0, CheapHelpers 3.0.0; tests moved to xunit.v3 4.0 on Microsoft.Testing.Platform. Previous release: Velopack auto-updates: WithVelopackUpdates(repoUrl) checks a Gitea/Forgejo or GitHub releases feed in the background and IUpdateService lets the UI apply on restart. Linux is now a working platform: a first-boot crash (Photino WindowHandle throwing on non-Windows) is fixed, startup validates the environment (display, GTK, WebKitGTK, libnotify, glibc) with actionable install hints and a CHEAPBLAZOR_SKIP_STARTUP_CHECKS escape hatch, modal windows disable their parent via a new GTK backend, and the native menu bar renders through GTK above the webview; a CI smoke test boots the framework on Linux on every change. The ConfigurePipeline hook now runs before UseAntiforgery so consumer auth middleware lands in the recommended order. Dependency updates: Avalonia 12.1.0, MudBlazor 9.7.0, Tmds.DBus.Protocol 0.94.2.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.4.0 - Private update feeds: WithVelopackUpdates(repoUrl, accessToken) authenticates the Velopack release feed with a read-only token, so private Gitea/Forgejo and GitHub repositories can serve auto-updates; the token comes from the consumer's own configuration and null keeps the feed anonymous as before. Previous release: dependency updates: Avalonia 12.1.1, MudBlazor 9.8.0, Tmds.DBus.Protocol 0.95.0, CheapHelpers 3.0.0; tests moved to xunit.v3 4.0 on Microsoft.Testing.Platform.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
