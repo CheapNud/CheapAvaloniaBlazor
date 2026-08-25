@@ -173,8 +173,11 @@ public static class WebApplicationExtensions
 
         app.Use(async (context, next) =>
         {
-            if (!context.Request.Path.Equals(Constants.BlazorFramework.BlazorWebJsRequestPath,
-                    StringComparison.OrdinalIgnoreCase))
+            var isReadRequest = HttpMethods.IsGet(context.Request.Method)
+                || HttpMethods.IsHead(context.Request.Method);
+
+            if (!isReadRequest || !context.Request.Path.Equals(
+                    Constants.BlazorFramework.BlazorWebJsRequestPath, StringComparison.OrdinalIgnoreCase))
             {
                 await next();
                 return;

@@ -18,35 +18,17 @@
     with the runtime NuGet-cache extractor, and only a clean end-user machine showed the white
     screen. Content items are carried into the publish directory by the SDK.
 
-    Source resolution, best first:
-      1. $(BlazorFrameworkStaticWebAssetRoot) - defined by the Internal.Assets package itself,
-         which CheapAvaloniaBlazor references transitively, so it points at the restored package.
-      2. The machine-global NuGet cache, scoped to the app's own framework version.
-    If both come up empty the app still works: CheapAvaloniaBlazor serves its embedded copy at
-    runtime. Hence a Message, not a Warning, when nothing is found here.
+    $(BlazorFrameworkStaticWebAssetRoot) is defined by the Internal.Assets package itself, which
+    CheapAvaloniaBlazor references non-privately so every consumer restores it. One scalar path,
+    no globbing: this file is only ever imported through a PackageReference, so the package is
+    always in that project's graph. If it somehow is not, the app still works — CheapAvaloniaBlazor
+    extracts the script at startup, and failing that serves the copy embedded in its assembly.
   -->
   <Target Name="CopyBlazorFrameworkFilesFromLibrary"
           BeforeTargets="AssignTargetPaths"
           Condition="'$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))">
     <PropertyGroup>
-      <!-- "v11.0" -> "11.0". Scope the cache glob to the app's own framework version: the NuGet
-           cache is machine-global, and an unscoped **-glob copies every cached version with
-           alphabetical-last winning (so a cached 9.x would beat 10.x). Note:
-           TargetFrameworkVersion carries a leading "v", so the regex must not be anchored. -->
-      <_BlazorTfmMajorMinor>$([System.Text.RegularExpressions.Regex]::Match('$(TargetFrameworkVersion)', '\d+\.\d+').Value)</_BlazorTfmMajorMinor>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <_CheapBlazorWebJsCandidate Include="$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js"
-                                  Condition="'$(BlazorFrameworkStaticWebAssetRoot)' != ''" />
-      <_CheapBlazorWebJsCandidate Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/$(_BlazorTfmMajorMinor).*/_framework/blazor.web.js" />
-      <_CheapBlazorWebJsCandidate Remove="@(_CheapBlazorWebJsCandidate)" Condition="!Exists('%(Identity)')" />
-    </ItemGroup>
-
-    <PropertyGroup>
-      <!-- Highest-sorting existing candidate. The package path (candidate 1) is exact; the cache
-           glob may match several patches and the runtime staleness check settles the rest. -->
-      <_CheapBlazorWebJsSource>%(_CheapBlazorWebJsCandidate.FullPath)</_CheapBlazorWebJsSource>
+      <_CheapBlazorWebJsSource Condition="'$(BlazorFrameworkStaticWebAssetRoot)' != '' AND Exists('$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js')">$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js</_CheapBlazorWebJsSource>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(_CheapBlazorWebJsSource)' != ''">
@@ -64,7 +46,7 @@
 
     <Message Text="CheapAvaloniaBlazor: blazor.web.js -&gt; wwwroot/_framework/ (source: $(_CheapBlazorWebJsSource))"
              Importance="normal" Condition="'$(_CheapBlazorWebJsSource)' != ''" />
-    <Message Text="CheapAvaloniaBlazor: blazor.web.js $(_BlazorTfmMajorMinor).* not found on disk; the app will serve its embedded copy at runtime."
+    <Message Text="CheapAvaloniaBlazor: Microsoft.AspNetCore.App.Internal.Assets is not in this project's package graph; the app will extract or serve its embedded blazor.web.js at runtime."
              Importance="normal" Condition="'$(_CheapBlazorWebJsSource)' == ''" />
   </Target>
 

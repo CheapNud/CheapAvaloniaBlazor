@@ -109,31 +109,18 @@ public class BlazorFrameworkVersionTests
     }
 
     [Fact]
-    public void Build_targets_glob_is_scoped_to_the_apps_framework_version()
+    public void Build_targets_take_the_script_from_the_restored_package_not_the_machine_cache()
     {
-        // An unscoped ** glob copies every cached version and lets alphabetical order pick the
-        // winner. The cache glob must be narrowed by the TFM-derived major.minor property.
-        var includes = FrameworkCandidateIncludes();
+        // One scalar path, no glob. A glob over the machine-global cache can match several
+        // patches, and assigning %(Item.Meta) to a property batches the whole target instead of
+        // picking a winner — which would emit one Content item per match, all claiming the same
+        // TargetPath. $(BlazorFrameworkStaticWebAssetRoot) comes from the consumer's own package
+        // graph, because CheapAvaloniaBlazor references Internal.Assets non-privately.
+        var targets = File.ReadAllText(TargetsPath());
 
-        Assert.NotEmpty(includes);
-        var cacheGlobs = includes.Where(include => include.Contains("$(NuGetPackageRoot)")).ToList();
-        Assert.NotEmpty(cacheGlobs);
-        Assert.All(cacheGlobs, include =>
-        {
-            Assert.DoesNotContain("**", include);
-            Assert.Contains("$(_BlazorTfmMajorMinor)", include);
-        });
-    }
-
-    [Fact]
-    public void Build_targets_prefer_the_restored_package_over_the_machine_wide_cache()
-    {
-        // The machine-global cache is a fallback, not the source of truth: CheapAvaloniaBlazor
-        // references Microsoft.AspNetCore.App.Internal.Assets so consumers restore it, and
-        // $(BlazorFrameworkStaticWebAssetRoot) then points at their own package graph.
-        var includes = FrameworkCandidateIncludes();
-
-        Assert.Contains(includes, include => include.Contains("$(BlazorFrameworkStaticWebAssetRoot)"));
+        Assert.Contains("$(BlazorFrameworkStaticWebAssetRoot)", targets);
+        Assert.DoesNotContain("$(NuGetPackageRoot)", targets);
+        Assert.DoesNotContain("%(_CheapBlazorWebJsCandidate", targets);
     }
 
     [Fact]
@@ -174,25 +161,6 @@ public class BlazorFrameworkVersionTests
 
     private static string TargetsPath()
         => Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
-
-    private static List<string> FrameworkCandidateIncludes()
-        => XDocument.Load(TargetsPath()).Descendants()
-            .Where(element => element.Name.LocalName == "_CheapBlazorWebJsCandidate")
-            .Select(element => element.Attribute("Include")?.Value ?? string.Empty)
-            .Where(include => include.Length > 0)
-            .ToList();
-
-    [Fact]
-    public void Build_targets_tfm_regex_tolerates_the_leading_v()
-    {
-        // $(TargetFrameworkVersion) is "v11.0" — an anchored ^\d+\.\d+ regex silently matches
-        // nothing and the glob degrades to matching no versions at all.
-        var targetsPath = Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
-        var targetsText = File.ReadAllText(targetsPath);
-
-        Assert.DoesNotContain(@"'^\d+\.\d+'", targetsText);
-        Assert.Contains(@"'\d+\.\d+'", targetsText);
-    }
 
     private static string FindRepoRoot()
     {

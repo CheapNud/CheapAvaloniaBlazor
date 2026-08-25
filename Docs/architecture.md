@@ -30,6 +30,8 @@ CheapAvaloniaBlazor supplies the file itself, in three layers. Each one covers a
 
 `UseStaticFiles()` serves whatever landed on disk; the embedded middleware sits directly behind it and only answers when nothing else did.
 
+The embedded copy is frozen at the version CheapAvaloniaBlazor was packed against, so on layer 3 an app running a newer 10.0.x runtime gets a slightly older bootstrapper. That is fine: `blazor.web.js` negotiates over a protocol that is stable across a major version. Layers 1 and 2 always match the app's own package graph, and layer 3 only runs when neither could supply anything at all.
+
 Before 3.4.1 only layer 2 existed. A published app on a clean machine has no NuGet cache, so the script 404'd and the window rendered blank white with no error — the app was running and serving its HTML the whole time.
 
 ## Technology Stack
