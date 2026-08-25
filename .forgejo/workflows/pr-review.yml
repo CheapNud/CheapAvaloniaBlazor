@@ -12,7 +12,7 @@ env:
   MAX_TOKENS: 4096
   MAX_DIFF_SIZE_BYTES: 300000
   # Your Gitea instance base URL — update if you have a hostname
-  GITEA_URL: "http://192.168.1.15:3000"
+  GITEA_URL: "http://192.168.1.40:3000"
 
 jobs:
   claude-review:
