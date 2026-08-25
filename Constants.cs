@@ -1,4 +1,4 @@
-namespace CheapAvaloniaBlazor;
+﻿namespace CheapAvaloniaBlazor;
 
 /// <summary>
 /// Central repository for all constant values used throughout CheapAvaloniaBlazor
@@ -344,6 +344,19 @@ public static class Constants
         public const string BlazorWebJsFileName = "blazor.web.js";
         public const string FrameworkDirectory = "_framework";
         public const string InternalAssetsPackageName = "microsoft.aspnetcore.app.internal.assets";
+
+        /// <summary>
+        /// Manifest name of the blazor.web.js copy baked into this assembly at build time.
+        /// The final fallback when neither the published static web asset nor the NuGet cache
+        /// can supply the script (see Utilities.BlazorFrameworkExtractor).
+        /// </summary>
+        public const string EmbeddedBlazorWebJsResourceName = "CheapAvaloniaBlazor.Embedded.blazor.web.js";
+
+        /// <summary>
+        /// Request path Blazor Web App boots from. Served by static files when the file made it
+        /// to disk, by the embedded fallback middleware otherwise.
+        /// </summary>
+        public const string BlazorWebJsRequestPath = "/_framework/blazor.web.js";
     }
 
     /// <summary>

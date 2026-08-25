@@ -1,4 +1,4 @@
-# Installation Guide
+﻿# Installation Guide
 
 Complete guide to installing and configuring CheapAvaloniaBlazor for cross-platform desktop development.
 
@@ -220,7 +220,7 @@ Edit `MyDesktopApp.csproj` to use Razor SDK:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.3.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
   </ItemGroup>
 </Project>
 ```
@@ -418,7 +418,7 @@ dotnet --version
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.3.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
   </ItemGroup>
 </Project>
 ```

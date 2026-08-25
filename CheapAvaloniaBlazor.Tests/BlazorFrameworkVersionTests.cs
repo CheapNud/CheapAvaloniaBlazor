@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using CheapAvaloniaBlazor.Utilities;
 
 namespace CheapAvaloniaBlazor.Tests;
@@ -109,37 +109,58 @@ public class BlazorFrameworkVersionTests
     }
 
     [Fact]
-    public void Build_targets_glob_is_scoped_to_the_apps_framework_version()
+    public void Build_targets_take_the_script_from_the_restored_package_not_the_machine_cache()
     {
-        // An unscoped ** glob copies every cached version and lets alphabetical order pick the
-        // winner. The glob must be narrowed by the TFM-derived major.minor property.
-        var targetsPath = Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
-        var targetsDocument = XDocument.Load(targetsPath);
+        // One scalar path, no glob. A glob over the machine-global cache can match several
+        // patches, and assigning %(Item.Meta) to a property batches the whole target instead of
+        // picking a winner — which would emit one Content item per match, all claiming the same
+        // TargetPath. $(BlazorFrameworkStaticWebAssetRoot) comes from the consumer's own package
+        // graph, because CheapAvaloniaBlazor references Internal.Assets non-privately.
+        var targets = File.ReadAllText(TargetsPath());
 
-        var frameworkFileIncludes = targetsDocument.Descendants()
-            .Where(element => element.Name.LocalName == "BlazorFrameworkFiles")
-            .Select(element => element.Attribute("Include")?.Value ?? string.Empty)
-            .ToList();
-
-        Assert.NotEmpty(frameworkFileIncludes);
-        Assert.All(frameworkFileIncludes, include =>
-        {
-            Assert.DoesNotContain("**", include);
-            Assert.Contains("$(_BlazorTfmMajorMinor)", include);
-        });
+        Assert.Contains("$(BlazorFrameworkStaticWebAssetRoot)", targets);
+        Assert.DoesNotContain("$(NuGetPackageRoot)", targets);
+        Assert.DoesNotContain("%(_CheapBlazorWebJsCandidate", targets);
     }
 
     [Fact]
-    public void Build_targets_tfm_regex_tolerates_the_leading_v()
+    public void Build_targets_put_blazor_web_js_in_the_publish_output()
     {
-        // $(TargetFrameworkVersion) is "v11.0" — an anchored ^\d+\.\d+ regex silently matches
-        // nothing and the glob degrades to matching no versions at all.
-        var targetsPath = Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
-        var targetsText = File.ReadAllText(targetsPath);
+        // The original bug: a Copy task into $(OutputPath)wwwroot is invisible to `dotnet publish`,
+        // so an installed app 404s on the Blazor bootstrapper and renders a blank white window.
+        // Only Content carries into the publish directory.
+        var targetsDocument = XDocument.Load(TargetsPath());
 
-        Assert.DoesNotContain(@"'^\d+\.\d+'", targetsText);
-        Assert.Contains(@"'\d+\.\d+'", targetsText);
+        var contentItems = targetsDocument.Descendants()
+            .Where(element => element.Name.LocalName == "Content")
+            .Where(element => (element.Attribute("Include")?.Value ?? string.Empty)
+                .Contains("_CheapBlazorWebJsSource"))
+            .ToList();
+
+        var content = Assert.Single(contentItems);
+        Assert.Equal(@"wwwroot\_framework\blazor.web.js",
+            content.Elements().Single(e => e.Name.LocalName == "TargetPath").Value);
+        Assert.Equal("PreserveNewest",
+            content.Elements().Single(e => e.Name.LocalName == "CopyToPublishDirectory").Value);
+
+        // A bare Copy into the output folder is exactly what did not survive publish.
+        Assert.DoesNotContain(targetsDocument.Descendants().Where(e => e.Name.LocalName == "Copy"),
+            copy => (copy.Attribute("SourceFiles")?.Value ?? string.Empty).Contains("blazor.web.js"));
     }
+
+    [Fact]
+    public void Blazor_web_js_is_embedded_in_the_assembly()
+    {
+        // Last line of defence for a clean end-user machine: no SDK, no NuGet cache, and the
+        // static web asset missing still has to boot. The DLL always ships with the app.
+        using var stream = BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs();
+
+        Assert.NotNull(stream);
+        Assert.True(stream!.Length > 50_000, $"embedded blazor.web.js looks truncated: {stream.Length} bytes");
+    }
+
+    private static string TargetsPath()
+        => Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
 
     private static string FindRepoRoot()
     {

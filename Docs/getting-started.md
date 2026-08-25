@@ -1,4 +1,4 @@
-# Getting Started with CheapAvaloniaBlazor
+﻿# Getting Started with CheapAvaloniaBlazor
 
 Welcome! This guide will walk you through creating your first cross-platform desktop application using CheapAvaloniaBlazor. By the end, you'll have a fully functional desktop app built with the same technologies you use for web development.
 
@@ -58,7 +58,7 @@ Open your `.csproj` file and modify it:
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.3.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
   </ItemGroup>
 </Project>
 ```

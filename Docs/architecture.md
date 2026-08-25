@@ -1,4 +1,4 @@
-# Architecture
+﻿# Architecture
 
 ## How It Works
 ```
@@ -20,11 +20,19 @@
 
 In .NET 10, `blazor.web.js` ships in the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package. Its MSBuild targets register it as a static web asset — but **only for `OutputType=Exe` projects using `Microsoft.NET.Sdk.Web`**. Desktop apps use `OutputType=WinExe`, so the framework skips them entirely regardless of SDK choice.
 
-CheapAvaloniaBlazor handles this automatically via `BlazorFrameworkExtractor`:
-1. At startup, the extractor checks if `wwwroot/_framework/blazor.web.js` already exists
-2. If not, it locates the file in the NuGet global packages cache (`~/.nuget/packages/microsoft.aspnetcore.app.internal.assets/{version}/_framework/`)
-3. Copies it to `{contentRoot}/wwwroot/_framework/blazor.web.js`
-4. `UseStaticFiles()` middleware then serves it at `/_framework/blazor.web.js`
+CheapAvaloniaBlazor supplies the file itself, in three layers. Each one covers a case the layer above it cannot reach, and the app only needs one of them to succeed.
+
+**1. Build and publish (PackageReference consumers).** `Build/CheapAvaloniaBlazor.targets` adds the script as `Content` targeting `wwwroot/_framework/blazor.web.js`, sourced from the restored `Microsoft.AspNetCore.App.Internal.Assets` package. Because it is `Content` and not a copy into the output folder, it survives `dotnet publish` and travels to machines with no SDK and no package cache. This is the normal path.
+
+**2. NuGet cache extraction (developer machines, ProjectReference).** `BlazorFrameworkExtractor` runs at startup, picks the cached version matching the running runtime, and copies it into `wwwroot/_framework/`. MSBuild props and targets from a package are not imported through a `ProjectReference`, so the samples in this repo rely on this layer.
+
+**3. Embedded copy (everything else).** A copy of the script is baked into `CheapAvaloniaBlazor.dll` at build time. When layers 1 and 2 both come up empty the extractor writes it out to `wwwroot/_framework/`, and if the install directory is read-only a middleware serves it straight from the assembly at `/_framework/blazor.web.js`. The DLL always ships with the app, so this layer cannot be missing.
+
+`UseStaticFiles()` serves whatever landed on disk; the embedded middleware sits directly behind it and only answers when nothing else did.
+
+The embedded copy is frozen at the version CheapAvaloniaBlazor was packed against, so on layer 3 an app running a newer 10.0.x runtime gets a slightly older bootstrapper. That is fine: `blazor.web.js` negotiates over a protocol that is stable across a major version. Layers 1 and 2 always match the app's own package graph, and layer 3 only runs when neither could supply anything at all.
+
+Before 3.4.1 only layer 2 existed. A published app on a clean machine has no NuGet cache, so the script 404'd and the window rendered blank white with no error — the app was running and serving its HTML the whole time.
 
 ## Technology Stack
 | Component | Technology | Version |

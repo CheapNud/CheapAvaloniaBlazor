@@ -146,6 +146,63 @@ public static class WebApplicationExtensions
         {
             app.UseStaticFiles(options.CustomStaticFileOptions);
         }
+
+        app.UseEmbeddedBlazorFrameworkFallback();
+    }
+
+    /// <summary>
+    /// Serves <c>/_framework/blazor.web.js</c> from the copy embedded in this assembly, for the
+    /// case where no static file middleware could produce it. Register it directly after the
+    /// UseStaticFiles calls: a real file on disk is served first and this never runs.
+    ///
+    /// Without this a clean end-user machine 404s on the Blazor bootstrapper and the window
+    /// renders blank white — no error, no controls. Deliberately a middleware and not an
+    /// endpoint, so it cannot collide with a MapStaticAssets route for the same path.
+    ///
+    /// EmbeddedBlazorHostService builds its own WebApplication and calls this from its own
+    /// ConfigurePipeline; it never routes through ConfigureStaticFiles, so the two registrations
+    /// do not land on the same pipeline. A consumer that managed to trigger both would get a
+    /// second no-op delegate for non-matching requests, and the first registration would answer
+    /// the matching one — but they would also have doubled UseStaticFiles and UseAntiforgery,
+    /// which is the real problem at that point.
+    /// </summary>
+    internal static void UseEmbeddedBlazorFrameworkFallback(this WebApplication app)
+    {
+        // Nothing embedded (source build without the Internal.Assets package) — skip the branch.
+        if (!Utilities.BlazorFrameworkExtractor.HasEmbeddedBlazorWebJs)
+        {
+            return;
+        }
+
+        app.Use(async (context, next) =>
+        {
+            var isReadRequest = HttpMethods.IsGet(context.Request.Method)
+                || HttpMethods.IsHead(context.Request.Method);
+
+            if (!isReadRequest || !context.Request.Path.Equals(
+                    Constants.BlazorFramework.BlazorWebJsRequestPath, StringComparison.OrdinalIgnoreCase))
+            {
+                await next();
+                return;
+            }
+
+            using var stream = Utilities.BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs();
+            if (stream == null)
+            {
+                await next();
+                return;
+            }
+
+            context.Response.ContentType = Constants.Http.ContentTypeJavaScript;
+            if (stream.CanSeek)
+            {
+                context.Response.ContentLength = stream.Length;
+            }
+
+            // WebView2 caches hard across builds; this copy changes with the package version.
+            context.Response.Headers.CacheControl = "no-cache";
+            await stream.CopyToAsync(context.Response.Body, context.RequestAborted);
+        });
     }
 
     /// <summary>

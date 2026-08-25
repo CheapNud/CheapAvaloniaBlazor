@@ -421,6 +421,11 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
                 });
             }
 
+            // Last line of defence for _framework/blazor.web.js. Must sit after every
+            // UseStaticFiles so a real file on disk always wins; only fires when none of them
+            // could produce the script, which is what turns the window blank white.
+            Extensions.WebApplicationExtensions.UseEmbeddedBlazorFrameworkFallback(app);
+
             _logger.LogDebug("Adding routing...");
             app.UseRouting();
 

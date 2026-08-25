@@ -5,41 +5,49 @@
   </Target>
 
   <!--
-    .NET 10+: Copy Blazor framework file (blazor.web.js) to output wwwroot.
-    In .NET 10, these files are no longer embedded in assemblies - they're static web assets
-    that must be served from the file system. For embedded Blazor scenarios (desktop apps),
-    UseStaticFiles() serves them from wwwroot/_framework/.
+    Put blazor.web.js in the app's wwwroot/_framework/.
+
+    Blazor Web App cannot boot without it, and nothing in the SDK will place it for us: the
+    Microsoft.AspNetCore.App.Internal.Assets targets register it as a static web asset only when
+    UsingMicrosoftNETSdkWeb is true AND OutputType is exactly "Exe". Desktop apps are Sdk.Razor
+    with OutputType=WinExe, so both gates fail and the script is silently absent — the app runs,
+    serves its HTML, and renders a blank white window.
+
+    This runs as Content with CopyToOutputDirectory, NOT as a plain Copy task, because a Copy into
+    $(OutputPath) is invisible to `dotnet publish`. That was the bug: dev machines papered over it
+    with the runtime NuGet-cache extractor, and only a clean end-user machine showed the white
+    screen. Content items are carried into the publish directory by the SDK.
+
+    $(BlazorFrameworkStaticWebAssetRoot) is defined by the Internal.Assets package itself, which
+    CheapAvaloniaBlazor references non-privately so every consumer restores it. One scalar path,
+    no globbing: this file is only ever imported through a PackageReference, so the package is
+    always in that project's graph. If it somehow is not, the app still works — CheapAvaloniaBlazor
+    extracts the script at startup, and failing that serves the copy embedded in its assembly.
   -->
-  <Target Name="CopyBlazorFrameworkFilesFromLibrary" AfterTargets="Build" Condition="'$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))">
+  <Target Name="CopyBlazorFrameworkFilesFromLibrary"
+          BeforeTargets="AssignTargetPaths"
+          Condition="'$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))">
     <PropertyGroup>
-      <!-- "v11.0" -> "11.0". Scope the cache glob to the app's own framework version: the NuGet
-           cache is machine-global, and an unscoped **-glob copies every cached version with
-           alphabetical-last winning (so a cached 9.x would beat 10.x). Within the same
-           major.minor multiple patches can still match; the runtime extractor's staleness
-           check settles that at startup. Note: TargetFrameworkVersion carries a leading "v",
-           so the regex must not be anchored. -->
-      <_BlazorTfmMajorMinor>$([System.Text.RegularExpressions.Regex]::Match('$(TargetFrameworkVersion)', '\d+\.\d+').Value)</_BlazorTfmMajorMinor>
-      <DestinationFrameworkPath>$(OutputPath)wwwroot/_framework/</DestinationFrameworkPath>
+      <_CheapBlazorWebJsSource Condition="'$(BlazorFrameworkStaticWebAssetRoot)' != '' AND Exists('$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js')">$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js</_CheapBlazorWebJsSource>
     </PropertyGroup>
 
-    <ItemGroup>
-      <BlazorFrameworkFiles Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/$(_BlazorTfmMajorMinor).*/_framework/blazor.web.js" />
+    <ItemGroup Condition="'$(_CheapBlazorWebJsSource)' != ''">
+      <!-- Skip when the project really is a Web SDK Exe: there the SDK already registered the
+           script as a static web asset and a second copy would collide. -->
+      <Content Include="$(_CheapBlazorWebJsSource)"
+               Condition="!('$(UsingMicrosoftNETSdkWeb)' == 'true' AND '$(OutputType)' == 'Exe')">
+        <Link>wwwroot\_framework\blazor.web.js</Link>
+        <TargetPath>wwwroot\_framework\blazor.web.js</TargetPath>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <Pack>false</Pack>
+      </Content>
     </ItemGroup>
 
-    <Message Text="CheapAvaloniaBlazor: Looking for Blazor framework files..." Importance="normal" Condition="'@(BlazorFrameworkFiles)' != ''" />
-    <MakeDir Directories="$(DestinationFrameworkPath)" Condition="'@(BlazorFrameworkFiles)' != ''" />
-
-    <Copy SourceFiles="@(BlazorFrameworkFiles)"
-          DestinationFolder="$(DestinationFrameworkPath)"
-          SkipUnchangedFiles="true"
-          Condition="'@(BlazorFrameworkFiles)' != ''" />
-
-    <Message Text="CheapAvaloniaBlazor: Copied Blazor framework files to $(DestinationFrameworkPath)" Importance="high" Condition="'@(BlazorFrameworkFiles)' != ''" />
-    <!-- Not a hard failure: the runtime BlazorFrameworkExtractor serves blazor.web.js from the
-         NuGet cache at startup. dotnet publish handles it for deployments. This copy is a
-         convenience for running from build output directly. Common causes: dotnet build without
-         restore on a fresh CI runner, or no cached Internal.Assets version matching the app's framework. -->
-    <Warning Text="CheapAvaloniaBlazor: blazor.web.js $(_BlazorTfmMajorMinor).* not found in NuGet cache (Microsoft.AspNetCore.App.Internal.Assets). Run 'dotnet restore' first, or the app will rely on runtime extraction to serve it." Condition="'@(BlazorFrameworkFiles)' == ''" />
+    <Message Text="CheapAvaloniaBlazor: blazor.web.js -&gt; wwwroot/_framework/ (source: $(_CheapBlazorWebJsSource))"
+             Importance="normal" Condition="'$(_CheapBlazorWebJsSource)' != ''" />
+    <Message Text="CheapAvaloniaBlazor: Microsoft.AspNetCore.App.Internal.Assets is not in this project's package graph; the app will extract or serve its embedded blazor.web.js at runtime."
+             Importance="normal" Condition="'$(_CheapBlazorWebJsSource)' == ''" />
   </Target>
 
   <!-- Only create wwwroot if it doesn't exist, no copying -->
