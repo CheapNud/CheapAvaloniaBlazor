@@ -159,9 +159,12 @@ public static class WebApplicationExtensions
     /// renders blank white — no error, no controls. Deliberately a middleware and not an
     /// endpoint, so it cannot collide with a MapStaticAssets route for the same path.
     ///
-    /// EmbeddedBlazorHostService builds its own pipeline and calls this itself, so the two
-    /// registrations never meet. Calling it twice would be harmless anyway: the first
-    /// registration writes the response and does not call next().
+    /// EmbeddedBlazorHostService builds its own WebApplication and calls this from its own
+    /// ConfigurePipeline; it never routes through ConfigureStaticFiles, so the two registrations
+    /// do not land on the same pipeline. A consumer that managed to trigger both would get a
+    /// second no-op delegate for non-matching requests, and the first registration would answer
+    /// the matching one — but they would also have doubled UseStaticFiles and UseAntiforgery,
+    /// which is the real problem at that point.
     /// </summary>
     internal static void UseEmbeddedBlazorFrameworkFallback(this WebApplication app)
     {

@@ -72,6 +72,14 @@
                       LogicalName="CheapAvaloniaBlazor.Embedded.blazor.web.js" />
   </ItemGroup>
 
+  <!-- An empty $(Pkg...) property would include nothing and quietly ship a package whose
+       last-resort layer does not exist — the exact silent failure this whole arrangement is
+       here to prevent. Fail the build instead. -->
+  <Target Name="EnsureBlazorWebJsIsEmbedded" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js')"
+           Text="blazor.web.js was not found under '$(PkgMicrosoft_AspNetCore_App_Internal_Assets)'. Microsoft.AspNetCore.App.Internal.Assets must be restored with GeneratePathProperty=&quot;true&quot; or the embedded fallback ships empty. Run 'dotnet restore'." />
+  </Target>
+
   <ItemGroup>
     <!-- Package Assets -->
     <None Include="README.md" Pack="true" PackagePath="\" />
