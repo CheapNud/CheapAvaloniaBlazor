@@ -21,6 +21,21 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      # 3.4.0 shipped with the templates still pinned to 3.3.1: pack produced a 3.3.1 template
+      # package and --skip-duplicate dropped it silently, so `dotnet new cheapblazor` kept
+      # scaffolding the old library. Fail the release instead of publishing half of it.
+      - name: Check version pins agree
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          status=0
+          for file in CheapAvaloniaBlazor.csproj templates/CheapAvaloniaBlazor.Templates.csproj templates/content/CheapBlazorApp/CheapBlazorApp.csproj templates/content/CheapBlazorApp-Full/CheapBlazorApp.csproj samples/TemplateApp/TemplateApp.csproj; do
+            if ! grep -qF "$version" "$file"; then
+              echo "::error file=$file::expected version $version (from tag $GITHUB_REF_NAME)"
+              status=1
+            fi
+          done
+          exit $status
+
       - name: Restore
         run: dotnet restore CheapAvaloniaBlazor.csproj
       - name: Build

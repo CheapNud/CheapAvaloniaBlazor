@@ -1,19 +1,29 @@
-namespace CheapAvaloniaBlazor.Utilities;
+﻿namespace CheapAvaloniaBlazor.Utilities;
 
 /// <summary>
-/// Extracts blazor.web.js from the NuGet cache to wwwroot/_framework/ for serving.
+/// Makes sure <c>_framework/blazor.web.js</c> can be served. Without it the WebView loads an
+/// empty document and the app shows a blank white window with no controls.
 ///
 /// WHY THIS IS NEEDED:
-/// In .NET 10, blazor.web.js ships in the Microsoft.AspNetCore.App.Internal.Assets NuGet package.
-/// The MSBuild targets in that package register it as a static web asset, but ONLY when:
-///   1. The project uses Microsoft.NET.Sdk.Web (UsingMicrosoftNETSdkWeb == true), AND
-///   2. OutputType == "Exe" (console subsystem)
+/// blazor.web.js ships in the Microsoft.AspNetCore.App.Internal.Assets NuGet package. That
+/// package's MSBuild targets only register it as a static web asset when the project uses
+/// Microsoft.NET.Sdk.Web AND OutputType is exactly "Exe". Desktop apps are Sdk.Razor with
+/// OutputType=WinExe, so both gates fail and the script never enters the static web assets
+/// manifest — neither UseStaticWebAssets() nor MapStaticAssets() can serve it.
 ///
-/// Desktop apps use OutputType=WinExe (windowed subsystem), so the targets are skipped entirely
-/// — even with Sdk.Web. This means blazor.web.js never enters the static web assets manifest,
-/// and neither UseStaticWebAssets() nor MapStaticAssets() can serve it.
+/// THREE LAYERS, IN ORDER:
+///   1. Build/publish. Build/CheapAvaloniaBlazor.targets copies the script into the consumer's
+///      wwwroot/_framework as Content, so it survives `dotnet publish` onto a machine that has
+///      no SDK and no NuGet cache. PackageReference consumers only — MSBuild props/targets from
+///      a package are not imported through a ProjectReference.
+///   2. NuGet cache extraction. Copies the version matching the running runtime out of the
+///      machine-global package cache. Covers developer machines and ProjectReference samples.
+///   3. Embedded resource. A copy baked into this assembly at build time, written to wwwroot
+///      when layers 1 and 2 come up empty, and streamed straight from the assembly by
+///      <see cref="OpenEmbeddedBlazorWebJs"/> when wwwroot is not writable (Program Files).
 ///
-/// This extractor copies the file from the NuGet cache at runtime so UseStaticFiles() can serve it.
+/// Layer 3 is what keeps a clean end-user machine working: the DLL always ships with the app,
+/// so unlike the other two it cannot be missing.
 /// </summary>
 public static class BlazorFrameworkExtractor
 {
@@ -59,14 +69,35 @@ public static class BlazorFrameworkExtractor
                     targetPath, sourcePath);
             }
 
+            Directory.CreateDirectory(targetDir);
+
             if (sourcePath == null)
             {
-                logger.LogError("Could not find blazor.web.js in NuGet cache. " +
-                    "Ensure Microsoft.AspNetCore.App.Internal.Assets is restored (dotnet restore).");
-                return null;
+                // No cache on this machine — normal for an installed app. Fall back to the copy
+                // baked into this assembly rather than letting the WebView load a blank page.
+                using var embedded = OpenEmbeddedBlazorWebJs();
+                if (embedded == null)
+                {
+                    logger.LogError("Could not find blazor.web.js in the NuGet cache or embedded in " +
+                        "CheapAvaloniaBlazor. The app window will render blank. Rebuild the package, or " +
+                        "run 'dotnet restore' if this is a development machine.");
+                    return null;
+                }
+
+                using (var target = File.Create(targetPath))
+                {
+                    embedded.CopyTo(target);
+                }
+
+                _extractedPath = targetPath;
+                _extracted = true;
+
+                logger.LogInformation("Wrote embedded blazor.web.js to: {Path} (no NuGet cache on this machine)",
+                    targetPath);
+
+                return targetPath;
             }
 
-            Directory.CreateDirectory(targetDir);
             File.Copy(sourcePath, targetPath, overwrite: true);
 
             _extractedPath = targetPath;
@@ -82,6 +113,17 @@ public static class BlazorFrameworkExtractor
             logger.LogError(ex, "Failed to extract blazor.web.js");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Opens the blazor.web.js copy embedded in this assembly, or null when it was not embedded
+    /// (an old package, or a source build without the Internal.Assets package restored).
+    /// The caller owns the stream.
+    /// </summary>
+    public static Stream? OpenEmbeddedBlazorWebJs()
+    {
+        return typeof(BlazorFrameworkExtractor).Assembly
+            .GetManifestResourceStream(Constants.BlazorFramework.EmbeddedBlazorWebJsResourceName);
     }
 
     /// <summary>

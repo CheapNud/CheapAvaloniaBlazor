@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>3.4.0</Version>
+    <Version>3.4.1</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, static-web-asset JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.4.0 - Private update feeds: WithVelopackUpdates(repoUrl, accessToken) authenticates the Velopack release feed with a read-only token, so private Gitea/Forgejo and GitHub repositories can serve auto-updates; the token comes from the consumer's own configuration and null keeps the feed anonymous as before. Previous release: dependency updates: Avalonia 12.1.1, MudBlazor 9.8.0, Tmds.DBus.Protocol 0.95.0, CheapHelpers 3.0.0; tests moved to xunit.v3 4.0 on Microsoft.Testing.Platform.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.4.1 - Fixes a blank white window on machines without a NuGet cache: blazor.web.js now travels with the app instead of being copied out of the developer machine's package cache. It reaches wwwroot/_framework three ways - as Content that survives dotnet publish, from the restored Internal.Assets package at startup, and from a copy embedded in the library assembly that is also served directly when the install directory is read-only. Previous release: private update feeds via WithVelopackUpdates(repoUrl, accessToken).</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -33,6 +33,9 @@
   <ItemGroup>
     <!-- Exclude samples, templates and tests folders from library compilation -->
     <Compile Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
+    <!-- These are repo-local dev files; packing them leaked our test-runner pin into consumers -->
+    <None Remove="global.json;Properties\launchSettings.json" />
+    <Content Remove="global.json;Properties\launchSettings.json" />
     <Content Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
     <EmbeddedResource Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
     <None Remove="samples\**;templates\**;CheapAvaloniaBlazor.Tests\**" />
@@ -53,6 +56,20 @@
 
     <!-- Shared settings service (ISettingsService, FileSettingsService) -->
     <PackageReference Include="CheapHelpers" Version="3.0.0" />
+
+    <!-- Ships blazor.web.js. NOT PrivateAssets: consumers must restore it too, so
+         Build/CheapAvaloniaBlazor.targets can resolve $(BlazorFrameworkStaticWebAssetRoot)
+         from their own package graph instead of scraping the machine-global NuGet cache. -->
+    <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" Version="10.0.11" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Last-resort copy of blazor.web.js baked into the library assembly. Every other layer
+         (static web asset at publish time, NuGet cache extraction at startup) depends on files
+         that a clean end-user machine may simply not have; the DLL always ships with the app.
+         See Utilities/BlazorFrameworkExtractor for the layer order. -->
+    <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js"
+                      LogicalName="CheapAvaloniaBlazor.Embedded.blazor.web.js" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using CheapAvaloniaBlazor.Utilities;
 
 namespace CheapAvaloniaBlazor.Tests;
@@ -112,22 +112,75 @@ public class BlazorFrameworkVersionTests
     public void Build_targets_glob_is_scoped_to_the_apps_framework_version()
     {
         // An unscoped ** glob copies every cached version and lets alphabetical order pick the
-        // winner. The glob must be narrowed by the TFM-derived major.minor property.
-        var targetsPath = Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
-        var targetsDocument = XDocument.Load(targetsPath);
+        // winner. The cache glob must be narrowed by the TFM-derived major.minor property.
+        var includes = FrameworkCandidateIncludes();
 
-        var frameworkFileIncludes = targetsDocument.Descendants()
-            .Where(element => element.Name.LocalName == "BlazorFrameworkFiles")
-            .Select(element => element.Attribute("Include")?.Value ?? string.Empty)
-            .ToList();
-
-        Assert.NotEmpty(frameworkFileIncludes);
-        Assert.All(frameworkFileIncludes, include =>
+        Assert.NotEmpty(includes);
+        var cacheGlobs = includes.Where(include => include.Contains("$(NuGetPackageRoot)")).ToList();
+        Assert.NotEmpty(cacheGlobs);
+        Assert.All(cacheGlobs, include =>
         {
             Assert.DoesNotContain("**", include);
             Assert.Contains("$(_BlazorTfmMajorMinor)", include);
         });
     }
+
+    [Fact]
+    public void Build_targets_prefer_the_restored_package_over_the_machine_wide_cache()
+    {
+        // The machine-global cache is a fallback, not the source of truth: CheapAvaloniaBlazor
+        // references Microsoft.AspNetCore.App.Internal.Assets so consumers restore it, and
+        // $(BlazorFrameworkStaticWebAssetRoot) then points at their own package graph.
+        var includes = FrameworkCandidateIncludes();
+
+        Assert.Contains(includes, include => include.Contains("$(BlazorFrameworkStaticWebAssetRoot)"));
+    }
+
+    [Fact]
+    public void Build_targets_put_blazor_web_js_in_the_publish_output()
+    {
+        // The original bug: a Copy task into $(OutputPath)wwwroot is invisible to `dotnet publish`,
+        // so an installed app 404s on the Blazor bootstrapper and renders a blank white window.
+        // Only Content carries into the publish directory.
+        var targetsDocument = XDocument.Load(TargetsPath());
+
+        var contentItems = targetsDocument.Descendants()
+            .Where(element => element.Name.LocalName == "Content")
+            .Where(element => (element.Attribute("Include")?.Value ?? string.Empty)
+                .Contains("_CheapBlazorWebJsSource"))
+            .ToList();
+
+        var content = Assert.Single(contentItems);
+        Assert.Equal(@"wwwroot\_framework\blazor.web.js",
+            content.Elements().Single(e => e.Name.LocalName == "TargetPath").Value);
+        Assert.Equal("PreserveNewest",
+            content.Elements().Single(e => e.Name.LocalName == "CopyToPublishDirectory").Value);
+
+        // A bare Copy into the output folder is exactly what did not survive publish.
+        Assert.DoesNotContain(targetsDocument.Descendants().Where(e => e.Name.LocalName == "Copy"),
+            copy => (copy.Attribute("SourceFiles")?.Value ?? string.Empty).Contains("blazor.web.js"));
+    }
+
+    [Fact]
+    public void Blazor_web_js_is_embedded_in_the_assembly()
+    {
+        // Last line of defence for a clean end-user machine: no SDK, no NuGet cache, and the
+        // static web asset missing still has to boot. The DLL always ships with the app.
+        using var stream = BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs();
+
+        Assert.NotNull(stream);
+        Assert.True(stream!.Length > 50_000, $"embedded blazor.web.js looks truncated: {stream.Length} bytes");
+    }
+
+    private static string TargetsPath()
+        => Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
+
+    private static List<string> FrameworkCandidateIncludes()
+        => XDocument.Load(TargetsPath()).Descendants()
+            .Where(element => element.Name.LocalName == "_CheapBlazorWebJsCandidate")
+            .Select(element => element.Attribute("Include")?.Value ?? string.Empty)
+            .Where(include => include.Length > 0)
+            .ToList();
 
     [Fact]
     public void Build_targets_tfm_regex_tolerates_the_leading_v()

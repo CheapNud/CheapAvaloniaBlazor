@@ -146,6 +146,52 @@ public static class WebApplicationExtensions
         {
             app.UseStaticFiles(options.CustomStaticFileOptions);
         }
+
+        app.UseEmbeddedBlazorFrameworkFallback();
+    }
+
+    /// <summary>
+    /// Serves <c>/_framework/blazor.web.js</c> from the copy embedded in this assembly, for the
+    /// case where no static file middleware could produce it. Register it directly after the
+    /// UseStaticFiles calls: a real file on disk is served first and this never runs.
+    ///
+    /// Without this a clean end-user machine 404s on the Blazor bootstrapper and the window
+    /// renders blank white — no error, no controls. Deliberately a middleware and not an
+    /// endpoint, so it cannot collide with a MapStaticAssets route for the same path.
+    /// </summary>
+    internal static void UseEmbeddedBlazorFrameworkFallback(this WebApplication app)
+    {
+        // Nothing embedded (source build without the Internal.Assets package) — skip the branch.
+        using (var probe = Utilities.BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs())
+        {
+            if (probe == null)
+            {
+                return;
+            }
+        }
+
+        app.Use(async (context, next) =>
+        {
+            if (!context.Request.Path.Equals(Constants.BlazorFramework.BlazorWebJsRequestPath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                await next();
+                return;
+            }
+
+            using var stream = Utilities.BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs();
+            if (stream == null)
+            {
+                await next();
+                return;
+            }
+
+            context.Response.ContentType = Constants.Http.ContentTypeJavaScript;
+            context.Response.ContentLength = stream.Length;
+            // WebView2 caches hard across builds; this copy changes with the package version.
+            context.Response.Headers.CacheControl = "no-cache";
+            await stream.CopyToAsync(context.Response.Body, context.RequestAborted);
+        });
     }
 
     /// <summary>
