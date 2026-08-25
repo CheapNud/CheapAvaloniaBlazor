@@ -158,16 +158,17 @@ public static class WebApplicationExtensions
     /// Without this a clean end-user machine 404s on the Blazor bootstrapper and the window
     /// renders blank white — no error, no controls. Deliberately a middleware and not an
     /// endpoint, so it cannot collide with a MapStaticAssets route for the same path.
+    ///
+    /// EmbeddedBlazorHostService builds its own pipeline and calls this itself, so the two
+    /// registrations never meet. Calling it twice would be harmless anyway: the first
+    /// registration writes the response and does not call next().
     /// </summary>
     internal static void UseEmbeddedBlazorFrameworkFallback(this WebApplication app)
     {
         // Nothing embedded (source build without the Internal.Assets package) — skip the branch.
-        using (var probe = Utilities.BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs())
+        if (!Utilities.BlazorFrameworkExtractor.HasEmbeddedBlazorWebJs)
         {
-            if (probe == null)
-            {
-                return;
-            }
+            return;
         }
 
         app.Use(async (context, next) =>
@@ -187,7 +188,11 @@ public static class WebApplicationExtensions
             }
 
             context.Response.ContentType = Constants.Http.ContentTypeJavaScript;
-            context.Response.ContentLength = stream.Length;
+            if (stream.CanSeek)
+            {
+                context.Response.ContentLength = stream.Length;
+            }
+
             // WebView2 caches hard across builds; this copy changes with the package version.
             context.Response.Headers.CacheControl = "no-cache";
             await stream.CopyToAsync(context.Response.Body, context.RequestAborted);

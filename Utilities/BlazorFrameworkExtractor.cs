@@ -116,6 +116,14 @@ public static class BlazorFrameworkExtractor
     }
 
     /// <summary>
+    /// Whether this assembly carries the embedded blazor.web.js. Resolved once from the manifest
+    /// name list rather than by opening the stream, so the pipeline can branch on it cheaply.
+    /// </summary>
+    public static bool HasEmbeddedBlazorWebJs { get; } =
+        typeof(BlazorFrameworkExtractor).Assembly.GetManifestResourceNames()
+            .Contains(Constants.BlazorFramework.EmbeddedBlazorWebJsResourceName);
+
+    /// <summary>
     /// Opens the blazor.web.js copy embedded in this assembly, or null when it was not embedded
     /// (an old package, or a source build without the Internal.Assets package restored).
     /// The caller owns the stream.
