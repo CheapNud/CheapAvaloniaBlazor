@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 
 namespace CheapAvaloniaBlazor.Tests;
 
@@ -114,11 +114,14 @@ public class PackagingWiringTests
     }
 
     [Fact]
-    public void Bridge_js_is_not_embedded_as_a_resource()
+    public void Bridge_js_is_also_embedded_as_a_fallback_resource()
     {
-        // The EmbeddedResource copy fed the runtime extractor workaround. Both are gone — the
-        // bridge serves via the static web assets manifest. Reintroducing the embed would mean
-        // shipping the file twice and would suggest the extractor universe is leaking back in.
+        // This assertion used to be the exact opposite: the embed was removed on the grounds that
+        // the static web assets manifest is enough. It is not. When that chain breaks — no NuGet
+        // cache, a manifest pointing at paths that moved, build output copied instead of published
+        // — MapStaticAssets throws FileNotFoundException and returns 500, and the page renders
+        // blank white. The bridge ships twice on purpose: once as the static web asset that
+        // normally serves it, once inside the assembly, which cannot go missing.
         var csprojDocument = XDocument.Load(CsprojPath);
 
         var bridgeEmbeds = csprojDocument.Descendants()
@@ -126,6 +129,8 @@ public class PackagingWiringTests
             .Where(element => (element.Attribute("Include")?.Value ?? string.Empty).Contains("cheap-blazor-interop"))
             .ToList();
 
-        Assert.Empty(bridgeEmbeds);
+        var embed = Assert.Single(bridgeEmbeds);
+        Assert.Equal("CheapAvaloniaBlazor.Embedded.cheap-blazor-interop.js",
+            embed.Attribute("LogicalName")?.Value);
     }
 }
