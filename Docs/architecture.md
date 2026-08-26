@@ -34,6 +34,27 @@ The embedded copy is frozen at the version CheapAvaloniaBlazor was packed agains
 
 Before 3.4.1 only layer 2 existed. A published app on a clean machine has no NuGet cache, so the script 404'd and the window rendered blank white with no error — the app was running and serving its HTML the whole time.
 
+## How `cheap-blazor-interop.js` Is Served
+
+The JS bridge that carries every desktop interop call is a static web asset of this library, served at `_content/CheapAvaloniaBlazor/cheap-blazor-interop.js`. `dotnet publish` copies it into the app's `wwwroot/_content/`, which is the normal path and works.
+
+It is **also** embedded in `CheapAvaloniaBlazor.dll` and served from there when the file is not on disk, for the same reason `blazor.web.js` is. The static web asset chain has more failure modes than it appears: a manifest recording absolute paths into a machine that no longer exists, a consumer excluding assets, an install where `wwwroot` did not survive. When it breaks, `MapStaticAssets` throws `FileNotFoundException` and returns **500**, or answers **200 with a zero-length body** — never a 404 anything downstream could recover from.
+
+Third-party `_content` assets such as MudBlazor's CSS and JS have no equivalent safety net. This library has no copy of them to serve, so they must be on disk.
+
+## When Assets Do Not Resolve
+
+Every deployment failure in this area looks identical from the outside: a blank white window, no controls, no error dialog, nothing in a network trace that reads as broken. To stop that being a guessing game, the host fetches its own root document once at startup, follows every local `_framework/` and `_content/` reference in it, and logs an error naming any that come back failing or empty. External URLs (Google Fonts and the like) are skipped — an offline machine is not a broken app.
+
+If the log names an asset, the deployment is the thing to look at:
+
+| Deployment | Result |
+|---|---|
+| `dotnet publish` (any configuration, framework-dependent or self-contained, single-file included) | All assets resolve. This is the supported way to ship. |
+| Copying `bin/<config>/net10.0/` to another machine | **Third-party `_content` assets fail.** Build output resolves them through `{App}.staticwebassets.runtime.json`, which records absolute paths into the build machine's NuGet cache. This library's own two scripts still work, from the embedded copies. |
+
+A manifest pointing at paths that do not exist used to kill the process at startup with no window and no message. It is now caught and logged, and the app runs on whatever is reachable.
+
 ## Technology Stack
 | Component | Technology | Version |
 |-----------|-----------|---------|

@@ -159,6 +159,38 @@ public class BlazorFrameworkVersionTests
         Assert.True(stream!.Length > 50_000, $"embedded blazor.web.js looks truncated: {stream.Length} bytes");
     }
 
+    [Fact]
+    public void Every_asset_this_library_promises_to_fall_back_on_is_actually_embedded()
+    {
+        // The JS bridge lost its embedded copy when the extractor was removed, so when the static
+        // web asset chain broke it 500'd with FileNotFoundException and the page rendered blank.
+        // Both entries in the table have to resolve or the fallback layer is a lie.
+        Assert.NotEmpty(Constants.BlazorFramework.EmbeddedFallbackAssets);
+
+        foreach (var (requestPath, resourceName) in Constants.BlazorFramework.EmbeddedFallbackAssets)
+        {
+            using var stream = EmbeddedAssets.Open(resourceName);
+            Assert.True(stream is not null, $"{requestPath} claims to fall back on '{resourceName}', which is not embedded");
+            Assert.True(stream!.Length > 0, $"{resourceName} is embedded but empty");
+        }
+    }
+
+    [Fact]
+    public void The_interop_bridge_fallback_matches_the_file_on_disk()
+    {
+        // The embedded copy and the static web asset are two copies of one file. A stale embedded
+        // copy would serve an old bridge whenever the fallback fires, which is worse than a 404
+        // because it fails silently at a specific interop call rather than at load.
+        using var embedded = EmbeddedAssets.Open(Constants.BlazorFramework.EmbeddedInteropJsResourceName);
+        var onDisk = File.ReadAllBytes(Path.Combine(FindRepoRoot(), "wwwroot", "cheap-blazor-interop.js"));
+
+        Assert.NotNull(embedded);
+        using var buffer = new MemoryStream();
+        embedded!.CopyTo(buffer);
+
+        Assert.Equal(onDisk, buffer.ToArray());
+    }
+
     private static string TargetsPath()
         => Path.Combine(FindRepoRoot(), "Build", "CheapAvaloniaBlazor.targets");
 

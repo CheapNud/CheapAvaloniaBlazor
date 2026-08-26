@@ -116,12 +116,10 @@ public static class BlazorFrameworkExtractor
     }
 
     /// <summary>
-    /// Whether this assembly carries the embedded blazor.web.js. Resolved once from the manifest
-    /// name list rather than by opening the stream, so the pipeline can branch on it cheaply.
+    /// Whether this assembly carries the embedded blazor.web.js.
     /// </summary>
-    public static bool HasEmbeddedBlazorWebJs { get; } =
-        typeof(BlazorFrameworkExtractor).Assembly.GetManifestResourceNames()
-            .Contains(Constants.BlazorFramework.EmbeddedBlazorWebJsResourceName);
+    public static bool HasEmbeddedBlazorWebJs
+        => EmbeddedAssets.Has(Constants.BlazorFramework.EmbeddedBlazorWebJsResourceName);
 
     /// <summary>
     /// Opens the blazor.web.js copy embedded in this assembly, or null when it was not embedded
@@ -129,10 +127,7 @@ public static class BlazorFrameworkExtractor
     /// The caller owns the stream.
     /// </summary>
     public static Stream? OpenEmbeddedBlazorWebJs()
-    {
-        return typeof(BlazorFrameworkExtractor).Assembly
-            .GetManifestResourceStream(Constants.BlazorFramework.EmbeddedBlazorWebJsResourceName);
-    }
+        => EmbeddedAssets.Open(Constants.BlazorFramework.EmbeddedBlazorWebJsResourceName);
 
     /// <summary>
     /// True when the extracted copy no longer matches the NuGet cache source.

@@ -1,4 +1,5 @@
 ﻿using CheapAvaloniaBlazor.Configuration;
+using CheapAvaloniaBlazor.Extensions;
 using CheapAvaloniaBlazor.Utilities;
 using CheapHelpers.Settings;
 using Microsoft.AspNetCore.Builder;
@@ -154,7 +155,23 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
 
             // Configure web host
             builder.WebHost.UseUrls(BaseUrl);
-            builder.WebHost.UseStaticWebAssets();
+
+            // A .staticwebassets.runtime.json whose ContentRoots no longer exist takes the whole
+            // process down at startup — no window, no message, exit code 0. That manifest records
+            // absolute paths into the build machine's NuGet cache and source tree, so it is wrong
+            // on every machine but the one that produced it. Publish leaves it out; copying build
+            // output does not. Degrade instead: the assets still resolve from wwwroot, and the
+            // asset diagnostics middleware names anything that does not.
+            try
+            {
+                builder.WebHost.UseStaticWebAssets();
+            }
+            catch (Exception ex)
+            {
+                _diagnosticLogger.LogError(ex, "Static web assets manifest could not be loaded - " +
+                    "falling back to the files under wwwroot. This is expected when build output " +
+                    "was copied to another machine instead of being published.");
+            }
 
             // Suppress console output in production
             if (!_options.EnableConsoleLogging)
@@ -192,6 +209,11 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
 
             IsRunning = true;
             _logger.LogInformation("Blazor host started at {BaseUrl}", BaseUrl);
+
+            // Confirm the page's own scripts and stylesheets actually resolve. Not awaited: this
+            // is a diagnostic, and the window should not wait on it. A blank white window is the
+            // symptom of every one of these assets failing, and nothing else reports it.
+            _ = Task.Run(() => StartupAssetCheck.RunAsync(BaseUrl, _diagnosticLogger, _hostCts.Token), _hostCts.Token);
 
             return BaseUrl;
         }
@@ -380,6 +402,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
         try
         {
             _logger.LogInformation("Configuring pipeline for embedded Blazor host...");
+
             
             if (!app.Environment.IsDevelopment())
             {
@@ -421,7 +444,7 @@ public class EmbeddedBlazorHostService : IBlazorHostService, IAsyncDisposable, I
                 });
             }
 
-            // Last line of defence for _framework/blazor.web.js. Must sit after every
+            // Last line of defence for this library's own JavaScript. Must sit after every
             // UseStaticFiles so a real file on disk always wins; only fires when none of them
             // could produce the script, which is what turns the window blank white.
             Extensions.WebApplicationExtensions.UseEmbeddedBlazorFrameworkFallback(app);

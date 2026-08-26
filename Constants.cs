@@ -12,6 +12,10 @@ public static class Constants
     {
         public const string ComponentsDirectory = "Components";
         public const string WwwRoot = "wwwroot";
+
+        /// <summary>Request path prefixes that carry the assets a Blazor page cannot render without.</summary>
+        public const string FrameworkRequestPrefix = "/_framework/";
+        public const string ContentRequestPrefix = "/_content/";
     }
 
     /// <summary>
@@ -341,6 +345,8 @@ public static class Constants
     /// </summary>
     public static class BlazorFramework
     {
+        // (request path prefixes live in Constants.Paths)
+
         public const string BlazorWebJsFileName = "blazor.web.js";
         public const string FrameworkDirectory = "_framework";
         public const string InternalAssetsPackageName = "microsoft.aspnetcore.app.internal.assets";
@@ -357,6 +363,24 @@ public static class Constants
         /// to disk, by the embedded fallback middleware otherwise.
         /// </summary>
         public const string BlazorWebJsRequestPath = "/_framework/blazor.web.js";
+
+        /// <summary>
+        /// Manifest name of the JS bridge baked into this assembly, and the path it is served at.
+        /// The static web asset is the normal source; this is what answers when that chain breaks.
+        /// </summary>
+        public const string EmbeddedInteropJsResourceName = "CheapAvaloniaBlazor.Embedded.cheap-blazor-interop.js";
+
+        /// <summary>
+        /// Request paths this library can satisfy from its own assembly, mapped to the manifest
+        /// resource that backs each one. Anything outside this table (MudBlazor and other
+        /// third-party _content assets) can only come from disk.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> EmbeddedFallbackAssets =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [BlazorWebJsRequestPath] = EmbeddedBlazorWebJsResourceName,
+                [Endpoints.JavaScriptBridgeEndpoint] = EmbeddedInteropJsResourceName,
+            };
     }
 
     /// <summary>

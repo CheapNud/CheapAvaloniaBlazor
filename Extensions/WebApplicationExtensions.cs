@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace CheapAvaloniaBlazor.Extensions;
@@ -116,11 +117,12 @@ public static class WebApplicationExtensions
     /// <summary>
     /// Configure static files for the consuming project's wwwroot
     /// </summary>
-    // The JS bridge needs no special serving here: it ships as a static web asset and serves
-    // at _content/CheapAvaloniaBlazor/cheap-blazor-interop.js through MapStaticAssets, exactly
-    // like MudBlazor's _content files. The embedded-resource providers, manual MapGet fallback
-    // and runtime extractor that used to live here existed only because the package's build
-    // props clobbered the SDK-generated static web assets import (see Build/CheapAvaloniaBlazor.props).
+    // The JS bridge normally ships as a static web asset and serves at
+    // _content/CheapAvaloniaBlazor/cheap-blazor-interop.js through MapStaticAssets, exactly like
+    // MudBlazor's _content files. That was once believed to be enough on its own, and the
+    // embedded-resource serving here was removed on that basis. It is not enough: when the chain
+    // breaks the endpoint stays routed and answers 500 or an empty 200, so the page renders blank
+    // with nothing to recover from. UseEmbeddedBlazorFrameworkFallback below is that layer, back.
     private static void ConfigureStaticFiles(WebApplication app, CheapAvaloniaBlazorOptions options)
     {
         var isDevelopment = app.Environment.IsDevelopment();
@@ -151,13 +153,20 @@ public static class WebApplicationExtensions
     }
 
     /// <summary>
-    /// Serves <c>/_framework/blazor.web.js</c> from the copy embedded in this assembly, for the
-    /// case where no static file middleware could produce it. Register it directly after the
+    /// Serves this library's own JavaScript from copies embedded in the assembly, for the case
+    /// where no static file middleware could produce them. Register it directly after the
     /// UseStaticFiles calls: a real file on disk is served first and this never runs.
     ///
-    /// Without this a clean end-user machine 404s on the Blazor bootstrapper and the window
-    /// renders blank white — no error, no controls. Deliberately a middleware and not an
-    /// endpoint, so it cannot collide with a MapStaticAssets route for the same path.
+    /// Covers <c>/_framework/blazor.web.js</c> and
+    /// <c>/_content/CheapAvaloniaBlazor/cheap-blazor-interop.js</c>. Without the first the window
+    /// renders blank white; without the second every desktop interop call fails. Both normally
+    /// arrive as static web assets, and that chain has more ways to break on a machine we do not
+    /// control than it looks: no NuGet cache, a manifest pointing at paths that moved, a consumer
+    /// excluding assets. When it does break, MapStaticAssets throws FileNotFoundException and
+    /// returns 500 rather than 404, so nothing downstream gets a chance to recover.
+    ///
+    /// Third-party _content assets (MudBlazor and friends) can only come from disk — this
+    /// library has no copy of them to serve. StartupAssetCheck reports those by name at startup.
     ///
     /// EmbeddedBlazorHostService builds its own WebApplication and calls this from its own
     /// ConfigurePipeline; it never routes through ConfigureStaticFiles, so the two registrations
@@ -165,11 +174,18 @@ public static class WebApplicationExtensions
     /// second no-op delegate for non-matching requests, and the first registration would answer
     /// the matching one — but they would also have doubled UseStaticFiles and UseAntiforgery,
     /// which is the real problem at that point.
+    ///
+    /// Deliberately a middleware and not an endpoint, so it cannot collide with a
+    /// MapStaticAssets route for the same path.
     /// </summary>
     internal static void UseEmbeddedBlazorFrameworkFallback(this WebApplication app)
     {
+        var available = Constants.BlazorFramework.EmbeddedFallbackAssets
+            .Where(entry => Utilities.EmbeddedAssets.Has(entry.Value))
+            .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+
         // Nothing embedded (source build without the Internal.Assets package) — skip the branch.
-        if (!Utilities.BlazorFrameworkExtractor.HasEmbeddedBlazorWebJs)
+        if (available.Count == 0)
         {
             return;
         }
@@ -179,14 +195,15 @@ public static class WebApplicationExtensions
             var isReadRequest = HttpMethods.IsGet(context.Request.Method)
                 || HttpMethods.IsHead(context.Request.Method);
 
-            if (!isReadRequest || !context.Request.Path.Equals(
-                    Constants.BlazorFramework.BlazorWebJsRequestPath, StringComparison.OrdinalIgnoreCase))
+            if (!isReadRequest
+                || !context.Request.Path.HasValue
+                || !available.TryGetValue(context.Request.Path.Value, out var resourceName))
             {
                 await next();
                 return;
             }
 
-            using var stream = Utilities.BlazorFrameworkExtractor.OpenEmbeddedBlazorWebJs();
+            using var stream = Utilities.EmbeddedAssets.Open(resourceName);
             if (stream == null)
             {
                 await next();
@@ -199,7 +216,7 @@ public static class WebApplicationExtensions
                 context.Response.ContentLength = stream.Length;
             }
 
-            // WebView2 caches hard across builds; this copy changes with the package version.
+            // WebView2 caches hard across builds; these copies change with the package version.
             context.Response.Headers.CacheControl = "no-cache";
             await stream.CopyToAsync(context.Response.Body, context.RequestAborted);
         });

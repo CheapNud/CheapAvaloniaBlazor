@@ -793,7 +793,7 @@ dotnet build
 **Black Screen / `blazor.web.js` 404**
 - Run `dotnet restore` to ensure `Microsoft.AspNetCore.App.Internal.Assets` is in the NuGet cache
 - If using `Sdk.Razor`: the library supplies `blazor.web.js` in three layers (see architecture.md) — check startup logs for `Extracted blazor.web.js` or `Wrote embedded blazor.web.js`
-- A blank white window with no controls on an installed app is almost always this file 404ing; fetch `http://localhost:{port}/_framework/blazor.web.js` to confirm
+- A blank white window with no controls on an installed app is almost always an asset failing to resolve. Look for `Startup asset check:` lines in the log — the host fetches its own page at startup and names every script or stylesheet that comes back failing or empty. A `200` with `0 bytes` counts as a failure and is the most common shape; it means the static web asset endpoint is still routed but the file behind it is gone.
 - If using `Sdk.Web`: verify `MapStaticAssets()` is in the pipeline (called by `UseCheapBlazorDesktop()`)
 - Clear the WebView2 cache if you see stale behavior: delete `%LocalAppData%\Photino\EBWebView\Default\Cache\`
 

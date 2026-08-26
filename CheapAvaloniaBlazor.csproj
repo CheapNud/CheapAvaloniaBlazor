@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.4.1 - Fixes a blank white window on machines without a NuGet cache: blazor.web.js now travels with the app instead of being copied out of the developer machine's package cache. It reaches wwwroot/_framework three ways - as Content that survives dotnet publish, from the restored Internal.Assets package at startup, and from a copy embedded in the library assembly that is also served directly when the install directory is read-only. Previous release: private update feeds via WithVelopackUpdates(repoUrl, accessToken).</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.4.1 - Fixes a blank white window on machines that never had the .NET SDK. blazor.web.js and cheap-blazor-interop.js now travel with the app instead of being resolved out of the build machine's NuGet cache: both reach wwwroot as content that survives dotnet publish, and both are embedded in the library assembly as a fallback that cannot go missing. A static web assets manifest pointing at paths that no longer exist no longer kills the process at startup, and the host now checks its own page at startup and logs any script or stylesheet that comes back failing or empty - including the 200-with-zero-bytes case that reports as healthy everywhere else. Previous release: private update feeds via WithVelopackUpdates(repoUrl, accessToken).</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -70,6 +70,15 @@
          See Utilities/BlazorFrameworkExtractor for the layer order. -->
     <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js"
                       LogicalName="CheapAvaloniaBlazor.Embedded.blazor.web.js" />
+
+    <!-- Same treatment for our own JS bridge. It normally serves as a static web asset at
+         _content/CheapAvaloniaBlazor/, but that chain has several ways to break on a machine
+         we do not control, and when it breaks MapStaticAssets throws FileNotFoundException
+         rather than 404ing. 5 KB is cheap insurance for the file that carries every desktop
+         interop call. This is also a Content item via the SDK's wwwroot glob — both copies
+         are intentional. -->
+    <EmbeddedResource Include="wwwroot\cheap-blazor-interop.js"
+                      LogicalName="CheapAvaloniaBlazor.Embedded.cheap-blazor-interop.js" />
   </ItemGroup>
 
   <!-- An empty $(Pkg...) property would include nothing and quietly ship a package whose
@@ -88,11 +97,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="CheapAvaloniaBlazor.Tests" />
   </ItemGroup>
-
-  <!-- The JS bridge is a plain static web asset: the SDK includes wwwroot\*.js as Content and
-       packs it under staticwebassets/, served at _content/CheapAvaloniaBlazor/. The EmbeddedResource
-       copy (and its runtime extractor) existed only because Build/CheapAvaloniaBlazor.props used to
-       drop the SDK-generated static web assets import. -->
 
   <ItemGroup>
     <!-- Build targets for consuming projects -->
