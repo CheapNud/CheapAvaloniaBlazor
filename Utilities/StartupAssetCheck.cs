@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using CheapAvaloniaBlazor.Services;
 
 namespace CheapAvaloniaBlazor.Utilities;
@@ -11,7 +11,12 @@ namespace CheapAvaloniaBlazor.Utilities;
 /// It serves its HTML, the WebView renders a blank white window with no controls, and nothing
 /// anywhere says why. Worse, a broken static web asset endpoint answers <c>200</c> with a
 /// zero-length body rather than 404, so even a network trace looks healthy. This check turns
-/// that into one named error line per missing asset, at startup, before anyone has to guess.
+/// that into one named error line per missing asset.
+///
+/// It runs alongside the WebView rather than ahead of it, so the window may already be blank by
+/// the time the lines appear. The point is that they appear at all, naming files, instead of the
+/// failure being invisible everywhere. Each request is bounded by the 5s client timeout and the
+/// host's cancellation token, so a wedged endpoint cannot leave this running.
 /// </summary>
 internal static partial class StartupAssetCheck
 {
