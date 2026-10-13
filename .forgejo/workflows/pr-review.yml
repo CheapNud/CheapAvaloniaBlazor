@@ -166,6 +166,7 @@ jobs:
             -H "content-type: application/json" \
             -d @review-request.json); then
             echo "::error::Failed to call Claude API"
+            echo "Claude API call failed before a response arrived (curl timeout or network error)" > review-error.txt
             exit 1
           fi
 
