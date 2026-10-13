@@ -8,7 +8,6 @@ on:
       - 'v*.*.*'
 
 env:
-  DOTNET_VERSION: '10.0.x'
   CONFIGURATION: Release
   NUGET_SOURCE: https://api.nuget.org/v3/index.json
 
@@ -18,9 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+      # No setup-dotnet: the ubuntu-latest runner image has the .NET SDK baked in
+      # (ci-dotnet) and mounts a persistent NuGet cache, same as build.yml.
       # 3.4.0 shipped with the templates still pinned to 3.3.1: pack produced a 3.3.1 template
       # package and --skip-duplicate dropped it silently, so `dotnet new cheapblazor` kept
       # scaffolding the old library. Fail the release instead of publishing half of it.
