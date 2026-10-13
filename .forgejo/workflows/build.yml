@@ -17,21 +17,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Everything in this repo targets net10.0 — installing only the 11-preview SDK
-      # leaves out the ASP.NET Core 10 runtime and the Testing.Platform test host
-      # can't even launch (the failure shows zero tests failed, just app-launch-failed).
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: nuget-
-
+      # No setup-dotnet: the ubuntu-latest label maps to a runner image with the
+      # .NET SDK baked in (ci-dotnet), so the SDK download is gone.
+      # No actions/cache: the runner mounts a persistent nuget-ci-cache volume
+      # into every job (act_runner container.options) — restore hits a warm local
+      # cache without the tar-and-transfer round trip the cache action cost.
+      # Both ProjectReference samples instead of the slnx: TemplateApp's
+      # PackageReference cannot restore at a version-bump commit before publish.
       - name: Restore
         run: |
           dotnet restore samples/DesktopFeatures/DesktopFeatures.csproj

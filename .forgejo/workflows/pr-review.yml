@@ -8,17 +8,18 @@ on:
       - 'Docs/**'
 
 env:
-  CLAUDE_MODEL: "claude-opus-4-8"
-  MAX_TOKENS: 4096
+  CLAUDE_MODEL: "claude-opus-5-5"
+  # Opus 5.5 always thinks and the thinking tokens count against max_tokens, so
+  # the old 4096 ceiling could be eaten before a single line of review was written.
+  MAX_TOKENS: 16000
   MAX_DIFF_SIZE_BYTES: 300000
-  # Your Gitea instance base URL — update if you have a hostname
   GITEA_URL: "http://192.168.1.40:3000"
 
 jobs:
   claude-review:
     name: AI Code Review
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -37,13 +38,15 @@ jobs:
           REPO=${{ github.repository }}
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
 
-          # Fetch PR details from Gitea API
-          if ! curl -sf \
+          # Fetch PR details from Gitea API. -f hides the response on failure, so
+          # capture the status code explicitly — a token-scope rejection (401/403)
+          # and an unreachable host look identical otherwise.
+          HTTP_STATUS=$(curl -s -o pr-details.json -w "%{http_code}" \
             -H "Authorization: token $GITEA_TOKEN" \
             -H "Content-Type: application/json" \
-            "${{ env.GITEA_URL }}/api/v1/repos/${REPO}/pulls/${PR_NUMBER}" \
-            > pr-details.json; then
-            echo "::error::Failed to fetch PR details from Gitea API"
+            "${{ env.GITEA_URL }}/api/v1/repos/${REPO}/pulls/${PR_NUMBER}" || echo "000")
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "::error::Failed to fetch PR details from Gitea API (HTTP ${HTTP_STATUS}): $(head -c 300 pr-details.json)"
             exit 1
           fi
 
@@ -96,16 +99,35 @@ jobs:
           DELETIONS=$(jq -r '.deletions // 0' pr-details.json)
           CHANGED_FILES=$(jq -r '.changed_files // 0' pr-details.json)
 
-          # Build the review prompt
-          PROMPT="You are an expert code reviewer for C#, .NET, Blazor, and Avalonia projects. Review this pull request and provide:
+          PROMPT="You are an expert code reviewer for C#, .NET, Blazor, Avalonia and ASP.NET Core projects.
 
-          1. **Summary**: Brief overview of changes
-          2. **Code Quality**: Assessment of code organization, patterns, and best practices
-          3. **Potential Issues**: Security concerns, bugs, performance issues, or breaking changes
-          4. **Recommendations**: Suggestions for improvements
-          5. **Verdict**: APPROVE, REQUEST CHANGES, or COMMENT
+          Review this pull request. Be extremely concise - only flag things that actually matter.
 
-          Be constructive, concise, and focus on important issues. Use markdown formatting.
+          Format your review as:
+          1. **Summary** (1-2 sentences max)
+          2. **Code Quality** followed by a 1-5 star rating using filled ⭐ and empty ☆ (e.g. ⭐⭐⭐⭐☆). Below the rating, add one short sentence highlighting a strength or positive aspect of the PR.
+          3. **Issues** (only bugs, security problems, deadlocks, resource leaks, or breaking changes - skip this section entirely if none found). Prefix each issue with a severity orb: 🔴 Critical, 🟡 Warning, 🟢 Minor. Place the orb directly before the issue title, e.g. 🔴 HotkeyService.cs — handle never released. Do NOT put orbs on section headers.
+          4. **Verdict**: One of these three:
+             - **APPROVE** — code is good to merge
+             - **REQUEST CHANGES** — there are issues that should be fixed before merging. List the specific changes needed as a short bullet list directly under the verdict
+             - **REJECT** — code has fundamental or critical problems that require a rethink
+
+          Project-specific rules to enforce:
+          - Primary constructors preferred over traditional constructors for DI
+          - Lambda LINQ only — never query syntax
+          - Debug.WriteLine() not Console.WriteLine()
+          - No async void
+          - No Task.FromResult
+          - Two DI containers exist (Avalonia side and Blazor side); a singleton shared by both needs a runtime instance override in EmbeddedBlazorHostService
+          - Native handles, WndProc delegates and P/Invoke callbacks must be kept alive and released in Dispose
+
+          General rules:
+          - Do NOT comment on style, naming, or minor preferences
+          - Do NOT suggest nice-to-have improvements or refactors
+          - Only raise issues you are confident are real problems
+          - NEVER repeat secrets, passwords, API keys, tokens, or internal URLs/IPs found in the diff — refer to them generically (e.g. 'the hardcoded password in line X'). Your review is posted as a public comment.
+          - If the diff introduces hardcoded credentials or secrets, flag it as a critical issue but do NOT quote the actual values.
+          - If everything looks fine, just say so in 1-2 lines and approve
 
           ---
 
@@ -125,6 +147,8 @@ jobs:
             echo '```'
           } > prompt.txt
 
+          # Opus 5.5 defaults to medium effort; a review that misses a bug costs
+          # more than the extra thinking tokens, so ask for high.
           jq -n \
             --arg model "${{ env.CLAUDE_MODEL }}" \
             --argjson max_tokens ${{ env.MAX_TOKENS }} \
@@ -132,10 +156,11 @@ jobs:
             '{
               model: $model,
               max_tokens: $max_tokens,
+              output_config: { effort: "high" },
               messages: [{ role: "user", content: $prompt }]
             }' > review-request.json
 
-          if ! RESPONSE=$(curl -s --max-time 300 https://api.anthropic.com/v1/messages \
+          if ! RESPONSE=$(curl -s --max-time 600 https://api.anthropic.com/v1/messages \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
             -H "content-type: application/json" \
@@ -148,19 +173,26 @@ jobs:
 
           ERROR=$(echo "$RESPONSE" | jq -r '.error.message // empty')
           if [ -n "$ERROR" ]; then
+            ERROR_TYPE=$(echo "$RESPONSE" | jq -r '.error.type // "unknown"')
             echo "::error::Claude API Error: $ERROR"
+            echo "Claude API error (${ERROR_TYPE}): ${ERROR}" > review-error.txt
             exit 1
           fi
 
-          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // empty')
+          # The response content is a list of blocks and the first one is a
+          # thinking block on Opus 5.5, so pick every text block instead of [0].
+          REVIEW=$(echo "$RESPONSE" | jq -r '[.content[] | select(.type == "text") | .text] | join("\n")')
           if [ -z "$REVIEW" ]; then
-            echo "::error::No review content received from Claude"
+            STOP_REASON=$(echo "$RESPONSE" | jq -r '.stop_reason // "unknown"')
+            echo "::error::No review content received from Claude (stop_reason: ${STOP_REASON})"
+            echo "Claude API returned no review text (stop_reason: ${STOP_REASON})" > review-error.txt
             exit 1
           fi
 
           INPUT_TOKENS=$(echo "$RESPONSE" | jq -r '.usage.input_tokens // 0')
           OUTPUT_TOKENS=$(echo "$RESPONSE" | jq -r '.usage.output_tokens // 0')
-          COST=$(awk "BEGIN {printf \"%.4f\", ($INPUT_TOKENS * 5 + $OUTPUT_TOKENS * 25) / 1000000}")
+          # Opus 5.5 list price: $4 / $20 per million input / output tokens.
+          COST=$(awk "BEGIN {printf \"%.4f\", ($INPUT_TOKENS * 4 + $OUTPUT_TOKENS * 20) / 1000000}")
 
           echo "📊 Token usage: ${INPUT_TOKENS} input + ${OUTPUT_TOKENS} output"
           echo "💰 Estimated cost: \$${COST}"
@@ -187,7 +219,7 @@ jobs:
           COMMENT_ID=$(curl -sf \
             -H "Authorization: token $GITEA_TOKEN" \
             "${{ env.GITEA_URL }}/api/v1/repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            | jq -r '.[] | select(.user.login == "gitea-actions" or (.body | contains("🤖 Claude AI Code Review"))) | .id' \
+            | jq -r '.[] | select(.user.login == "gitea-actions" or .user.login == "forgejo-actions" or (.body | contains("🤖 Claude AI Code Review"))) | .id' \
             | head -n 1 || echo "")
 
           if [ -n "$COMMENT_ID" ]; then
@@ -217,7 +249,7 @@ jobs:
           # Build comment body — use jq --rawfile to avoid shell expansion breaking on backticks/quotes
           FOOTER="---
           📊 **Tokens**: ${INPUT_TOKENS} input + ${OUTPUT_TOKENS} output | 💰 **Cost**: ~\$${COST}
-          *Generated by Claude Opus 4.8 via Gitea Actions*"
+          *Generated by Claude Opus 5.5 via Forgejo Actions*"
 
           jq -n --rawfile review claude-review.md --arg footer "$FOOTER" \
             '{"body": ("## 🤖 Claude AI Code Review\n\n" + $review + "\n\n" + $footer)}' \
@@ -254,3 +286,23 @@ jobs:
             echo "Response: $BODY"
             exit 1
           fi
+
+      # A silent red X on the review job means reading runner logs to find out
+      # why — surface the reason on the PR itself instead. Reasons never contain
+      # credentials (API error messages and step names only).
+      - name: Report review failure on the PR
+        if: failure()
+        env:
+          GITEA_TOKEN: ${{ github.token }}
+        run: |
+          REASON=$(cat review-error.txt 2>/dev/null || echo "failed before the Claude API call — likely fetching the PR details/diff; check the run log")
+
+          jq -n --arg reason "$REASON" \
+            '{"body": ("## 🤖 Claude AI Code Review\n\n⚠️ **Review could not run**: " + $reason)}' \
+            > failure-payload.json
+
+          curl -s -o /dev/null -w "posted failure notice: HTTP %{http_code}\n" -X POST \
+            -H "Authorization: token $GITEA_TOKEN" \
+            -H "Content-Type: application/json" \
+            "${{ env.GITEA_URL }}/api/v1/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d @failure-payload.json
