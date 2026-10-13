@@ -181,7 +181,7 @@ jobs:
 
           # The response content is a list of blocks and the first one is a
           # thinking block on Opus 5.5, so pick every text block instead of [0].
-          REVIEW=$(echo "$RESPONSE" | jq -r '[.content[] | select(.type == "text") | .text] | join("\n")')
+          REVIEW=$(echo "$RESPONSE" | jq -r '[.content[]? | select(.type == "text") | .text] | join("")')
           if [ -z "$REVIEW" ]; then
             STOP_REASON=$(echo "$RESPONSE" | jq -r '.stop_reason // "unknown"')
             echo "::error::No review content received from Claude (stop_reason: ${STOP_REASON})"
