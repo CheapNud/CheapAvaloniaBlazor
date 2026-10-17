@@ -73,6 +73,7 @@ jobs:
           if [ $DIFF_SIZE -gt ${{ env.MAX_DIFF_SIZE_BYTES }} ]; then
             echo "::error::Diff too large for AI review ($DIFF_SIZE bytes, max ${{ env.MAX_DIFF_SIZE_BYTES }})"
             echo "::notice::Consider breaking this PR into smaller chunks"
+            echo "diff too large for review (${DIFF_SIZE} bytes, max ${{ env.MAX_DIFF_SIZE_BYTES }}) - split the PR" > review-error.txt
             exit 1
           fi
 
@@ -180,13 +181,20 @@ jobs:
             exit 1
           fi
 
-          # The response content is a list of blocks and the first one is a
-          # thinking block on Opus 5.5, so pick every text block instead of [0].
+          # A review cut off by max_tokens would post as if it were complete - fail it
+          # instead so the notice below says what happened.
+          STOP_REASON=$(echo "$RESPONSE" | jq -r '.stop_reason // "unknown"')
+          if [ "$STOP_REASON" = "max_tokens" ]; then
+            echo "::error::Review truncated at max_tokens (${{ env.MAX_TOKENS }})"
+            echo "review truncated at max_tokens (${{ env.MAX_TOKENS }}) - raise MAX_TOKENS or shrink the diff" > review-error.txt
+            exit 1
+          fi
+
+          # Thinking blocks come first in the content array; join only the text blocks.
           REVIEW=$(echo "$RESPONSE" | jq -r '[.content[]? | select(.type == "text") | .text] | join("")')
           if [ -z "$REVIEW" ]; then
-            STOP_REASON=$(echo "$RESPONSE" | jq -r '.stop_reason // "unknown"')
-            echo "::error::No review content received from Claude (stop_reason: ${STOP_REASON})"
-            echo "Claude API returned no review text (stop_reason: ${STOP_REASON})" > review-error.txt
+            echo "::error::No review content received from Claude"
+            echo "Claude API returned no review content" > review-error.txt
             exit 1
           fi
 
@@ -220,7 +228,7 @@ jobs:
           COMMENT_ID=$(curl -sf \
             -H "Authorization: token $GITEA_TOKEN" \
             "${{ env.GITEA_URL }}/api/v1/repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            | jq -r '.[] | select(.user.login == "gitea-actions" or .user.login == "forgejo-actions" or (.body | contains("🤖 Claude AI Code Review"))) | .id' \
+            | jq -r '.[] | select((.user.login == "gitea-actions" or .user.login == "forgejo-actions") and ((.body // "") | contains("🤖 Claude AI Code Review"))) | .id' \
             | head -n 1 || echo "")
 
           if [ -n "$COMMENT_ID" ]; then
@@ -302,8 +310,28 @@ jobs:
             '{"body": ("## 🤖 Claude AI Code Review\n\n⚠️ **Review could not run**: " + $reason)}' \
             > failure-payload.json
 
-          curl -s -o /dev/null -w "posted failure notice: HTTP %{http_code}\n" -X POST \
-            -H "Authorization: token $GITEA_TOKEN" \
-            -H "Content-Type: application/json" \
-            "${{ env.GITEA_URL }}/api/v1/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
-            -d @failure-payload.json
+          # The find-comment step may not have run (the failure can be upstream of it),
+          # so look the bot comment up here and edit it - every push to a failing PR
+          # would otherwise stack another notice.
+          COMMENTS_URL="${{ env.GITEA_URL }}/api/v1/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
+          COMMENT_ID=$(curl -sf -H "Authorization: token $GITEA_TOKEN" "$COMMENTS_URL" \
+            | jq -r '.[] | select((.user.login == "gitea-actions" or .user.login == "forgejo-actions") and ((.body // "") | contains("🤖 Claude AI Code Review"))) | .id' \
+            | head -n 1 || echo "")
+
+          PATCH_STATUS="000"
+          if [ -n "$COMMENT_ID" ]; then
+            PATCH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Authorization: token $GITEA_TOKEN" \
+              -H "Content-Type: application/json" \
+              "${{ env.GITEA_URL }}/api/v1/repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+              -d @failure-payload.json)
+            echo "updated failure notice #${COMMENT_ID}: HTTP ${PATCH_STATUS}"
+          fi
+          # No comment to edit, or the edit failed (deleted meanwhile, not ours): post a new one.
+          if [ "$PATCH_STATUS" -lt 200 ] || [ "$PATCH_STATUS" -ge 300 ]; then
+            curl -s -o /dev/null -w "posted failure notice: HTTP %{http_code}\n" -X POST \
+              -H "Authorization: token $GITEA_TOKEN" \
+              -H "Content-Type: application/json" \
+              "$COMMENTS_URL" \
+              -d @failure-payload.json
+          fi
