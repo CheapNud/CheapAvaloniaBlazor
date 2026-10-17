@@ -36,3 +36,69 @@ jobs:
 
       - name: Test
         run: dotnet test --project CheapAvaloniaBlazor.Tests/CheapAvaloniaBlazor.Tests.csproj --configuration Release --verbosity normal
+
+  # Ported from the GitHub nuget-publish.yml when that workflow was removed. Scaffolds both
+  # templates from the freshly packed template package, checks the minimal scaffold is
+  # byte-identical to samples/TemplateApp, and builds both scaffolds against the library
+  # packed from this commit, so a template that drifts from the library fails here and not
+  # on the first consumer.
+  template-smoke-test:
+    name: Template Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pack library and templates
+        run: |
+          dotnet build CheapAvaloniaBlazor.csproj --configuration Release
+          dotnet pack CheapAvaloniaBlazor.csproj --configuration Release --no-build --output ./nupkgs
+          dotnet pack templates/CheapAvaloniaBlazor.Templates.csproj --configuration Release --output ./nupkgs
+          # The runner's NuGet cache persists between jobs; a cached copy of this version
+          # would win over the package just built.
+          version=$(grep -oP '(?<=<Version>)[^<]+' CheapAvaloniaBlazor.csproj)
+          rm -rf "$(dotnet nuget locals global-packages --list | sed 's/.*: //')/cheapavaloniablazor/$version"
+
+      - name: Scaffold templates
+        run: |
+          dotnet new install ./nupkgs/CheapAvaloniaBlazor.Templates.*.nupkg
+          mkdir -p work
+          dotnet new cheapblazor -n TemplateApp -o work/TemplateApp
+          dotnet new cheapblazor-full -n SmokeFull -o work/SmokeFull
+
+      - name: Diff scaffold against checked-in sample
+        run: |
+          diff -ru --strip-trailing-cr \
+            -I 'PackageReference Include="CheapAvaloniaBlazor"' \
+            -x bin -x obj \
+            samples/TemplateApp work/TemplateApp
+
+      # Source mapping forces the library to restore from the freshly packed nupkg, not
+      # nuget.org, so a PR tests template and library compatibility against its own code.
+      - name: Point scaffolded apps at the locally packed library
+        run: |
+          cat > work/NuGet.config <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$PWD/nupkgs" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+            <packageSourceMapping>
+              <packageSource key="local">
+                <package pattern="CheapAvaloniaBlazor" />
+              </packageSource>
+              <packageSource key="nuget.org">
+                <package pattern="*" />
+              </packageSource>
+            </packageSourceMapping>
+          </configuration>
+          EOF
+
+      - name: Build scaffolded apps
+        run: |
+          dotnet build work/TemplateApp/TemplateApp.csproj --configuration Release
+          dotnet build work/SmokeFull/SmokeFull.csproj --configuration Release
