@@ -1,0 +1,105 @@
+name: Release sample apps
+
+# Attaches ready-to-run Windows builds of the sample apps to the forge release for the
+# current library version. Meant for trying the framework on a machine that never had the
+# .NET SDK: download, unzip, run the exe. Runs on every v*.*.* tag next to publish.yml,
+# and by hand (Actions > Release sample apps > Run) to rebuild assets for the current version.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+env:
+  CONFIGURATION: Release
+  RID: win-x64
+
+jobs:
+  release:
+    name: Publish and upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # No setup-dotnet: the ubuntu-latest runner image has the .NET SDK baked in (ci-dotnet)
+      # and mounts a persistent NuGet cache, same as build.yml.
+      - name: Read version
+        run: |
+          version=$(grep -oP '(?<=<Version>)[^<]+' CheapAvaloniaBlazor.csproj)
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match <Version>$version</Version>"
+            exit 1
+          fi
+
+      # TemplateApp consumes the library as a PackageReference, which is the path end users
+      # take and the one that broke on clean machines before 3.4.1. Pack the library from this
+      # commit and restore against it so the release never waits on nuget.org indexing.
+      # A NuGet.config rather than --source: the SDK 11 previews resolve a --source URL as a
+      # relative path and fail the restore.
+      - name: Pack library
+        run: |
+          dotnet build CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }}
+          dotnet pack CheapAvaloniaBlazor.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ./nupkgs
+          # The runner's NuGet cache persists between jobs; a copy of this version from an
+          # earlier run would win over the package just built.
+          rm -rf "$(dotnet nuget locals global-packages --list | sed 's/.*: //')/cheapavaloniablazor/$VERSION"
+          cat > NuGet.config <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$PWD/nupkgs" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          EOF
+
+      - name: Publish sample apps
+        run: |
+          publish() {
+            dotnet publish "samples/$1/$1.csproj" --configuration ${{ env.CONFIGURATION }} \
+              --runtime ${{ env.RID }} --self-contained --output "publish/$1"
+          }
+          publish MinimalApp
+          publish DesktopFeatures
+          publish TemplateApp
+
+      # The package targets must have put blazor.web.js into the published wwwroot. A missing
+      # or empty file here means the PackageReference path is broken again; the runtime
+      # fallbacks would hide that on the test machine, so fail the release instead.
+      - name: Check blazor.web.js shipped with TemplateApp
+        run: test -s publish/TemplateApp/wwwroot/_framework/blazor.web.js
+
+      - name: Zip
+        run: |
+          command -v zip >/dev/null || (apt-get update -qq && apt-get install -y -qq zip)
+          mkdir -p assets
+          for app in MinimalApp DesktopFeatures TemplateApp; do
+            (cd "publish/$app" && zip -qr "../../assets/$app-${{ env.RID }}-${{ env.VERSION }}.zip" .)
+          done
+          ls -la assets
+
+      - name: Upload to release
+        run: |
+          api="${{ github.server_url }}/api/v1/repos/${{ github.repository }}"
+          auth="Authorization: token ${{ github.token }}"
+          release_id=$(curl -sf -H "$auth" "$api/releases/tags/${{ env.TAG }}" | jq -r '.id' || true)
+          if [ -z "$release_id" ]; then
+            release_id=$(curl -sf -X POST -H "$auth" -H "Content-Type: application/json" "$api/releases" \
+              -d "{\"tag_name\":\"${{ env.TAG }}\",\"name\":\"${{ env.TAG }}\",\"target_commitish\":\"${{ github.sha }}\"}" | jq -r '.id')
+          fi
+          echo "release $release_id for ${{ env.TAG }}"
+          existing=$(curl -sf -H "$auth" "$api/releases/$release_id/assets")
+          for file in assets/*.zip; do
+            name=$(basename "$file")
+            # Re-running for the same version replaces the asset instead of adding a twin.
+            for old in $(echo "$existing" | jq -r --arg n "$name" '.[] | select(.name == $n) | .id'); do
+              curl -sf -X DELETE -H "$auth" "$api/releases/$release_id/assets/$old"
+            done
+            curl -sf -H "$auth" -F "attachment=@$file" "$api/releases/$release_id/assets?name=$name" > /dev/null
+            echo "uploaded $name"
+          done
