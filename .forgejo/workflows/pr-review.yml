@@ -13,7 +13,7 @@ env:
   # the old 4096 ceiling could be eaten before a single line of review was written.
   MAX_TOKENS: 16000
   MAX_DIFF_SIZE_BYTES: 300000
-  GITEA_URL: "http://192.168.1.40:3000"
+  GITEA_URL: ${{ github.server_url }}
 
 jobs:
   claude-review:

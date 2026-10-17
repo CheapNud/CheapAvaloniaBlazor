@@ -81,8 +81,6 @@ Every feature with code samples: **[Features guide](./Docs/features.md)**.
 - **[Diagnostics & Debugging](./Docs/diagnostics.md)** — logging and common issues
 - **[Architecture](./Docs/architecture.md)** — how the pieces fit together, platform compatibility
 
-Also browsable on the **[project wiki](https://github.com/CheapNud/CheapAvaloniaBlazor/wiki)**.
-
 ## Samples
 
 - **[MinimalApp](./samples/MinimalApp)** — the absolute minimum code to run a Blazor desktop app

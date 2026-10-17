@@ -2,7 +2,7 @@
 
 Build cross-platform desktop applications using Blazor Server, Avalonia, and Photino — with your existing web skills.
 
-> This documentation lives in the repository's [`Docs/` folder](https://github.com/CheapNud/CheapAvaloniaBlazor/tree/master/Docs) and is mirrored to the GitHub wiki automatically. **Wiki edits get overwritten** — to contribute, open a PR against `Docs/`.
+> This documentation lives in the repository's [`Docs/` folder](https://git.cheapludes.be/cheapnud/CheapAvaloniaBlazor/src/branch/master/Docs). To contribute, open a PR against `Docs/`.
 
 ## Reading Order
 
