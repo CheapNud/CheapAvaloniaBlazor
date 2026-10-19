@@ -19,7 +19,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: 11.0.x
     - name: Restore dependencies
       run: |
         dotnet restore samples/DesktopFeatures/DesktopFeatures.csproj
@@ -42,7 +42,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: 11.0.x
     - name: Install native dependencies
       run: |
         sudo apt-get update
@@ -64,7 +64,7 @@ jobs:
         fi
         export DISPLAY=:99
 
-        dotnet samples/MinimalApp/bin/Release/net10.0/MinimalApp.dll > app.log 2>&1 &
+        dotnet samples/MinimalApp/bin/Release/net11.0/MinimalApp.dll > app.log 2>&1 &
         APP_PID=$!
 
         # The host binds 5000 by default but scans upward when the port is taken.

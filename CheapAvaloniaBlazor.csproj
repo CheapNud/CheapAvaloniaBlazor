@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -8,7 +8,7 @@
 
     <!-- Package Information -->
     <PackageId>CheapAvaloniaBlazor</PackageId>
-    <Version>3.4.1</Version>
+    <Version>4.0.0</Version>
     <Authors>CheapNud</Authors>
     <Company>CheapLudes</Company>
     <Description>Stable Blazor desktop framework with professional splash screen, static-web-asset JavaScript bridge, and clean file management</Description>
@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 3.4.1 - Fixes a blank white window on machines that never had the .NET SDK. blazor.web.js and cheap-blazor-interop.js now travel with the app instead of being resolved out of the build machine's NuGet cache: both reach wwwroot as content that survives dotnet publish, and both are embedded in the library assembly as a fallback that cannot go missing. A static web assets manifest pointing at paths that no longer exist no longer kills the process at startup, and the host now checks its own page at startup and logs any script or stylesheet that comes back failing or empty - including the 200-with-zero-bytes case that reports as healthy everywhere else. Previous release: private update feeds via WithVelopackUpdates(repoUrl, accessToken).</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 4.0.0 - Targets .NET 11 only, with CheapHelpers 3.9, Avalonia 12.1.4 and MudBlazor 9.11. Follows the .NET 11 Internal.Assets package layout (staticwebassets/_framework) for the build-time, startup and embedded copies of blazor.web.js. Previous release: 3.4.1 fixed a blank white window on machines that never had the .NET SDK.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -43,24 +43,24 @@
 
   <ItemGroup>
     <!-- Core Dependencies -->
-    <PackageReference Include="Avalonia" Version="12.1.1" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
-    <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
-    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.0" />
-    <PackageReference Include="Velopack" Version="1.2.0" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <!-- Framework Reference for Blazor Server (provides Components.Web, Hosting, FileProviders) -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <!-- Shared settings service (ISettingsService, FileSettingsService) -->
-    <PackageReference Include="CheapHelpers" Version="3.0.0" />
+    <PackageReference Include="CheapHelpers" Version="3.9.0" />
 
     <!-- Ships blazor.web.js. NOT PrivateAssets: consumers must restore it too, so
          Build/CheapAvaloniaBlazor.targets can resolve $(BlazorFrameworkStaticWebAssetRoot)
          from their own package graph instead of scraping the machine-global NuGet cache. -->
-    <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" Version="10.0.11" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" Version="11.0.0-rc.2.26504.105" GeneratePathProperty="true" />
   </ItemGroup>
 
   <ItemGroup>
@@ -68,7 +68,8 @@
          (static web asset at publish time, NuGet cache extraction at startup) depends on files
          that a clean end-user machine may simply not have; the DLL always ships with the app.
          See Utilities/BlazorFrameworkExtractor for the layer order. -->
-    <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js"
+    <!-- .NET 11 moved the package payload from _framework/ to staticwebassets/_framework/. -->
+    <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\staticwebassets\_framework\blazor.web.js"
                       LogicalName="CheapAvaloniaBlazor.Embedded.blazor.web.js" />
 
     <!-- Same treatment for our own JS bridge. It normally serves as a static web asset at
@@ -85,7 +86,7 @@
        last-resort layer does not exist — the exact silent failure this whole arrangement is
        here to prevent. Fail the build instead. -->
   <Target Name="EnsureBlazorWebJsIsEmbedded" BeforeTargets="CoreCompile">
-    <Error Condition="!Exists('$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js')"
+    <Error Condition="!Exists('$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\staticwebassets\_framework\blazor.web.js')"
            Text="blazor.web.js was not found under '$(PkgMicrosoft_AspNetCore_App_Internal_Assets)'. Microsoft.AspNetCore.App.Internal.Assets must be restored with GeneratePathProperty=&quot;true&quot; or the embedded fallback ships empty. Run 'dotnet restore'." />
   </Target>
 

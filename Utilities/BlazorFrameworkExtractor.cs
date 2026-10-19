@@ -179,9 +179,17 @@ public static class BlazorFrameworkExtractor
 
         foreach (var versionDir in versionDirs)
         {
+            // 11.x packages keep the payload under staticwebassets/_framework; 10.x had _framework at the root.
             var candidate = Path.Combine(versionDir,
+                Constants.BlazorFramework.PackageStaticWebAssetsDirectory,
                 Constants.BlazorFramework.FrameworkDirectory,
                 Constants.BlazorFramework.BlazorWebJsFileName);
+            if (!File.Exists(candidate))
+            {
+                candidate = Path.Combine(versionDir,
+                    Constants.BlazorFramework.FrameworkDirectory,
+                    Constants.BlazorFramework.BlazorWebJsFileName);
+            }
 
             if (File.Exists(candidate))
             {
