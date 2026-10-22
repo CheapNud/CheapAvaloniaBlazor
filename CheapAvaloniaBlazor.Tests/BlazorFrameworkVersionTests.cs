@@ -38,6 +38,26 @@ public class BlazorFrameworkVersionTests
     }
 
     [Fact]
+    public void Selection_prefers_the_latest_prerelease_and_a_stable_release_over_any_prerelease()
+    {
+        // All four parse to 11.0.0; the directory listing order (alphabetical) would pick preview.1.
+        var cacheDirs = new[]
+        {
+            VersionDir("11.0.0-preview.1.26104.118"),
+            VersionDir("11.0.0-rc.1.26425.128"),
+            VersionDir("11.0.0-rc.2.26504.105"),
+        };
+
+        var ordered = BlazorFrameworkExtractor.OrderVersionDirectories(cacheDirs, preferredMajor: 11);
+
+        Assert.Equal(VersionDir("11.0.0-rc.2.26504.105"), ordered[0]);
+
+        var withStable = BlazorFrameworkExtractor.OrderVersionDirectories([.. cacheDirs, VersionDir("11.0.0")], preferredMajor: 11);
+
+        Assert.Equal(VersionDir("11.0.0"), withStable[0]);
+    }
+
+    [Fact]
     public void Selection_falls_back_to_highest_version_when_runtime_major_is_not_cached()
     {
         var cacheDirs = new[] { VersionDir("9.0.11"), VersionDir("10.0.2") };
