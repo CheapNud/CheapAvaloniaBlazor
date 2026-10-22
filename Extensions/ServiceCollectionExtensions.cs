@@ -46,6 +46,9 @@ public static class ServiceCollectionExtensions
             settingsOpts.Folder = options.SettingsFolder;
             settingsOpts.FileName = options.SettingsFileName;
             settingsOpts.AutoSave = options.AutoSaveSettings;
+            // A corrupt entry in settings.json returns the default instead of throwing in the UI.
+            // Every release before CheapHelpers 4 behaved this way.
+            settingsOpts.OnCorruptValue = CorruptValueHandling.ReturnDefault;
         });
         services.AddSingleton<IAppLifecycleService, AppLifecycleService>();
         services.AddSingleton<IUpdateService, UpdateService>();

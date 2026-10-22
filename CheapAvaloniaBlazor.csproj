@@ -17,7 +17,7 @@
     <PackageTags>blazor;avalonia;photino;desktop;mudblazor;cross-platform;webview;splash-screen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 4.0.0 - Targets .NET 11 only, with CheapHelpers 3.9, Avalonia 12.1.4 and MudBlazor 9.11. Follows the .NET 11 Internal.Assets package layout (staticwebassets/_framework) for the build-time, startup and embedded copies of blazor.web.js. Previous release: 3.4.1 fixed a blank white window on machines that never had the .NET SDK.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 4.0.0 - Targets .NET 11 only, with CheapHelpers 4.0, Avalonia 12.1.4 and MudBlazor 9.11. Follows the .NET 11 Internal.Assets package layout (staticwebassets/_framework) for the build-time, startup and embedded copies of blazor.web.js. Previous release: 3.4.1 fixed a blank white window on machines that never had the .NET SDK.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <LangVersion>latest</LangVersion>
@@ -55,7 +55,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <!-- Shared settings service (ISettingsService, FileSettingsService) -->
-    <PackageReference Include="CheapHelpers" Version="3.9.0" />
+    <PackageReference Include="CheapHelpers" Version="4.0.0" />
 
     <!-- Ships blazor.web.js. NOT PrivateAssets: consumers must restore it too, so
          Build/CheapAvaloniaBlazor.targets can resolve $(BlazorFrameworkStaticWebAssetRoot)
