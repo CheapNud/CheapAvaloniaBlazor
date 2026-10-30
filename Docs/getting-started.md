@@ -6,7 +6,7 @@ Welcome! This guide will walk you through creating your first cross-platform des
 
 Before you begin, ensure you have the following installed:
 
-- **.NET 10.0 SDK** or later - [Download from dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0)
+- **.NET 11.0 SDK** or later - [Download from dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/11.0)
 - **Visual Studio 2022** (17.8+) or **Visual Studio Code** with C# extensions
 - Basic knowledge of C# and web development concepts
 
@@ -33,7 +33,7 @@ dotnet add package CheapAvaloniaBlazor
 #### Using Visual Studio 2022 (GUI Users)
 1. Open Visual Studio 2022
 2. Click **Create a new project**
-3. Search for and select **"Console App"** (.NET 10.0)
+3. Search for and select **"Console App"** (.NET 11.0)
 4. Name your project (e.g., "MyDesktopApp")
 5. Click **Create**
 6. Right-click the project in Solution Explorer → **Manage NuGet Packages**
@@ -51,14 +51,14 @@ Open your `.csproj` file and modify it:
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="4.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -594,7 +594,7 @@ dotnet add package CheapAvaloniaBlazor
 ### Hot Reload Not Working
 
 1. Restart the application
-2. Check that your project targets .NET 10.0
+2. Check that your project targets .NET 11.0
 3. Verify you have the latest C# extensions in VS Code
 
 ---

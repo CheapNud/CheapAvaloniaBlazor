@@ -179,9 +179,17 @@ public static class BlazorFrameworkExtractor
 
         foreach (var versionDir in versionDirs)
         {
+            // 11.x packages keep the payload under staticwebassets/_framework; 10.x had _framework at the root.
             var candidate = Path.Combine(versionDir,
+                Constants.BlazorFramework.PackageStaticWebAssetsDirectory,
                 Constants.BlazorFramework.FrameworkDirectory,
                 Constants.BlazorFramework.BlazorWebJsFileName);
+            if (!File.Exists(candidate))
+            {
+                candidate = Path.Combine(versionDir,
+                    Constants.BlazorFramework.FrameworkDirectory,
+                    Constants.BlazorFramework.BlazorWebJsFileName);
+            }
 
             if (File.Exists(candidate))
             {
@@ -214,6 +222,11 @@ public static class BlazorFrameworkExtractor
             .Where(entry => entry.Version is not null)
             .OrderByDescending(entry => entry.Version!.Major == preferredMajor)
             .ThenByDescending(entry => entry.Version)
+            // Same numeric version: a stable release beats any prerelease, and among prereleases
+            // the later label wins ("rc.2" > "rc.1" > "preview.7"). Without this, several 11.0.0
+            // previews in the cache resolve to whichever the file system lists first.
+            .ThenByDescending(entry => !System.IO.Path.GetFileName(entry.Path).Contains('-'))
+            .ThenByDescending(entry => System.IO.Path.GetFileName(entry.Path), StringComparer.OrdinalIgnoreCase)
             .Select(entry => entry.Path)
             .ToList();
     }

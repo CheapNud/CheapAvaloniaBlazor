@@ -12,7 +12,7 @@ Before getting started, ensure your system meets these requirements.
 
 | Requirement | Minimum | Recommended | Status |
 |---|---|---|---|
-| **.NET Runtime** | 10.0 | Latest 10.0+ | Required |
+| **.NET Runtime** | 11.0 | Latest 11.0+ | Required |
 | **Windows** | 10 | 11 | ✅ Fully Tested |
 | **Linux** | Ubuntu 20.04+ | Ubuntu 22.04+ | ⚠️ Untested |
 | **macOS** | 10.15+ | Latest | ⚠️ Untested |
@@ -21,7 +21,7 @@ Before getting started, ensure your system meets these requirements.
 
 | Tool | Minimum | Recommended | Purpose |
 |---|---|---|---|
-| **.NET SDK** | 10.0 | Latest 10.0+ | Development & Building |
+| **.NET SDK** | 11.0 | Latest 11.0+ | Development & Building |
 | **Visual Studio** | 2022 (17.8+) | 2022 Latest | GUI Development (optional) |
 | **VS Code** | Latest | Latest | Terminal & Code Development |
 | **C# Support** | C# 13 | C# 13+ | Language Features |
@@ -47,10 +47,10 @@ dotnet --version
 
 **Expected Output:**
 ```
-10.0.x (or higher)
+11.0.x (or higher)
 ```
 
-If you see a lower version or "not found", you need to install .NET 10.0 SDK.
+If you see a lower version or "not found", you need to install .NET 11.0 SDK.
 
 ### Verify C# Language Support
 
@@ -58,7 +58,7 @@ If you see a lower version or "not found", you need to install .NET 10.0 SDK.
 dotnet --info
 ```
 
-Look for `.NET 10.0` in the SDKs section. Your system is ready if version 10.0+ is listed.
+Look for `.NET 11.0` in the SDKs section. Your system is ready if version 11.0+ is listed.
 
 ---
 
@@ -135,7 +135,7 @@ Both commands should complete **without errors**. If you see errors, check the t
 
 #### Step 3: Select Framework
 
-1. **Framework**: Select **.NET 10.0** from dropdown
+1. **Framework**: Select **.NET 11.0** from dropdown
 2. Click **Create**
 
 Visual Studio will:
@@ -167,7 +167,7 @@ After installation completes:
 
 **Common Issues During Installation:**
 - If NuGet fails to restore, try: **Tools** → **Options** → **NuGet Package Manager** → **Clear All NuGet Cache(s)**
-- If build fails, ensure you selected **.NET 10.0** framework in Step 3
+- If build fails, ensure you selected **.NET 11.0** framework in Step 3
 
 ---
 
@@ -213,14 +213,14 @@ Edit `MyDesktopApp.csproj` to use Razor SDK:
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="4.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -270,10 +270,10 @@ C:\Users\...\MyDesktopApp\.nuget\packages
 
 ### Version Compatibility
 
-CheapAvaloniaBlazor targets **.NET 10.0** with **C# 13** language features.
+CheapAvaloniaBlazor targets **.NET 11.0** with **C# 15** language features.
 
 - **Earlier .NET versions**: Not supported
-- **Later .NET versions**: Compatible with 10.0+ (forward compatible)
+- **Later .NET versions**: Compatible with 11.0+ (forward compatible)
 - **C# earlier versions**: Not supported (uses C# 13 syntax)
 
 ---
@@ -284,7 +284,7 @@ After installation, verify everything is working correctly.
 
 ### Verification Checklist
 
-- [ ] .NET SDK 10.0+ installed (`dotnet --version`)
+- [ ] .NET SDK 11.0+ installed (`dotnet --version`)
 - [ ] Project created successfully
 - [ ] CheapAvaloniaBlazor package installed
 - [ ] `dotnet restore` completes without errors
@@ -331,18 +331,18 @@ Should output the message and exit cleanly.
 
 ## Troubleshooting Installation
 
-### Error: ".NET 10.0 SDK not found"
+### Error: ".NET 11.0 SDK not found"
 
-**Problem:** Your system doesn't have .NET 10.0 SDK installed.
+**Problem:** Your system doesn't have .NET 11.0 SDK installed.
 
 **Solution:**
-1. Go to [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0)
-2. Download **.NET 10.0 SDK** (not just Runtime)
+1. Go to [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/11.0)
+2. Download **.NET 11.0 SDK** (not just Runtime)
 3. Run the installer
 4. Restart your terminal/Visual Studio
 5. Verify: `dotnet --version`
 
-**Expected version:** `10.0.x` or higher
+**Expected version:** `11.0.x` or higher
 
 ---
 
@@ -374,20 +374,20 @@ dotnet add package CheapAvaloniaBlazor
 
 ---
 
-### Error: "SDK Version 10.0 required, but X.X is installed"
+### Error: "SDK Version 11.0 required, but X.X is installed"
 
-**Problem:** Your `.csproj` file specifies .NET 10.0, but you have a different version installed.
+**Problem:** Your `.csproj` file specifies .NET 11.0, but you have a different version installed.
 
 **Solution Option 1: Upgrade .NET SDK**
 ```bash
-# Download and install .NET 10.0 from dotnet.microsoft.com
+# Download and install .NET 11.0 from dotnet.microsoft.com
 # Then verify
 dotnet --version
 ```
 
 **Solution Option 2: Use installed version (not recommended)**
 1. Edit `.csproj`
-2. Find: `<TargetFramework>net10.0</TargetFramework>`
+2. Find: `<TargetFramework>net11.0</TargetFramework>`
 3. Change to your installed version (e.g., `net9.0`)
 4. Note: Some features may not work with older .NET versions
 
@@ -411,14 +411,14 @@ dotnet --version
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="4.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -475,13 +475,13 @@ dotnet build
 
 ---
 
-### Error: "Visual Studio won't recognize .NET 10.0"
+### Error: "Visual Studio won't recognize .NET 11.0"
 
-**Problem:** Visual Studio 2022 project selection doesn't show .NET 10.0.
+**Problem:** Visual Studio 2022 project selection doesn't show .NET 11.0.
 
 **Solution:**
 
-1. Ensure **.NET 10.0 SDK is installed** (not just Runtime)
+1. Ensure **.NET 11.0 SDK is installed** (not just Runtime)
 2. Restart Visual Studio completely
 3. Go to **Tools** → **Options** → **Projects and Solutions** → **.NET Core**
 4. Enable experimental features if disabled
@@ -504,7 +504,7 @@ dotnet new console -n MyDesktopApp
 **Visual Studio:**
 1. Go to **Debug** → **Edit and Continue**
 2. Enable **"Hot Reload on File Save"**
-3. Ensure project targets .NET 10.0
+3. Ensure project targets .NET 11.0
 4. Restart debugger
 
 **VS Code:**
@@ -583,7 +583,7 @@ builder.RunApp(args);
 
 #### Windows 10/11 Setup
 
-1. Install .NET 10.0 SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0)
+1. Install .NET 11.0 SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/11.0)
 2. Restart your computer (recommended)
 3. Use PowerShell or Command Prompt
 4. Follow Option A, B, or C above

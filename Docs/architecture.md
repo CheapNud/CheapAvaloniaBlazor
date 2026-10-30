@@ -18,7 +18,7 @@
 
 ## How `blazor.web.js` Is Served
 
-In .NET 10, `blazor.web.js` ships in the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package. Its MSBuild targets register it as a static web asset — but **only for `OutputType=Exe` projects using `Microsoft.NET.Sdk.Web`**. Desktop apps use `OutputType=WinExe`, so the framework skips them entirely regardless of SDK choice.
+Since .NET 10, `blazor.web.js` ships in the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package. Its MSBuild targets register it as a static web asset — but **only for projects using `Microsoft.NET.Sdk.Web`** (.NET 10 also required `OutputType=Exe`; .NET 11 accepts `WinExe` but keeps the Web SDK gate). Desktop apps use `Microsoft.NET.Sdk.Razor`, so the framework skips them.
 
 CheapAvaloniaBlazor supplies the file itself, in three layers. Each one covers a case the layer above it cannot reach, and the app only needs one of them to succeed.
 
@@ -30,7 +30,7 @@ CheapAvaloniaBlazor supplies the file itself, in three layers. Each one covers a
 
 `UseStaticFiles()` serves whatever landed on disk; the embedded middleware sits directly behind it and only answers when nothing else did.
 
-The embedded copy is frozen at the version CheapAvaloniaBlazor was packed against, so on layer 3 an app running a newer 10.0.x runtime gets a slightly older bootstrapper. That is fine: `blazor.web.js` negotiates over a protocol that is stable across a major version. Layers 1 and 2 always match the app's own package graph, and layer 3 only runs when neither could supply anything at all.
+The embedded copy is frozen at the version CheapAvaloniaBlazor was packed against, so on layer 3 an app running a newer 11.0.x runtime gets a slightly older bootstrapper. That is fine: `blazor.web.js` negotiates over a protocol that is stable across a major version. Layers 1 and 2 always match the app's own package graph, and layer 3 only runs when neither could supply anything at all.
 
 Before 3.4.1 only layer 2 existed. A published app on a clean machine has no NuGet cache, so the script 404'd and the window rendered blank white with no error — the app was running and serving its HTML the whole time.
 
@@ -51,7 +51,7 @@ If the log names an asset, the deployment is the thing to look at:
 | Deployment | Result |
 |---|---|
 | `dotnet publish` (any configuration, framework-dependent or self-contained, single-file included) | All assets resolve. This is the supported way to ship. |
-| Copying `bin/<config>/net10.0/` to another machine | **Third-party `_content` assets fail.** Build output resolves them through `{App}.staticwebassets.runtime.json`, which records absolute paths into the build machine's NuGet cache. This library's own two scripts still work, from the embedded copies. |
+| Copying `bin/<config>/net11.0/` to another machine | **Third-party `_content` assets fail.** Build output resolves them through `{App}.staticwebassets.runtime.json`, which records absolute paths into the build machine's NuGet cache. This library's own two scripts still work, from the embedded copies. |
 
 A manifest pointing at paths that do not exist used to kill the process at startup with no window and no message. It is now caught and logged, and the app runs on whatever is reachable.
 
@@ -61,7 +61,7 @@ A manifest pointing at paths that do not exist used to kill the process at start
 | UI Layer | Blazor Server + MudBlazor | 9.5.0 |
 | Desktop Framework | Avalonia | 12.0.4 |
 | WebView Host | Photino.NET | 4.0.16 |
-| Backend | ASP.NET Core | .NET 10.0 |
+| Backend | ASP.NET Core | .NET 11.0 |
 | Interop | Custom desktop services | Built-in |
 
 ## Cross-Platform Compatibility

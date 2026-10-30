@@ -349,6 +349,8 @@ public static class Constants
 
         public const string BlazorWebJsFileName = "blazor.web.js";
         public const string FrameworkDirectory = "_framework";
+        /// <summary>Folder the .NET 11+ Internal.Assets package keeps its payload in; 10.x had _framework at the package root.</summary>
+        public const string PackageStaticWebAssetsDirectory = "staticwebassets";
         public const string InternalAssetsPackageName = "microsoft.aspnetcore.app.internal.assets";
 
         /// <summary>

@@ -2,7 +2,7 @@
   <!-- Desktop apps use Sdk.Razor, not Sdk.Web. CheapAvaloniaBlazor handles blazor.web.js automatically. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
@@ -14,6 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CheapAvaloniaBlazor" Version="3.4.1" />
+    <PackageReference Include="CheapAvaloniaBlazor" Version="4.0.0" />
   </ItemGroup>
 </Project>

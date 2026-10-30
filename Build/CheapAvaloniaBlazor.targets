@@ -18,17 +18,25 @@
     with the runtime NuGet-cache extractor, and only a clean end-user machine showed the white
     screen. Content items are carried into the publish directory by the SDK.
 
-    $(BlazorFrameworkStaticWebAssetRoot) is defined by the Internal.Assets package itself, which
-    CheapAvaloniaBlazor references non-privately so every consumer restores it. One scalar path,
-    no globbing: this file is only ever imported through a PackageReference, so the package is
-    always in that project's graph. If it somehow is not, the app still works — CheapAvaloniaBlazor
-    extracts the script at startup, and failing that serves the copy embedded in its assembly.
+    The source path comes from the Internal.Assets package, which CheapAvaloniaBlazor references
+    non-privately so every consumer restores it. The .NET 10 package exposed it as
+    $(BlazorFrameworkStaticWebAssetRoot); the .NET 11 package dropped that property and instead
+    registers a StaticWebAssetPackageManifest item whose ContentRoot is its staticwebassets/
+    folder (the script sits in _framework/ below it). Both are tried, one scalar path, no
+    globbing. If neither is there, the app still works — CheapAvaloniaBlazor extracts the script
+    at startup, and failing that serves the copy embedded in its assembly.
   -->
   <Target Name="CopyBlazorFrameworkFilesFromLibrary"
           BeforeTargets="AssignTargetPaths"
           Condition="'$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))">
+    <ItemGroup>
+      <_CheapBlazorInternalAssetsManifest Include="@(StaticWebAssetPackageManifest)"
+                                          Condition="'%(StaticWebAssetPackageManifest.SourceId)' == 'Microsoft.AspNetCore.App.Internal.Assets'" />
+    </ItemGroup>
     <PropertyGroup>
       <_CheapBlazorWebJsSource Condition="'$(BlazorFrameworkStaticWebAssetRoot)' != '' AND Exists('$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js')">$(BlazorFrameworkStaticWebAssetRoot)\blazor.web.js</_CheapBlazorWebJsSource>
+      <_CheapBlazorWebJsSource Condition="'$(_CheapBlazorWebJsSource)' == '' AND '@(_CheapBlazorInternalAssetsManifest)' != ''">@(_CheapBlazorInternalAssetsManifest->'%(ContentRoot)_framework\blazor.web.js')</_CheapBlazorWebJsSource>
+      <_CheapBlazorWebJsSource Condition="!Exists('$(_CheapBlazorWebJsSource)')"></_CheapBlazorWebJsSource>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(_CheapBlazorWebJsSource)' != ''">
